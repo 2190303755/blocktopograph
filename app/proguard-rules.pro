@@ -17,6 +17,3 @@
 #}
 
 # Keep LevelDB classes, native methods may not be obfuscated!
--keep public class com.litl.leveldb.** {
-  public private protected *;
-}

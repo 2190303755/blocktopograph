@@ -7,9 +7,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.Log;
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 
 
@@ -25,8 +25,8 @@ public class RectEditTarget extends EditTarget {
     @NonNull
     private final Dimension dimension;
 
-    public RectEditTarget(@NonNull WorldData worldData, @NonNull Rect area, @NonNull Dimension dimension) {
-        super(true, worldData);
+    public RectEditTarget(@NonNull WorldStorage storage, @NonNull Rect area, @NonNull Dimension dimension) {
+        super(true, storage);
         mArea = new Rect(area);
         mArea.right--;
         mArea.bottom--;
@@ -72,7 +72,7 @@ public class RectEditTarget extends EditTarget {
                 int innerMinZ = (chunkZ == chunkMinZ) ? (mArea.top & 0xf) : 0;
                 int innerMaxZ = (chunkZ == chunkMaxZ) ? (mArea.bottom & 0xf) : 15;
 
-                Chunk chunk = mWorldData.getChunkStreaming(chunkX, chunkZ, dimension, false, Version.V1_2_PLUS);
+                Chunk chunk = this.storage.getChunkStreaming(chunkX, chunkZ, dimension, false, Version.V1_2_PLUS);
 
                 if (chunkBased) {
                     int result = chunkBasedEdit.edit(chunk, innerMinX, innerMaxX, yLowest, yHighest, innerMinZ, innerMaxZ);
@@ -139,7 +139,7 @@ public class RectEditTarget extends EditTarget {
             }// End for ChunkZ
         }// End for ChunkX
 
-        mWorldData.resetCache();
+        this.storage.resetCache();
         return exceptionCount > 0 ? EditResultCode.PARTIALLY_FAILED : EditResultCode.SUCCESS;
     }
 }

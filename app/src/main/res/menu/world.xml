@@ -8,6 +8,11 @@
         android:title="@string/open_world_custom_path"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_create"
+        android:orderInCategory="100"
+        android:title="@string/action_create"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_about"
         android:orderInCategory="100"
         android:title="@string/action_about"

@@ -1,25 +1,11 @@
 package com.mithrilmania.blocktopograph.map.picer;
 
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.Rect;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.FragmentActivity;
-
-import com.mithrilmania.blocktopograph.Log;
-import com.mithrilmania.blocktopograph.WorldData;
-import com.mithrilmania.blocktopograph.map.Dimension;
-import com.mithrilmania.blocktopograph.map.edit.RectEditTarget;
-import com.mithrilmania.blocktopograph.map.renderer.MapRenderer;
 
 import java.lang.ref.WeakReference;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 class GenerateThread extends Thread {
 
@@ -42,13 +28,13 @@ class GenerateThread extends Thread {
 
     @Override
     public void run() {
-
+/*
         PicerFragment owner = this.owner.get();
         if (owner == null) return;
 
         Dimension dimension = owner.mDimension;
         MapRenderer renderer = dimension.defaultMapType.renderer;
-        WorldData wdata = owner.mWorld.getWorldData();
+        WorldStorage wdata = owner.mWorld.storage;
 
         int width = area.right - area.left + 1;
         int height = area.bottom - area.top + 1;
@@ -103,7 +89,7 @@ class GenerateThread extends Thread {
         if (activity != null)
             activity.runOnUiThread(() -> this.owner.get().onGenerationDone(bitmap, dialog.get()));
 
-        owner.mOngoingThread = null;
+        owner.mOngoingThread = null;*/
     }
 
     void cancel() {

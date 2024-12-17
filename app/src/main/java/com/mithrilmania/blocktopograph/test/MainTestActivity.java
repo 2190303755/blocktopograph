@@ -2,43 +2,34 @@ package com.mithrilmania.blocktopograph.test;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.litl.leveldb.DB;
-import com.litl.leveldb.Iterator;
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
-import com.mithrilmania.blocktopograph.WorldData;
-import com.mithrilmania.blocktopograph.block.OldBlock;
-import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
-import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
-import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
-import com.mithrilmania.blocktopograph.chunk.Version;
 import com.mithrilmania.blocktopograph.databinding.ActivityMainTestBinding;
-import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
+import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.ConvertUtil;
 import com.mithrilmania.blocktopograph.util.IoUtil;
 import com.mithrilmania.blocktopograph.util.McUtil;
 import com.mithrilmania.blocktopograph.util.UiUtil;
+import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
+
+import org.iq80.leveldb.DBIterator;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -48,7 +39,7 @@ import java.util.concurrent.Callable;
 public final class MainTestActivity extends AppCompatActivity {
 
     private ActivityMainTestBinding mBinding;
-    private World mWorld;
+    private WorldMapModel model;
 
     /**
      * https://stackoverflow.com/a/25659067/9399618
@@ -117,43 +108,35 @@ public final class MainTestActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main_test);
-
-        if (savedInstanceState != null) {
-            Serializable ser = savedInstanceState.getSerializable(World.ARG_WORLD_SERIALIZED);
-            if (ser instanceof World) mWorld = (World) ser;
-        }
-        if (mWorld == null) {
-            Intent intent = getIntent();
-            if (intent != null) {
-                Serializable ser = intent.getSerializableExtra(World.ARG_WORLD_SERIALIZED);
-                if (ser instanceof World) mWorld = (World) ser;
-            }
-            if (mWorld == null) {
-                finish();
+        WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
+        if (model.getInstance() == null) {
+            try {
+                model.init(this, this.getIntent().getData());
+            } catch (Exception e) {
+                Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
+                this.finish();
                 return;
             }
         }
-
-        try {
-            mWorld.getWorldData().load();
-        } catch (WorldData.WorldDataLoadException e) {
-            Log.d(this, e);
-            finish();
-            return;
-        }
-        File file = Environment.getExternalStorageDirectory();
+        this.model = model;
+        File file = this.getExternalCacheDir();
         file = McUtil.getBtgTestDir(file);
         mBinding.fabMenuFixLdb.setOnClickListener(this::onClickFixLdb);
+        mBinding.searchBtn.setLongClickable(true);
+        mBinding.searchBtn.setOnLongClickListener(btn -> {
+            WorldStorage storage = this.model.getStorage().getValue();
+            if (storage == null) {
+                Log.d(this, "db is null");
+                return false;
+            }
+            Log.d(this, "Logging db keys");
+            AsyncKt.run(storage::logDBKeys);
+            return true;
+        });
         //mBinding.fabMenuGenerateAllBlocks.setOnClickListener(this::onClickGenAllBlocks);
         //mBinding.fabMenuAnalyzeAllBlocks.setOnClickListener(this::onClickAnaAllBlocks);
         //mBinding.fabMenuGenCodeAllBlocksState.setOnClickListener(this::onClickGenCodeAllBlocksState);
         mBinding.setPath(file.getPath());
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putSerializable(World.ARG_WORLD_SERIALIZED, mWorld);
     }
 
     private byte[] readItem() {
@@ -162,35 +145,29 @@ public final class MainTestActivity extends AppCompatActivity {
 
     private byte[] readItem(byte[] key) {
         byte[] ret;
-        WorldData wdata = mWorld.getWorldData();
+        WorldStorage storage = this.model.getStorage().getValue();
+        if (storage == null) return null;
         try {
-            wdata.openDB();
-            ret = wdata.db.get(key);
-            wdata.closeDB();
+            ret = storage.db.get(key);
         } catch (Exception e) {
             Log.d(this, e);
             ret = null;
-        }
-        try {
-            wdata.closeDB();
-        } catch (WorldData.WorldDBException e) {
-            Log.d(this, e);
         }
         return ret;
     }
 
     public void onClickSearch(View view) {
         byte[] pattern = getDbKey();
-        WorldData wdata = mWorld.getWorldData();
+        WorldStorage storage = this.model.getStorage().getValue();
+        if (storage == null) return;
         try {
-            wdata.openDB();
             List<String> keys = new ArrayList<>();
             List<Boolean> keyTypeText = new ArrayList<>();
             List<byte[]> originalKeys = new ArrayList<>();
-            Iterator iter = wdata.db.iterator();
+            DBIterator it = storage.db.iterator();
             int[] failure = computeFailure(pattern);
-            for (iter.seekToFirst(); iter.isValid(); iter.next()) {
-                byte[] key = iter.getKey();
+            for (it.seekToFirst(); it.hasNext(); ) {
+                byte[] key = it.next().getKey();
                 if (arrContains(key, pattern, failure)) {
                     String str = null;
                     boolean isText = false;
@@ -208,8 +185,7 @@ public final class MainTestActivity extends AppCompatActivity {
                     keyTypeText.add(isText);
                 }
             }
-            iter.close();
-            wdata.closeDB();
+            it.close();
             String[] keyArr = new String[keys.size()];
             keys.toArray(keyArr);
             AlertDialog dia = new AlertDialog.Builder(this).setItems(keyArr, (di, i) -> {
@@ -224,11 +200,6 @@ public final class MainTestActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.d(this, e);
             printStackTraceInDialog(e);
-        }
-        try {
-            wdata.closeDB();
-        } catch (WorldData.WorldDBException e) {
-            Log.d(this, e);
         }
     }
 
@@ -285,15 +256,7 @@ public final class MainTestActivity extends AppCompatActivity {
 
     @SuppressWarnings("unchecked")
     private void onClickFixLdb(View view) {
-        new ForegroundTask(this).execute(() -> {
-            WorldData worldData = mWorld.getWorldData();
-            try {
-                worldData.closeDB();
-            } catch (WorldData.WorldDBException e) {
-                Log.d(this, e);
-            }
-            return DB.fixLdb(worldData.db.getPath().getAbsolutePath());
-        });
+
     }
 
     /*@SuppressWarnings("unchecked")

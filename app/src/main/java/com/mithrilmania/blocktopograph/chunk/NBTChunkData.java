@@ -1,9 +1,10 @@
 package com.mithrilmania.blocktopograph.chunk;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.nbt.convert.DataConverter;
 import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+
+import org.iq80.leveldb.DBException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ public class NBTChunkData extends ChunkData {
         this.dataType = dataType;
     }
 
-    public void load() throws WorldData.WorldDBLoadException, WorldData.WorldDBException, IOException {
+    public void load() throws DBException, IOException {
         Chunk chunk = this.chunk.get();
         loadFromByteArray(chunk.getWorldData().getChunkData(chunk.mChunkX, chunk.mChunkZ, dataType, chunk.mDimension, (byte) 0, false));
     }
@@ -30,7 +31,7 @@ public class NBTChunkData extends ChunkData {
         if (data != null && data.length > 0) this.tags = DataConverter.read(data);
     }
 
-    public void write() throws WorldData.WorldDBException, IOException {
+    public void write() throws DBException, IOException {
         if (this.tags == null) this.tags = new ArrayList<>();
         byte[] data = DataConverter.write(this.tags);
         Chunk chunk = this.chunk.get();
@@ -42,5 +43,4 @@ public class NBTChunkData extends ChunkData {
         if (this.tags == null) this.tags = new ArrayList<>();
         this.tags.add(new IntTag("Placeholder", 42));
     }
-
 }

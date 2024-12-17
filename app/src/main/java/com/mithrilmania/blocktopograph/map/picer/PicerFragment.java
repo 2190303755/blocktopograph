@@ -34,12 +34,12 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
 import com.mithrilmania.blocktopograph.databinding.FragPicerBinding;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.OpenLongPressMenuHandler;
 import com.mithrilmania.blocktopograph.util.ConvertUtil;
 import com.mithrilmania.blocktopograph.util.UiUtil;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.io.File;
 
@@ -301,7 +301,7 @@ public final class PicerFragment extends DialogFragment {
         if (!(o instanceof Bitmap)) return;
         Bitmap bmp = (Bitmap) o;
         view.setTag(null);
-        String name = mWorld.getWorldDisplayName();
+        String name = mWorld.getPlainName();
         name = ConvertUtil.getLegalFileName(name);
         new SaveTask(this, name).execute(bmp);
     }

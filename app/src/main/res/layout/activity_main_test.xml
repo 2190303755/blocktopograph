@@ -41,6 +41,7 @@
                         android:maxLines="1" />
 
                     <ImageButton
+                        android:id="@+id/search_btn"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:onClick="onClickSearch"

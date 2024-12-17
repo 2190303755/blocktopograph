@@ -16,9 +16,9 @@ import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
 import com.mithrilmania.blocktopograph.databinding.FragMapGotoBinding;
 import com.mithrilmania.blocktopograph.map.FloatPaneFragment;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.lang.ref.WeakReference;
 

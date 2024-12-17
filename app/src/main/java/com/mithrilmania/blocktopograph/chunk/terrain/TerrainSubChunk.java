@@ -3,11 +3,12 @@ package com.mithrilmania.blocktopograph.chunk.terrain;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
-import com.mithrilmania.blocktopograph.block.OldBlock;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+
+import org.iq80.leveldb.DBException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -112,6 +113,6 @@ public abstract class TerrainSubChunk {
 //        return oldBlockRegistry;
 //    }
 
-    abstract public void save(WorldData worldData, int chunkX, int chunkZ, Dimension dimension, int which) throws WorldData.WorldDBException, IOException;
+    abstract public void save(WorldStorage worldData, int chunkX, int chunkZ, Dimension dimension, int which) throws DBException, IOException;
 
 }

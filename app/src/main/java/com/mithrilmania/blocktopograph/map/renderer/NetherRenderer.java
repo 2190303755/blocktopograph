@@ -6,22 +6,20 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.OldBlock;
-import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 
 
 public class NetherRenderer implements MapRenderer {
 
-    public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldData worldData) throws Version.VersionException {
+    public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException {
 
-        Chunk chunkW = worldData.getChunk(chunkX - 1, chunkZ, dimension);
-        Chunk chunkN = worldData.getChunk(chunkX, chunkZ - 1, dimension);
+        Chunk chunkW = storage.getChunk(chunkX - 1, chunkZ, dimension);
+        Chunk chunkN = storage.getChunk(chunkX, chunkZ - 1, dimension);
 
         //Do you have to list all variables here in a 80s manner
         // regardless of many are only used within nested loop...

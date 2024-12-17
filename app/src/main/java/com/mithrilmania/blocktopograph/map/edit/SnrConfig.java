@@ -4,8 +4,8 @@ import android.util.Pair;
 
 import androidx.annotation.NonNull;
 
-import com.google.common.collect.Streams;
 import com.mithrilmania.blocktopograph.block.Block;
+import com.mithrilmania.blocktopograph.util.StreamUtil;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ public class SnrConfig implements Serializable {
         public boolean matches(Block block) {
             if (!examplar.getName().equals(block.getName())) return false;
             var examplarKnownProperties = examplar.getKnownProperties();
-            if (examplarKnownProperties != null && Streams.zip(Arrays.stream(examplarKnownProperties),
+            if (examplarKnownProperties != null && StreamUtil.zip(Arrays.stream(examplarKnownProperties),
                     Arrays.stream(block.getKnownProperties()), Pair::new)
                     .anyMatch(pair -> pair.first != null && !Objects.equals(pair.first, pair.second))) {
                 return false;

@@ -146,7 +146,7 @@
     <string name="error_could_not_open_world_details_lost_track_world">错误：无法打开世界详情；世界信息丢失</string>
     <string name="error_could_not_open_world">错误：无法打开世界</string>
     <string name="no_level_data_available">没有有效的存档数据</string>
-    <string name="worldlist_detail_world_name">世界名字：</string>
+    <string name="worldlist_detail_world_name">世界名称：</string>
     <string name="worldlist_detail_world_size">世界大小：</string>
     <string name="worldlist_detail_gamemode">游戏模式：</string>
     <string name="worldlist_detail_last_played">上次游玩：</string>
@@ -418,4 +418,14 @@
     <string name="restore_caption">恢复先前的备份文件</string>
     <string name="restore_warn">这将撤销所有在该备份创建以后进行的更改！您确定吗？注意不要丢失进度。</string>
     <string name="world_name_broken">损坏的世界</string>
+    <string name="default_world_name">新的世界</string>
+    <string name="calculating_size">正在计算…</string>
+    <string name="action_create">创建世界</string>
+    <string name="edit_config">编辑配置</string>
+    <string name="edit_world">编辑世界</string>
+    <string name="world_detail_location">世界位置</string>
+    <string name="world_detail_last_played">上次游玩</string>
+    <string name="world_detail_game_mode">游戏模式</string>
+    <string name="world_detail_size">世界大小</string>
+    <string name="world_detail_seed">世界种子</string>
 </resources>

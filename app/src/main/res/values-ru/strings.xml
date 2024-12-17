@@ -513,4 +513,9 @@ NBT редактором миров Minecraft для Android.
     <string name="worldpath_is_not_directory">Этот путь (необязательно с суффиксом /level.dat) не является директорией!</string>
     <string name="x_is_invalid">\"%1$s\" некорректный!</string>
     <string name="x_ray">X-Ray (показать руды)</string>
+    <string name="world_detail_location">Путь к файлу</string><!-- Untranslated -->
+    <string name="world_detail_last_played">Последняя игра</string>
+    <string name="world_detail_game_mode">Режим игры</string>
+    <string name="world_detail_size">Размер мира</string>
+    <string name="world_detail_seed">Сид мира</string>
 </resources>

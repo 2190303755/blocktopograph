@@ -487,4 +487,14 @@
     <string name="auto_backup_caption">Auto Backup In Progress...</string>
     <string name="auto_backup_name">[Auto]</string>
     <string name="world_name_broken">Broken World</string>
+    <string name="default_world_name">New World</string>
+    <string name="calculating_size">Calculating…</string>
+    <string name="action_create">Create World</string>
+    <string name="edit_config">Edit Config</string>
+    <string name="edit_world">Edit World</string>
+    <string name="world_detail_location">World Location</string>
+    <string name="world_detail_last_played">Last Played</string>
+    <string name="world_detail_game_mode">Game Mode</string>
+    <string name="world_detail_size">World Size</string>
+    <string name="world_detail_seed">World Seed</string>
 </resources>

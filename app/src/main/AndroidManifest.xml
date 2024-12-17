@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.mithrilmania.blocktopograph">
+    xmlns:tools="http://schemas.android.com/tools">
 
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -8,17 +7,19 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_CLIPBOARD_DATA" />
 
     <uses-sdk tools:overrideLibrary="com.jbvincey.nestedradiobutton" />
 
     <application
-        android:name=".WrappedApp"
+        android:name=".Blocktopograph"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        android:enableOnBackInvokedCallback="true"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning,UnusedAttribute">
 
         <meta-data
@@ -30,20 +31,25 @@
             android:value="false" />
 
         <activity
-            android:name=".worldlist.WorldItemListActivity"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:name=".worldlist.OldWorldItemListActivity"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".worldlist.WorldListActivity"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:exported="true" />
+
         <!-- World Detail -->
         <activity
             android:name=".worldlist.WorldItemDetailActivity"
             android:label="@string/title_worlditem_detail"
-            android:parentActivityName=".worldlist.WorldItemListActivity"
+            android:parentActivityName=".worldlist.OldWorldItemListActivity"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <!-- World -->
@@ -51,13 +57,13 @@
             android:name=".WorldActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_world"
-            android:parentActivityName=".worldlist.WorldItemListActivity"
+            android:parentActivityName=".worldlist.OldWorldItemListActivity"
             android:theme="@style/World" />
 
         <activity
             android:name=".CreateWorldActivity"
             android:label="@string/create_world_title"
-            android:parentActivityName=".worldlist.WorldItemListActivity"
+            android:parentActivityName=".worldlist.OldWorldItemListActivity"
             android:theme="@style/AppTheme.FlexDialog" />
 
         <activity
@@ -72,7 +78,7 @@
         <activity
             android:name=".test.MainTestActivity"
             android:label="@string/title_test_page"
-            android:parentActivityName=".worldlist.WorldItemListActivity" />
+            android:parentActivityName=".worldlist.OldWorldItemListActivity" />
 
         <activity
             android:name=".BiomeSelectDialog"
@@ -83,14 +89,6 @@
             android:label="@string/some_thing_went_wrong" />
 
         <activity android:name=".test.VisualizationActivity" />
-        <activity
-            android:name=".BackupActivity"
-            android:label="@string/backup_amp_restore"
-            android:theme="@style/AppTheme.FlexDialog">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.mithrilmania.blocktopograph.WorldActivity" />
-        </activity>
 
         <meta-data
             android:name="android.support.VERSION"

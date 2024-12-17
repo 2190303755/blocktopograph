@@ -2,18 +2,16 @@ package com.mithrilmania.blocktopograph.chunk;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.OldBlock;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 
 
 public final class VoidChunk extends Chunk {
-
-    VoidChunk(WorldData worldData, Version version, int chunkX, int chunkZ, Dimension dimension) {
-        super(worldData, version, chunkX, chunkZ, dimension);
+    VoidChunk(WorldStorage storage, Version version, int chunkX, int chunkZ, Dimension dimension) {
+        super(storage, version, chunkX, chunkZ, dimension);
         mIsVoid = true;
     }
 

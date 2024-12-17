@@ -4,23 +4,14 @@ import android.app.Activity;
 import android.graphics.Rect;
 import android.os.AsyncTask;
 
-import com.litl.leveldb.DB;
-import com.litl.leveldb.Iterator;
-import com.mithrilmania.blocktopograph.Log;
-import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
-import com.mithrilmania.blocktopograph.WorldData;
-import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.map.Dimension;
-import com.mithrilmania.blocktopograph.util.UiUtil;
-
-import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
+
+import com.mithrilmania.blocktopograph.R;
+import com.mithrilmania.blocktopograph.util.UiUtil;
+
+import java.lang.ref.WeakReference;
 
 class AnalyzeTask extends AsyncTask<Void, Void, Rect> {
 
@@ -53,25 +44,16 @@ class AnalyzeTask extends AsyncTask<Void, Void, Rect> {
     @Nullable
     protected Rect doInBackground(Void... voids) {
 
-        PicerFragment owner = this.owner.get();
+        /*PicerFragment owner = this.owner.get();
         if (owner == null) return null;
 
         // Get db.
-        DB db = null;
-        getDb:
-        {
-            World world = owner.mWorld;
-            if (world == null) break getDb;
-            WorldData worldData = world.getWorldData();
-            try {
-                worldData.openDB();
-            } catch (Exception e) {
-                break getDb;
-            }
-            db = worldData.db;
+        DB db;
+        try {
+            db = owner.mWorld.storage.getDB();
+        } catch (IOException e) {
+            return null;
         }
-        if (db == null) return null;
-
         Dimension dimension = owner.mDimension;
         int verKeyLenOfDim;
         switch (dimension) {
@@ -96,19 +78,19 @@ class AnalyzeTask extends AsyncTask<Void, Void, Rect> {
         // Iterate over all items.
         try {
             db.put(new byte[]{0, 1, 2, 3, 0, 1, 2, 3, 118}, new byte[]{0});
-            Iterator iterator = db.iterator();
+            DBIterator iterator = db.iterator();
             boolean cancelled = false;
             int loopCount = 0;
             loop:
-            for (iterator.seekToFirst(); iterator.isValid(); iterator.next(), loopCount++) {
+            for (iterator.seekToFirst(); iterator.hasNext(); loopCount++) {
 
                 if (isCancelled()) {
                     cancelled = true;
                     break;
                 }
-
+                Map.Entry<byte[], byte[]> entry = iterator.next();
                 // Is it a key for a chunk of current dim's version record?
-                byte[] key = iterator.getKey();
+                byte[] key = entry.getKey();
                 if (key.length != verKeyLenOfDim) continue;
                 if (key[verKeyLenOfDim - 1] != (byte) 0x76) continue;
                 ByteBuffer byteBuffer = ByteBuffer.wrap(key);
@@ -117,7 +99,7 @@ class AnalyzeTask extends AsyncTask<Void, Void, Rect> {
                 int z = byteBuffer.getInt();
                 // Wrong dim.
                 if (verKeyLenOfDim == 13 && dimension.id != byteBuffer.getInt()) continue;
-                byte[] value = iterator.getValue();
+                byte[] value = entry.getValue();
                 Version version = Version.getVersion(value);
                 // Record unsupported stuff and skip.
                 switch (version) {
@@ -181,7 +163,8 @@ class AnalyzeTask extends AsyncTask<Void, Void, Rect> {
             rect.right *= 16 + 15;
             rect.bottom *= 16 + 15;
         }
-        return rect;
+        return rect;*/
+        return null;
     }
 
     @Override

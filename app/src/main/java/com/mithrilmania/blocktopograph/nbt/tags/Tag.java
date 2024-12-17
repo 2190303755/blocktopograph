@@ -66,9 +66,9 @@ public abstract class Tag<T> implements Serializable {
         String name = getName();
         String type = getType().name();
         T value = getValue();
-        return (type == null ? "?" : ("TAG_" + type))
-                + (name == null ? "(?)" : ("(" + name + ")"))
-                + (value == null ? ":?" : (": " + value.toString()));
+        return "TAG_" + type
+                + (name == null ? "(?)" : "(" + name + ")")
+                + (value == null ? ":?" : ": " + value);
     }
 
     @Override

@@ -3,9 +3,9 @@ package com.mithrilmania.blocktopograph.map.renderer;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 
 
@@ -35,10 +35,10 @@ public interface MapRenderer {
      * @param pW        width (X) of one block in pixels
      * @param pL        length (Z) of one block in pixels
      * @param paint     Paint instance used to draw on canvas
-     * @param worldData ChunkManager, some renderer needs info about its neighbor
+     * @param storage   ChunkManager, some renderer needs info about its neighbor
      * @throws RuntimeException when the version of the chunk is unsupported.
-     *                          TODO: reduce complicity, e.g. remove chunkManager from parameters.
+     *                                                   TODO: reduce complicity, e.g. remove chunkManager from parameters.
      */
-    void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldData worldData) throws Version.VersionException;
+    void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException;
 
 }

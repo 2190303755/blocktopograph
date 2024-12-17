@@ -13,7 +13,6 @@ import androidx.appcompat.app.AlertDialog;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
-import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.map.Biome;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.util.UiUtil;
@@ -56,7 +55,6 @@ public class SelectionBasedContextFreeEditTask extends
                 activity, R.string.general_please_wait, this::onCancel
         );
         mWaitDialog.show();
-        owner.world.setHaveBackgroundJob(true);
     }
 
     @Override
@@ -122,9 +120,6 @@ public class SelectionBasedContextFreeEditTask extends
     private void onCancel(DialogInterface dialogInterface) {
         cancel(true);
         mWaitDialog = null;
-        MapFragment owner;
-        if ((owner = mOwner.get()) != null)
-            owner.world.setHaveBackgroundJob(false);
     }
 
     @Override
@@ -135,7 +130,7 @@ public class SelectionBasedContextFreeEditTask extends
         MapFragment owner = mOwner.get();
         Activity activity;
         if (owner != null && (activity = owner.getActivity()) != null) {
-            owner.world.setHaveBackgroundJob(false);
+
             if (editResultCode == null)
                 return;
             switch (editResultCode) {

@@ -12,14 +12,12 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.databinding.FragLocatorPlayersBinding;
 import com.mithrilmania.blocktopograph.databinding.ItemLocatorPlayerBinding;
 import com.mithrilmania.blocktopograph.map.Player;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.lang.ref.WeakReference;
 
@@ -112,13 +110,12 @@ public final class LocatorPlayersFragment extends LocatorPageFragment {
 
         @Override
         protected Player[] doInBackground(World... worlds) {
+            /*LocatorPlayersFragment owner = this.owner.get();
             World world;
-            if (worlds.length != 1 || (world = worlds[0]) == null) return null;
-            WorldData worldData = world.getWorldData();
+            if (owner == null || worlds.length != 1 || (world = worlds[0]) == null) return null;
             try {
-                worldData.openDB();
-                DimensionVector3<Float> localPlayerPos = world.getPlayerPos();
-                String[] mlst = worldData.getNetworkPlayerNames();
+                DimensionVector3<Float> localPlayerPos = world.getLocalPlayerPos(owner.getContext());
+                String[] mlst = world.storage.getNetworkPlayerNames();
                 Player[] players;
                 int offset;
                 if (localPlayerPos == null) {
@@ -143,7 +140,8 @@ public final class LocatorPlayersFragment extends LocatorPageFragment {
             } catch (Exception e) {
                 Log.d(this, e);
                 return null;
-            }
+            }*/
+            return null;
         }
 
         @Override

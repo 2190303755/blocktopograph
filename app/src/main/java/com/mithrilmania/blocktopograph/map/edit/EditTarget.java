@@ -2,8 +2,8 @@ package com.mithrilmania.blocktopograph.map.edit;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public abstract class EditTarget {
@@ -12,11 +12,11 @@ public abstract class EditTarget {
 
     protected final boolean mIsChunkAware;
     @NonNull
-    protected final WorldData mWorldData;
+    protected final WorldStorage storage;
 
-    protected EditTarget(boolean isChunkAware, @NonNull WorldData worldData) {
+    protected EditTarget(boolean isChunkAware, @NonNull WorldStorage storage) {
         mIsChunkAware = isChunkAware;
-        mWorldData = worldData;
+        this.storage = storage;
     }
 
     public abstract EditResultCode forEachXyz(RandomAccessEdit edit);

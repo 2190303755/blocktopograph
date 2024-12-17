@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.view.MenuItem;
@@ -14,6 +13,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,6 +22,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -30,7 +31,6 @@ import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.map.TileEntity;
-import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.nbt.EditableNBT;
 import com.mithrilmania.blocktopograph.nbt.EditorFragment;
@@ -38,67 +38,29 @@ import com.mithrilmania.blocktopograph.nbt.convert.DataConverter;
 import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.util.AsyncKt;
+import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
+import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class WorldActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, WorldActivityInterface {
+        implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
 
     public static final String PREF_KEY_SHOW_MARKERS = "showMarkers";
-    private World world;
     private ActivityWorldBinding mBinding;
+    private WorldMapModel model;
 
     private MapFragment mapFragment;
 
     @Override
-    public void showActionBar() {
-        ActionBar bar = getSupportActionBar();
-        if (bar != null) bar.show();
-    }
-
-    @Override
-    public void hideActionBar() {
-        ActionBar bar = getSupportActionBar();
-        if (bar != null) bar.hide();
-    }
-
-    @Override
-    public void openDrawer() {
-        mBinding.drawerLayout.openDrawer(mBinding.navView, true);
-    }
-
-    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        }
-        // immersive fullscreen for Android Kitkat and higher
-//        if (hasFocus && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            ActionBar bar = getSupportActionBar();
-//            if (bar != null) bar.hide();
-//            this.getWindow().getDecorView().setSystemUiVisibility(
-//                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-//                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-//                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-//                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-//                            | View.SYSTEM_UI_FLAG_FULLSCREEN
-//                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-//        }
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putSerializable(World.ARG_WORLD_SERIALIZED, world);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
     @Override
@@ -108,19 +70,26 @@ public class WorldActivity extends AppCompatActivity
         Retrieve world from previous state or intent
          */
         Log.d(this, "World activity creating...");
-        this.world = (World) (savedInstanceState == null
-                ? getIntent().getSerializableExtra(World.ARG_WORLD_SERIALIZED)
-                : savedInstanceState.getSerializable(World.ARG_WORLD_SERIALIZED));
-        if (world == null) {
-            Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
-            //WTF, try going back to the previous screen by finishing this hopeless activity...
-            finish();
-            //Finish does not guarantee codes below won't be executed!
-            //Shit
-            return;
+        WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
+        if (model.getInstance() == null) {
+            try {
+                if (!model.init(this, this.getIntent().getData())) {
+                    Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
+                    this.finish();
+                }
+            } catch (Exception e) {
+                Log.e(this, e);
+                Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
+                //WTF, try going back to the previous screen by finishing this hopeless activity...
+                this.finish();
+                //Finish does not guarantee codes below won't be executed!
+                //Shit
+                return;
+            }
         }
-
-        showMarkers = getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true);
+        this.model = model;
+        World instance = model.getInstance();
+        model.getShowMarkers().setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
 
         /*
                 Layout
@@ -149,7 +118,7 @@ public class WorldActivity extends AppCompatActivity
         // Title = world-name
         TextView title = headerView.findViewById(R.id.world_drawer_title);
         assert title != null;
-        title.setText(this.world.getWorldDisplayName());
+        title.setText(instance.getPlainName());
 
         // Subtitle = world-seed (Tap worldseed to choose to copy it)
         TextView subtitle = headerView.findViewById(R.id.world_drawer_subtitle);
@@ -174,147 +143,71 @@ public class WorldActivity extends AppCompatActivity
 
             *link to results will be included here for reference when @mithrilmania is done*
          */
-        String worldSeed = String.valueOf(this.world.getWorldSeed());
-        subtitle.setText(worldSeed);
+        subtitle.setText(String.valueOf(instance.getWorldSeed(this)));
 
         // Open the world-map as default content
         openWorldMap();
-        try {
-            world.getWorldData().load();
-            world.getWorldData().openDB();
-        } catch (Exception e) {
-            e.printStackTrace();
-            finish();
-        }
-//
-//        new AsyncTask<Void, Void, Void>() {
-//            @Override
-//            protected Void doInBackground(Void... voids) {
-//
-//                try {
-//                    //try to load world-data (Opens chunk-database for later usage)
-//                    world.getWorldData().openDB();
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//                return null;
-//            }
-//        }.execute();
-//        finish();
-//        if(1==1)return;
+        this.getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                DrawerLayout drawer = mBinding.drawerLayout;
+                if (drawer.isDrawerOpen(GravityCompat.START)) {
+                    drawer.closeDrawer(GravityCompat.START);
+                    return;
+                }
 
+                final FragmentManager manager = getSupportFragmentManager();
+                int count = manager.getBackStackEntryCount();
 
-        Bundle bundle = new Bundle();
-        bundle.putString("seed", worldSeed);
-        bundle.putString("name", this.world.getWorldDisplayName());
-        Bundle mapVersionData = world.getMapVersionData();
-        if (mapVersionData != null) bundle.putAll(mapVersionData);
+                // No opened fragments, so it is using the default fragment
+                // Ask the user if he/she wants to close the world.
+                if (count == 0) {
 
-        // anonymous global counter of opened worlds
-        Log.logFirebaseEvent(this, Log.CustomFirebaseEvent.WORLD_OPEN, bundle);
+                    new AlertDialog.Builder(WorldActivity.this)
+                            .setMessage(R.string.ask_close_world)
+                            .setCancelable(false)
+                            .setPositiveButton(android.R.string.yes, (dialog, id) -> WorldActivity.this.finish())
+                            .setNegativeButton(android.R.string.no, null)
+                            .show();
 
+                } else if (confirmContentClose != null) {
+                    //An important fragment is opened,
+                    // something that couldn't be reopened in its current state easily,
+                    // ask the user if he/she intended to close it.
+                    new AlertDialog.Builder(WorldActivity.this)
+                            .setMessage(confirmContentClose)
+                            .setCancelable(false)
+                            .setPositiveButton(android.R.string.yes, (dialog, id) -> {
+                                manager.popBackStack();
+                                confirmContentClose = null;
+                            })
+                            .setNegativeButton(android.R.string.no, null)
+                            .show();
+                } else {
+                    //fragment is open, but it may be closed without warning
+                    manager.popBackStack();
+                }
+            }
+        });
+        this.model.getShowActionBar().observe(this, visible -> {
+            ActionBar bar = this.getSupportActionBar();
+            if (bar != null) {
+                if (visible) {
+                    bar.show();
+                } else {
+                    bar.hide();
+                }
+            }
+        });
+        this.model.getShowDrawer().observe(this, visible -> {
+            if (visible) {
+                mBinding.drawerLayout.openDrawer(mBinding.navView, true);
+            } else {
+                mBinding.drawerLayout.closeDrawer(mBinding.navView, false);
+            }
+        });
+        mBinding.drawerLayout.addDrawerListener(this);
         Log.d(this, "World activity created");
-    }
-
-    @Override
-    public void onStart() {
-        Log.d(this, "World activity starting...");
-        super.onStart();
-        Log.d(this, "World activity started");
-    }
-
-    @Override
-    public void onResume() {
-        Log.d(this, "World activity resuming...");
-        super.onResume();
-//
-        // anonymous global counter of resumed world-activities
-        Log.logFirebaseEvent(this, Log.CustomFirebaseEvent.WORLD_RESUME);
-
-        try {
-            this.world.resume();
-        } catch (WorldData.WorldDBException e) {
-            this.onFatalDBError(e);
-        }
-
-        Log.d(this, "World activity resumed");
-    }
-
-    @Override
-    public void onPause() {
-        Log.d(this, "World activity pausing...");
-        super.onPause();
-
-        try {
-            this.world.pause();
-        } catch (WorldData.WorldDBException e) {
-            e.printStackTrace();
-        }
-
-        Log.d(this, "World activity paused");
-    }
-
-    @Override
-    public void onStop() {
-        Log.d(this, "World activity stopping...");
-        super.onStop();
-        Log.d(this, "World activity stopped");
-    }
-
-    @Override
-    public void onDestroy() {
-        Log.d(this, "World activity destroying...");
-        super.onDestroy();
-        Log.d(this, "World activity destroyed...");
-    }
-
-    @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = mBinding.drawerLayout;
-        assert drawer != null;
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-            return;
-        }
-
-        final FragmentManager manager = getSupportFragmentManager();
-        int count = manager.getBackStackEntryCount();
-
-        // No opened fragments, so it is using the default fragment
-        // Ask the user if he/she wants to close the world.
-        if (count == 0) {
-
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.ask_close_world)
-                    .setCancelable(false)
-                    .setPositiveButton(android.R.string.yes, (dialog, id) -> {
-                        try {
-                            world.closeDown();
-                        } catch (WorldData.WorldDBException e) {
-                            e.printStackTrace();
-                        }
-                        WorldActivity.this.finish();
-                    })
-                    .setNegativeButton(android.R.string.no, null)
-                    .show();
-
-        } else if (confirmContentClose != null) {
-            //An important fragment is opened,
-            // something that couldn't be reopened in its current state easily,
-            // ask the user if he/she intended to close it.
-            new AlertDialog.Builder(this)
-                    .setMessage(confirmContentClose)
-                    .setCancelable(false)
-                    .setPositiveButton(android.R.string.yes, (dialog, id) -> {
-                        manager.popBackStack();
-                        confirmContentClose = null;
-                    })
-                    .setNegativeButton(android.R.string.no, null)
-                    .show();
-        } else {
-            //fragment is open, but it may be closed without warning
-            manager.popBackStack();
-        }
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -356,58 +249,71 @@ public class WorldActivity extends AppCompatActivity
                 //TODO open tools menu (world downloader/importer/exporter maybe?)
                 break;*/
             case (R.id.nav_overworld_satellite):
-                changeMapType(MapType.OVERWORLD_SATELLITE, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_SATELLITE);
                 break;
             case (R.id.nav_overworld_cave):
-                changeMapType(MapType.OVERWORLD_CAVE, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_CAVE);
                 break;
             case (R.id.nav_overworld_slime_chunk):
-                changeMapType(MapType.OVERWORLD_SLIME_CHUNK, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_SLIME_CHUNK);
                 break;
             /*case(R.id.nav_overworld_debug):
                 changeMapType(MapType.DEBUG); //for debugging tiles positions, rendering, etc.
                 break;*/
             case (R.id.nav_overworld_heightmap):
-                changeMapType(MapType.OVERWORLD_HEIGHTMAP, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_HEIGHTMAP);
                 break;
             case (R.id.nav_overworld_biome):
-                changeMapType(MapType.OVERWORLD_BIOME, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_BIOME);
                 break;
             case (R.id.nav_overworld_grass):
-                changeMapType(MapType.OVERWORLD_GRASS, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_GRASS);
                 break;
             case (R.id.nav_overworld_xray):
-                changeMapType(MapType.OVERWORLD_XRAY, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_XRAY);
                 break;
             case (R.id.nav_overworld_block_light):
-                changeMapType(MapType.OVERWORLD_BLOCK_LIGHT, Dimension.OVERWORLD);
+                this.model.setDimension(Dimension.OVERWORLD);
+                this.model.getWorldType().setValue(MapType.OVERWORLD_BLOCK_LIGHT);
                 break;
             case (R.id.nav_nether_map):
-                changeMapType(MapType.NETHER, Dimension.NETHER);
+                this.model.setDimension(Dimension.NETHER);
+                this.model.getWorldType().setValue(MapType.NETHER);
                 break;
             case (R.id.nav_nether_xray):
-                changeMapType(MapType.NETHER_XRAY, Dimension.NETHER);
+                this.model.setDimension(Dimension.NETHER);
+                this.model.getWorldType().setValue(MapType.NETHER_XRAY);
                 break;
             case (R.id.nav_nether_block_light):
-                changeMapType(MapType.NETHER_BLOCK_LIGHT, Dimension.NETHER);
+                this.model.setDimension(Dimension.NETHER);
+                this.model.getWorldType().setValue(MapType.NETHER_BLOCK_LIGHT);
                 break;
             case (R.id.nav_nether_biome):
-                changeMapType(MapType.NETHER_BIOME, Dimension.NETHER);
+                this.model.setDimension(Dimension.NETHER);
+                this.model.getWorldType().setValue(MapType.NETHER_BIOME);
                 break;
             case (R.id.nav_end_satellite):
-                changeMapType(MapType.END_SATELLITE, Dimension.END);
+                this.model.setDimension(Dimension.END);
+                this.model.getWorldType().setValue(MapType.END_SATELLITE);
                 break;
             case (R.id.nav_end_heightmap):
-                changeMapType(MapType.END_HEIGHTMAP, Dimension.END);
+                this.model.setDimension(Dimension.END);
+                this.model.getWorldType().setValue(MapType.END_HEIGHTMAP);
                 break;
             case (R.id.nav_end_block_light):
-                changeMapType(MapType.END_BLOCK_LIGHT, Dimension.END);
+                this.model.setDimension(Dimension.END);
+                this.model.getWorldType().setValue(MapType.END_BLOCK_LIGHT);
                 break;
             case (R.id.nav_map_opt_toggle_grid):
                 //toggle the grid
-                this.showGrid = !this.showGrid;
-                //rerender tiles (tiles will render with toggled grid on it now)
-                if (this.mapFragment != null) this.mapFragment.resetTileView();
+                this.model.getShowGrid().setValue(Boolean.FALSE.equals(this.model.getShowGrid().getValue()));
                 break;
             case (R.id.nav_map_opt_filter_markers):
                 //toggle the grid
@@ -416,34 +322,33 @@ public class WorldActivity extends AppCompatActivity
                 break;
             case (R.id.nav_map_opt_toggle_markers):
                 //toggle markers
-                showMarkers = !showMarkers;
-                getPreferences(MODE_PRIVATE).edit()
-                        .putBoolean(PREF_KEY_SHOW_MARKERS, showMarkers).apply();
-                if (this.mapFragment != null) this.mapFragment.toggleMarkers();
+                boolean visible = Boolean.FALSE.equals(this.model.getShowMarkers().getValue());
+                this.model.getShowMarkers().setValue(visible);
+                this.getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_KEY_SHOW_MARKERS, visible).apply();
                 break;
             case (R.id.nav_biomedata_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.BIOME_DATA));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA));
                 break;
             case (R.id.nav_overworld_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.OVERWORLD));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD));
                 break;
             case (R.id.nav_villages_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.M_VILLAGES));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES));
                 break;
             case (R.id.nav_portals_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.PORTALS));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.PORTALS));
                 break;
             case (R.id.nav_dimension0_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.DIMENSION_0));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0));
                 break;
             case (R.id.nav_dimension1_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.DIMENSION_1));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1));
                 break;
             case (R.id.nav_dimension2_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.DIMENSION_2));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2));
                 break;
             case (R.id.nav_autonomous_entities_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(World.SpecialDBEntryType.AUTONOMOUS_ENTITIES));
+                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES));
                 break;
             case (R.id.nav_open_nbt_by_name): {
 
@@ -501,7 +406,7 @@ public class WorldActivity extends AppCompatActivity
     /**
      * Short-hand for opening special entries with openEditableNbtDbEntry(keyName)
      */
-    public EditableNBT openSpecialEditableNbtDbEntry(final World.SpecialDBEntryType entryType)
+    public EditableNBT openSpecialEditableNbtDbEntry(final SpecialDBEntryType entryType)
             throws IOException {
         return openEditableNbtDbEntry(entryType.keyName);
     }
@@ -516,13 +421,9 @@ public class WorldActivity extends AppCompatActivity
      */
     public EditableNBT openEditableNbtDbEntry(final String keyName) throws IOException {
         final byte[] keyBytes = keyName.getBytes(NBTConstants.CHARSET);
-        WorldData worldData = world.getWorldData();
-        try {
-            worldData.openDB();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        byte[] entryData = worldData.db.get(keyBytes);
+        WorldStorage storage = model.getStorage().getValue();
+        if (storage == null) return null;
+        byte[] entryData = storage.db.get(keyBytes);
         if (entryData == null) return null;
 
         final ArrayList<Tag> workCopy = DataConverter.read(entryData);
@@ -537,9 +438,7 @@ public class WorldActivity extends AppCompatActivity
             @Override
             public boolean save() {
                 try {
-                    WorldData wData = world.getWorldData();
-                    wData.openDB();
-                    wData.db.put(keyBytes, DataConverter.write(workCopy));
+                    storage.db.put(keyBytes, DataConverter.write(workCopy));
                     return true;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -589,7 +488,7 @@ public class WorldActivity extends AppCompatActivity
 
         EditableNBT editableNBT;
         try {
-            editableNBT = openSpecialEditableNbtDbEntry(World.SpecialDBEntryType.LOCAL_PLAYER);
+            editableNBT = openSpecialEditableNbtDbEntry(SpecialDBEntryType.LOCAL_PLAYER);
         } catch (IOException e) {
             e.printStackTrace();
             throw new Exception("Failed to read \"~local_player\" from the database.");
@@ -610,7 +509,7 @@ public class WorldActivity extends AppCompatActivity
     /**
      * Open NBT editor fragment for special database entry
      */
-    public void openSpecialDBEntry(final World.SpecialDBEntryType entryType) {
+    public void openSpecialDBEntry(final SpecialDBEntryType entryType) {
         try {
             EditableNBT editableEntry = openSpecialEditableNbtDbEntry(entryType);
             if (editableEntry == null) {
@@ -640,13 +539,14 @@ public class WorldActivity extends AppCompatActivity
 
 
     public void openMultiplayerEditor() {
-
+        WorldStorage storage = this.model.getStorage().getValue();
+        if (storage == null) return;
 
         //takes some time to find all players...
         // TODO make more responsive
         // TODO maybe cache player keys for responsiveness?
         //   Or messes this too much with the first perception of present players?
-        final String[] players = getWorld().getWorldData().getNetworkPlayerNames();
+        final String[] players = storage.getNetworkPlayerNames();
 
         final View content = mBinding.getRoot();
         if (players.length == 0) {
@@ -733,7 +633,7 @@ public class WorldActivity extends AppCompatActivity
     public EditableNBT openEditableNbtLevel(String subTagName) {
 
         //make a copy first, the user might not want to save changed tags.
-        final CompoundTag workCopy = world.getLevel().getDeepCopy();
+        final CompoundTag workCopy = model.getInstance().getData(this).getDeepCopy();
         final ArrayList<Tag> workCopyContents;
         final String contentTitle;
         if (subTagName == null) {
@@ -756,14 +656,9 @@ public class WorldActivity extends AppCompatActivity
 
             @Override
             public boolean save() {
-                try {
-                    //write a copy of the workCopy, the workCopy may be edited after saving
-                    world.writeLevel(workCopy.getDeepCopy());
-                    return true;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return false;
+                //write a copy of the workCopy, the workCopy may be edited after saving
+                AsyncKt.run(() -> model.getInstance().save(WorldActivity.this, workCopy.getDeepCopy()));
+                return true;
             }
 
             @Override
@@ -813,49 +708,6 @@ public class WorldActivity extends AppCompatActivity
     // TODO grid should be rendered independently of tiles, it could be faster and more responsive.
     // However, it does need to adjust itself to the scale and position of the map,
     //  which is not an easy task.
-    public boolean showGrid = true;
-
-    public boolean showMarkers;
-
-    @Override
-    public boolean getShowGrid() {
-        return showGrid;
-    }
-
-    @Override
-    public boolean getShowMarkers() {
-        return showMarkers;
-    }
-
-
-    private boolean fatal = false;
-
-    @Override
-    public void onFatalDBError(WorldData.WorldDBException worldDBException) {
-
-        Log.d(this, worldDBException.getMessage());
-        worldDBException.printStackTrace();
-
-        //already dead? (happens on multiple onFatalDBError(e) calls)
-        if (fatal) return;
-
-        fatal = true;
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(R.string.error_cannot_open_world_close_and_try_again)
-                .setCancelable(false)
-                .setNeutralButton(android.R.string.ok, (dialog, id) -> WorldActivity.this.finish());
-        AlertDialog alert = builder.create();
-        alert.show();
-    }
-
-    @Override
-    public void changeMapType(MapType mapType, Dimension dimension) {
-        this.mapType = mapType;
-        this.dimension = dimension;
-        //don't forget to do a reset-tileview, the mapfragment should know of this change ASAP.
-        mapFragment.resetTileView();
-    }
 
     public void closeWorldActivity() {
 
@@ -873,6 +725,24 @@ public class WorldActivity extends AppCompatActivity
                         })
                 .setNegativeButton(android.R.string.no, null)
                 .show();
+    }
+
+    @Override
+    public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+    }
+
+    @Override
+    public void onDrawerOpened(@NonNull View drawerView) {
+        this.model.getShowDrawer().setValue(true);
+    }
+
+    @Override
+    public void onDrawerClosed(@NonNull View drawerView) {
+        this.model.getShowDrawer().setValue(false);
+    }
+
+    @Override
+    public void onDrawerStateChanged(int newState) {
     }
 
     public interface OpenFragmentCallback {
@@ -946,22 +816,9 @@ public class WorldActivity extends AppCompatActivity
     }
 
 
-    @Override
-    public World getWorld() {
-        return this.world;
-    }
-
-
-    @Override
-    public void addMarker(AbstractMarker marker) {
-        mapFragment.addMarker(marker);
-    }
-
-
     /**
      * Open a dialog; user chooses chunk-type -> open editor for this type
      **/
-    @Override
     public void openChunkNBTEditor(final int chunkX, final int chunkZ, final NBTChunkData nbtChunkData, final ViewGroup viewGroup) {
 
 
@@ -994,7 +851,7 @@ public class WorldActivity extends AppCompatActivity
                                         nbtChunkData.write();
                                         Snackbar.make(viewGroup, R.string.created_and_saved_chunk_NBT_data, Snackbar.LENGTH_LONG)
                                                 .setAction("Action", null).show();
-                                        WorldActivity.this.openChunkNBTEditor(chunkX, chunkZ, nbtChunkData, viewGroup);
+                                        //WorldActivity.this.openChunkNBTEditor(chunkX, chunkZ, nbtChunkData, viewGroup);fixme
                                     } catch (Exception e) {
                                         Snackbar.make(viewGroup, R.string.failed_to_create_or_save_chunk_NBT_data, Snackbar.LENGTH_LONG)
                                                 .setAction("Action", null).show();
@@ -1066,8 +923,5 @@ public class WorldActivity extends AppCompatActivity
 
             openNBTEditor(editableChunkData);
         });
-
     }
-
-
 }

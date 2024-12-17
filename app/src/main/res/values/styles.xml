@@ -1,12 +1,18 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.Material3.DayNight">
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <item name="enableEdgeToEdge">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">?attr/isLightTheme</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:textColor">?android:attr/textColor</item>
         <item name="android:buttonStyle">@style/AppButtonStyle</item>
         <item name="imageButtonStyle">@style/AppImageButtonStyle</item>
         <item name="buttonBarButtonStyle">@style/AppBarButtonStyle</item>
@@ -109,5 +115,4 @@
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">1</item>
     </style>
-
 </resources>

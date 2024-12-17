@@ -5,6 +5,8 @@ package com.mithrilmania.blocktopograph.util;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.Locale;
+
 /**
  * Convert utils
  */
@@ -130,4 +132,16 @@ public class ConvertUtil {
         return Math.sqrt(d1 * d1 + d2 * d2);
     }
 
+    public static String formatSize(long size) {
+        if (size < 1024) return size + " B";
+        int level = 0;
+        while (size >= 0x100000 && level++ < 2) {
+            size >>>= 10;
+        }
+        return String.format(Locale.getDefault(Locale.Category.FORMAT), switch (level) {
+            case 0 -> "%.2f KiB";
+            case 1 -> "%.2f MiB";
+            default -> "%.2f GiB";
+        }, size / 1024F);
+    }
 }

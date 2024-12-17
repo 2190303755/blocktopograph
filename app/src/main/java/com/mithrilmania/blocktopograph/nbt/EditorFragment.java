@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.nbt;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,12 +23,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.WorldActivityInterface;
 import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
 import com.mithrilmania.blocktopograph.nbt.tags.ByteTag;
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
@@ -41,6 +41,7 @@ import com.mithrilmania.blocktopograph.nbt.tags.LongTag;
 import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
 import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.view.WorldMapModel;
 import com.unnamed.b.atv.model.TreeNode;
 import com.unnamed.b.atv.view.AndroidTreeView;
 
@@ -61,6 +62,7 @@ public class EditorFragment extends Fragment {
      */
 
     private EditableNBT nbt;
+    private WorldMapModel model;
 
     public void setNbt(@NonNull EditableNBT nbt) {
         this.nbt = nbt;
@@ -70,7 +72,6 @@ public class EditorFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-
         if (nbt == null) {
             Log.e(this, "No NBT data provided");
             if (getActivity() == null) return null;
@@ -79,6 +80,8 @@ public class EditorFragment extends Fragment {
             textView.setText("Cannot load data. Close me please.");
             return textView;
         }
+        final FragmentActivity activity = this.requireActivity();
+        this.model = new ViewModelProvider(activity).get(WorldMapModel.class);
 
         final View rootView = inflater.inflate(R.layout.nbt_editor, container, false);
 
@@ -92,7 +95,6 @@ public class EditorFragment extends Fragment {
         root.setSelectable(false);
 
 
-        final Activity activity = getActivity();
 
         root.setViewHolder(new RootNodeHolder(activity));
 
@@ -1048,8 +1050,6 @@ public class EditorFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-
-        ((WorldActivityInterface) getActivity()).showActionBar();
-
+        this.model.getShowActionBar().setValue(true);
     }
 }

@@ -418,4 +418,9 @@
     <string name="restore_caption">恢復先前的備份文件</string>
     <string name="restore_warn">這將撤銷所有在該備份創建以後進行的更改！您確定嗎？注意不要丟失進度。</string>
     <string name="world_name_broken">損壞的地圖</string>
+    <string name="world_detail_location">地圖路徑</string>
+    <string name="world_detail_last_played">上次遊玩</string>
+    <string name="world_detail_game_mode">遊戲模式</string>
+    <string name="world_detail_size">地圖大小</string>
+    <string name="world_detail_seed">地圖種子碼</string>
 </resources>

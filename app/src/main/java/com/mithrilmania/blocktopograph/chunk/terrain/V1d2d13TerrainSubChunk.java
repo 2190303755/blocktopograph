@@ -6,10 +6,8 @@ import androidx.annotation.NonNull;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Streams;
 import com.mithrilmania.blocktopograph.BuildConfig;
 import com.mithrilmania.blocktopograph.Log;
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
@@ -24,6 +22,10 @@ import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
 import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
 import com.mithrilmania.blocktopograph.util.LittleEndianOutputStream;
+import com.mithrilmania.blocktopograph.util.StreamUtil;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
+
+import org.iq80.leveldb.DBException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,13 +35,14 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
-
+    public static final HashSet<String> VERSIONS = new HashSet<>();
     private boolean mIsDualStorageSupported;
 
     // Masks used to extract BlockState bits of a certain oldBlock out of a int32, and vice-versa.
@@ -159,7 +162,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
     }
 
     @Override
-    public void save(WorldData worldData, int chunkX, int chunkZ, Dimension dimension, int which) throws WorldData.WorldDBException, IOException {
+    public void save(WorldStorage storage, int chunkX, int chunkZ, Dimension dimension, int which) throws DBException, IOException {
 
         if (mIsError) return;
 
@@ -180,12 +183,11 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
         leos.flush();
 
         byte[] arr = baos.toByteArray();
-        worldData.writeChunkData(chunkX, chunkZ, ChunkTag.TERRAIN, dimension, (byte) which, true, arr);
+        storage.writeChunkData(chunkX, chunkZ, ChunkTag.TERRAIN, dimension, (byte) which, true, arr);
 
     }
 
     private static class BlockStorage {
-
         public static final String PALETTE_KEY_ROOT = "";
         public static final String PALETTE_KEY_NAME = "name";
         public static final String PALETTE_KEY_STATES = "states";
@@ -261,7 +263,6 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
             for (int i = 0; i < psize; i++)
                 //Read a piece of nbt data, represented by a root CompoundTag.
                 addToPalette(deserializeBlock((CompoundTag) nis.readTag()));
-
             //If one day we need to read more BlockStorage's, this line helps.
             buffer.position(buffer.position() + nis.getReadCount());
         }
@@ -394,7 +395,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
         private static CompoundTag serializeBlock(@NonNull Block block) {
             return new CompoundTag(PALETTE_KEY_ROOT, Lists.newArrayList(
                     new StringTag(PALETTE_KEY_NAME, block.getName()),
-                    new CompoundTag(PALETTE_KEY_STATES, new ArrayList<>(Streams.concat(Streams.zip(
+                    new CompoundTag(PALETTE_KEY_STATES, new ArrayList<>(Stream.concat(StreamUtil.zip(
                             Arrays.stream(block.getType().getKnownProperties()).map(BlockProperty::getName),
                             Arrays.stream(block.getKnownProperties()), Maps::immutableEntry).filter(Objects::nonNull),
                             block.getCustomProperties().entrySet().stream()).map(
@@ -417,9 +418,20 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
             var name = ((StringTag) tag.getChildTagByKey(PALETTE_KEY_NAME)).getValue();
             var blockType = BlockType.get(name);
             var builder = (blockType == null ? new Block.Builder(name) : new Block.Builder(blockType));
-            for (var state : ((CompoundTag) tag.getChildTagByKey(PALETTE_KEY_STATES)).getValue())
-                builder.setProperty(state);
-            Log.d(BlockStorage.class, "fuckfuckversion" + tag.getChildTagByKey(PALETTE_KEY_VERSION).getValue());
+            var states = tag.getChildTagByKey(PALETTE_KEY_STATES);
+            if (states instanceof CompoundTag) {
+                for (var state : ((CompoundTag) states).getValue()) {
+                    builder.setProperty(state);
+                }
+            }
+            var version = tag.getChildTagByKey(PALETTE_KEY_VERSION);
+            if (version != null) {
+                var value = version.getValue().toString();
+                if (!VERSIONS.contains(value)) {
+                    Log.d(BlockStorage.class, "fuckfuckversion:" + value);
+                    VERSIONS.add(value);
+                }
+            }
             return builder.build();
         }
 

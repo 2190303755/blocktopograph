@@ -7,12 +7,10 @@ import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.OldBlock;
-import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 
 
@@ -91,10 +89,10 @@ public class SatelliteRenderer implements MapRenderer {
                 (((int) (finalB * 255f)) & 0xff);
     }
 
-    public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldData worldData) throws Version.VersionException {
+    public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException {
 
-        Chunk dataW = worldData.getChunk(chunkX - 1, chunkZ, dimension);
-        Chunk dataN = worldData.getChunk(chunkX, chunkZ - 1, dimension);
+        Chunk dataW = storage.getChunk(chunkX - 1, chunkZ, dimension);
+        Chunk dataN = storage.getChunk(chunkX, chunkZ - 1, dimension);
 
         boolean west = dataW != null && !dataW.isVoid(),
                 north = dataN != null && !dataN.isVoid();

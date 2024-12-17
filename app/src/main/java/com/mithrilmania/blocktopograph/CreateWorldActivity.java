@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph;
 
+import static android.content.res.AssetManager.ACCESS_STREAMING;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -19,9 +21,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 
-import com.litl.leveldb.DB;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.ListingBlock;
 import com.mithrilmania.blocktopograph.databinding.ActivityCreateWorldBinding;
 import com.mithrilmania.blocktopograph.flat.EditFlatFragment;
 import com.mithrilmania.blocktopograph.flat.FlatLayers;
@@ -31,9 +31,7 @@ import com.mithrilmania.blocktopograph.nbt.InventoryHolder;
 import com.mithrilmania.blocktopograph.nbt.ItemTag;
 import com.mithrilmania.blocktopograph.nbt.Keys;
 import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
 import com.mithrilmania.blocktopograph.nbt.convert.NBTInputStream;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTOutputStream;
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.LongTag;
 import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
@@ -45,7 +43,6 @@ import com.mithrilmania.blocktopograph.util.UiUtil;
 import com.tomergoldst.tooltips.ToolTip;
 import com.tomergoldst.tooltips.ToolTipsManager;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,8 +51,6 @@ import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
-import static android.content.res.AssetManager.ACCESS_STREAMING;
 
 
 public final class CreateWorldActivity extends AppCompatActivity {
@@ -330,16 +325,6 @@ public final class CreateWorldActivity extends AppCompatActivity {
                         pager.append(activity.getString(R.string.create_world_book_recipe_many));
                     ItemTag.setPageText(page, pager.toString());
                 }
-                // Write to DB.
-                DB db = new DB(new File(wDir, "db"));
-                db.open();
-                // Size enough for the 5KB data.
-                ByteArrayOutputStream baos = new ByteArrayOutputStream(8192);
-                NBTOutputStream nos = new NBTOutputStream(baos, false, true);
-                nos.writeTag(playerTag);
-                nos.close();
-                db.put("~local_player".getBytes(NBTConstants.CHARSET), baos.toByteArray());
-                db.close();
             } catch (Exception e) {
                 Log.d(this, e);
                 return false;

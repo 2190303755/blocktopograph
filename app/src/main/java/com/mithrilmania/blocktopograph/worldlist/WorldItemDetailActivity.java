@@ -3,29 +3,43 @@ package com.mithrilmania.blocktopograph.worldlist;
 
 import android.content.Intent;
 import android.os.Bundle;
-import androidx.appcompat.widget.Toolbar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.ActionBar;
 import android.view.MenuItem;
+import android.widget.Toast;
+
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
+import com.mithrilmania.blocktopograph.view.WorldModel;
 
 /**
  * An activity representing a single WorldItem detail screen. This
  * activity is only used narrow width devices. On tablet-size devices,
  * item details are presented side-by-side with a list of items
- * in a {@link WorldItemListActivity}.
+ * in a {@link OldWorldItemListActivity}.
  */
 public class WorldItemDetailActivity extends AppCompatActivity {
+    private WorldModel world;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_worlditem_detail);
+        WorldModel model = new ViewModelProvider(this).get(WorldModel.class);
+        if (model.getInstance() == null) {
+            try {
+                model.init(this, this.getIntent().getData());
+            } catch (Exception e) {
+                Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
+                this.finish();
+                return;
+            }
+        }
+        this.world = model;
         Toolbar toolbar = (Toolbar) findViewById(R.id.detail_toolbar);
         setSupportActionBar(toolbar);
-
         // Show the Up button in the action bar.
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -44,11 +58,7 @@ public class WorldItemDetailActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
-            Bundle arguments = new Bundle();
-            arguments.putSerializable(World.ARG_WORLD_SERIALIZED,
-                    getIntent().getSerializableExtra(World.ARG_WORLD_SERIALIZED));
             WorldItemDetailFragment fragment = new WorldItemDetailFragment();
-            fragment.setArguments(arguments);
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.worlditem_detail_container, fragment)
                     .commit();
@@ -65,7 +75,7 @@ public class WorldItemDetailActivity extends AppCompatActivity {
             //
             // http://developer.android.com/design/patterns/navigation.html#up-vs-back
             //
-            navigateUpTo(new Intent(this, WorldItemListActivity.class));
+            navigateUpTo(new Intent(this, OldWorldItemListActivity.class));
             return true;
         }
         return super.onOptionsItemSelected(item);

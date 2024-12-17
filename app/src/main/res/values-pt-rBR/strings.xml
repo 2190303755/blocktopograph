@@ -379,4 +379,9 @@
     <string name="picer_preview_generating">Gerando pré-visualização...</string>
     <string name="map_locator_player_pos_unknown">Posição desconhecida</string>
 
+    <string name="world_detail_location">Caminho do arquivo</string><!-- Untranslated -->
+    <string name="world_detail_last_played">Última partida</string>
+    <string name="world_detail_game_mode">Modo de jogo</string>
+    <string name="world_detail_size">Tamanho do mundo</string>
+    <string name="world_detail_seed">Seed do mundo</string>
 </resources>

@@ -1,14 +1,15 @@
 package com.mithrilmania.blocktopograph.map.marker;
 
 import android.content.Context;
-import androidx.annotation.NonNull;
 import android.widget.ImageView;
+
+import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
-import com.mithrilmania.blocktopograph.util.math.Vector3;
+import com.mithrilmania.blocktopograph.util.math.IntegerPos;
 
 public class AbstractMarker implements NamedBitmapProviderHandle {
 
@@ -90,7 +91,7 @@ public class AbstractMarker implements NamedBitmapProviderHandle {
 
     @Override
     public int hashCode() {
-        int result = Vector3.intHash(x, y, z);
+        int result = IntegerPos.hash(x, y, z);
         result = 31 * result + (dimension != null ? dimension.hashCode() : 0);
         result = 31 * result + (namedBitmapProvider != null ? namedBitmapProvider.hashCode() : 0);
         return result;

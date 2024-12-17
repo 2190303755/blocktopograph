@@ -15,10 +15,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.World;
 import com.mithrilmania.blocktopograph.databinding.FragLocatorPlayersBinding;
 import com.mithrilmania.blocktopograph.databinding.ItemLocatorMarkerBinding;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -123,8 +123,9 @@ public final class LocatorMarkersFragment extends LocatorPageFragment {
                 if (worlds.length != 1 || (world = worlds[0]) == null) return null;
 
                 Collection<AbstractMarker> markers;
-                try {
-                    markers = world.getMarkerManager().getMarkers();
+                return new AbstractMarker[0];
+                /*try {
+                    markers = world.getMarkerManager().getMarkers();//TODO: use SAF
                 } catch (Exception e) {
                     Log.d(this, e);
                     return null;
@@ -137,7 +138,7 @@ public final class LocatorMarkersFragment extends LocatorPageFragment {
                 } catch (Exception e) {
                     Log.d(this, e);
                     return null;
-                }
+                }*/
 
             } catch (Exception e) {
                 Log.d(this, e);

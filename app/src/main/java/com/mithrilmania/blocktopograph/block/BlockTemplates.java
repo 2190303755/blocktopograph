@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph.block;
 
 import androidx.annotation.NonNull;
 
-import com.google.common.collect.Streams;
 import com.mithrilmania.blocktopograph.block.icon.NoBlockIcon;
 import com.mithrilmania.blocktopograph.block.icon.TexPathBlockIcon;
 
@@ -1682,13 +1681,13 @@ public class BlockTemplates {
                     candidates = newCandidates;
             }
         }
-        return candidates.size() > 0 ? candidates.get(0) : getUnknownBlockTemplate();
+        return !candidates.isEmpty() ? candidates.get(0) : getUnknownBlockTemplate();
     }
 
     public static Stream<BlockTemplate> getAll() {
         var stream = Arrays.stream(new BlockTemplate[0]);
         for (var templates : allTemplates.values())
-            stream = Streams.concat(stream, Arrays.stream(templates));
+            stream = Stream.concat(stream, Arrays.stream(templates));
         return stream;
     }
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DynamicColumnLayout">
+        <attr name="threshold" format="dimension" />
+        <attr name="spacing" format="dimension" />
+    </declare-styleable>
+</resources>

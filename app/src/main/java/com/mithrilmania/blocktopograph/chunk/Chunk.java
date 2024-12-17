@@ -3,19 +3,19 @@ package com.mithrilmania.blocktopograph.chunk;
 import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.Log;
-import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+
+import org.iq80.leveldb.DBException;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
-import java.util.stream.IntStream;
 
 public abstract class Chunk {
 
-    protected final WeakReference<WorldData> mWorldData;
+    protected final WeakReference<WorldStorage> storage;
     protected final Version mVersion;
     public final int mChunkX;
     public final int mChunkZ;
@@ -25,8 +25,8 @@ public abstract class Chunk {
     boolean mIsVoid;
     boolean mIsError;
 
-    Chunk(WorldData worldData, Version version, int chunkX, int chunkZ, Dimension dimension) {
-        mWorldData = new WeakReference<>(worldData);
+    Chunk(WorldStorage storage, Version version, int chunkX, int chunkZ, Dimension dimension) {
+        this.storage = new WeakReference<>(storage);
         mVersion = version;
         mChunkX = chunkX;
         mChunkZ = chunkZ;
@@ -41,38 +41,38 @@ public abstract class Chunk {
         }
     }
 
-    public static Chunk createEmpty(@NonNull WorldData worldData, int chunkX, int chunkZ, Dimension dimension,
+    public static Chunk createEmpty(@NonNull WorldStorage storage, int chunkX, int chunkZ, Dimension dimension,
                                     Version createOfVersion) {
         Chunk chunk;
         switch (createOfVersion) {
             case V1_2_PLUS:
             case V1_16_PLUS:
                 try {
-                    worldData.writeChunkData(chunkX, chunkZ, ChunkTag.GENERATOR_STAGE, dimension, (byte) 0, false, new byte[]{2, 0, 0, 0});
-                    worldData.writeChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension, (byte) 0, false, new byte[]{0xf});
-                    chunk = new BedrockChunk(worldData, createOfVersion, chunkX, chunkZ, dimension, true);
+                    storage.writeChunkData(chunkX, chunkZ, ChunkTag.GENERATOR_STAGE, dimension, (byte) 0, false, new byte[]{2, 0, 0, 0});
+                    storage.writeChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension, (byte) 0, false, new byte[]{0xf});
+                    chunk = new BedrockChunk(storage, createOfVersion, chunkX, chunkZ, dimension, true);
                 } catch (Exception e) {
                     Log.d(Chunk.class, e);
-                    chunk = new VoidChunk(worldData, createOfVersion, chunkX, chunkZ, dimension);
+                    chunk = new VoidChunk(storage, createOfVersion, chunkX, chunkZ, dimension);
                 }
                 break;
             default:
-                chunk = new VoidChunk(worldData, createOfVersion, chunkX, chunkZ, dimension);
+                chunk = new VoidChunk(storage, createOfVersion, chunkX, chunkZ, dimension);
         }
         return chunk;
     }
 
-    public static Chunk create(@NonNull WorldData worldData, int chunkX, int chunkZ, Dimension dimension,
+    public static Chunk create(@NonNull WorldStorage storage, int chunkX, int chunkZ, Dimension dimension,
                                boolean createIfMissing, Version createOfVersion) {
         Version version;
         try {
-            byte[] data = worldData.getChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension);
+            byte[] data = storage.getChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension);
             if (data == null)
-                data = worldData.getChunkData(chunkX, chunkZ, ChunkTag.VERSION, dimension);
+                data = storage.getChunkData(chunkX, chunkZ, ChunkTag.VERSION, dimension);
             if (data == null && createIfMissing)
-                return createEmpty(worldData, chunkX, chunkZ, dimension, createOfVersion);
+                return createEmpty(storage, chunkX, chunkZ, dimension, createOfVersion);
             version = Version.getVersion(data);
-        } catch (WorldData.WorldDBLoadException | WorldData.WorldDBException e) {
+        } catch (DBException e) {
             Log.d(Chunk.class, e);
             version = Version.ERROR;
         }
@@ -90,17 +90,17 @@ public abstract class Chunk {
 //            case V1_1:
             case V1_2_PLUS:
             case V1_16_PLUS:
-                chunk = new BedrockChunk(worldData, version, chunkX, chunkZ, dimension, false);
+                chunk = new BedrockChunk(storage, version, chunkX, chunkZ, dimension, false);
                 break;
             case NULL:
             default:
-                chunk = new VoidChunk(worldData, version, chunkX, chunkZ, dimension);
+                chunk = new VoidChunk(storage, version, chunkX, chunkZ, dimension);
         }
         return chunk;
     }
 
-    public final WorldData getWorldData() {
-        return mWorldData.get();
+    public final WorldStorage getWorldData() {
+        return storage.get();
     }
 
     public final boolean isVoid() {
@@ -151,13 +151,13 @@ public abstract class Chunk {
 
     abstract public int getCaveYUnderAt(int x, int z, int y);
 
-    abstract public void save() throws WorldData.WorldDBException, IOException;
+    abstract public void save() throws IOException, DBException;
 
     public void deleteThis() throws Exception {
         // TODO: delete all with given prefix
-        WorldData worldData = mWorldData.get();
-        if (worldData == null) throw new RuntimeException("World data is null.");
-        worldData.removeFullChunk(mChunkX, mChunkZ, mDimension);
+        WorldStorage storage = this.storage.get();
+        if (storage == null) throw new RuntimeException("World data is null.");
+        storage.removeFullChunk(mChunkX, mChunkZ, mDimension);
         // Prevent saving.
         mIsError = true;
     }
