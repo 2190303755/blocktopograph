@@ -10,7 +10,8 @@ abstract class World<T>(
     val time: Long,
     val seed: String,
     val tag: String,
-    val path: String
+    val path: String,
+    val version: String
 ) {
     var behavior: Int = 0
     var resource: Int = 0

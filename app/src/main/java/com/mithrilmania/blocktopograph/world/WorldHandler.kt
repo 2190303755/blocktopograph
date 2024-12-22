@@ -55,7 +55,7 @@ abstract class WorldHandler(
         (this.getData(context).getChildTagByKey(KEY_RANDOM_SEED) as? LongTag)?.value ?: 0
 
     fun getLastPlayedTimestamp(context: Context?): Long =
-        (this.getData(context).getChildTagByKey(KEY_LAST_PLAYED) as? LongTag)?.value ?: 0
+        (this.getData(context).getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value ?: 0
 
     fun getFormattedLastPlayedTimestamp(context: Context?): String {
         val time = this.getLastPlayedTimestamp(context)
@@ -64,6 +64,6 @@ abstract class WorldHandler(
     }
 
     fun getWorldGameMode(context: Context): String {
-        return this.getData(context).getChildTagByKey(KEY_GAME_MODE).getGameMode(context)
+        return this.getData(context).getGameMode(context)
     }
 }

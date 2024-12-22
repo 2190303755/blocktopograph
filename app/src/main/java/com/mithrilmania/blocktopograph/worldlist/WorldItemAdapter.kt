@@ -37,8 +37,7 @@ class WorldItemAdapter(
             binding.icon.setImageBitmap(world.icon)
         }
         binding.name.text = world.name
-        binding.date.text =
-            DateFormat.getDateFormat(holder.context).format(Date(world.time))
+        binding.date.text = DateFormat.getDateFormat(holder.context).format(Date(world.time))
         binding.size.text = world.size ?: holder.context.getString(R.string.calculating_size)
         binding.path.text = world.path
         binding.behavior.text = world.behavior.toString()

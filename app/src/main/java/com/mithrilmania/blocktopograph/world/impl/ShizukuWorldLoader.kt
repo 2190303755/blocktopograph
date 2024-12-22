@@ -21,10 +21,10 @@ import com.mithrilmania.blocktopograph.storage.FileServiceClient.CODE_EXTRA_WORL
 import com.mithrilmania.blocktopograph.storage.FileServiceClient.CODE_RELEASE
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.getGameMode
+import com.mithrilmania.blocktopograph.util.lastPlayedVersion
 import com.mithrilmania.blocktopograph.util.loadThumbnail
 import com.mithrilmania.blocktopograph.world.IWorldLoader
-import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
-import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED
+import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
 import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
 import com.mithrilmania.blocktopograph.world.KEY_RANDOM_SEED
 import com.mithrilmania.blocktopograph.world.World
@@ -97,12 +97,13 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                                 (compound?.getChildTagByKey(KEY_LEVEL_NAME) as? StringTag)?.value
                                     ?: File(location).name
                                     ?: context.getString(R.string.default_world_name),
-                                compound?.getChildTagByKey(KEY_GAME_MODE).getGameMode(context),
-                                (compound?.getChildTagByKey(KEY_LAST_PLAYED) as? LongTag)?.value?.let {
+                                compound.getGameMode(context),
+                                (compound?.getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value?.let {
                                     it * 1000L
                                 } ?: 0L,
                                 (compound?.getChildTagByKey(KEY_RANDOM_SEED) as? LongTag)?.value?.toString()
                                     ?: "",
+                                compound.lastPlayedVersion,
                                 tag
                             )
                             if (!withContext(Dispatchers.Main) {

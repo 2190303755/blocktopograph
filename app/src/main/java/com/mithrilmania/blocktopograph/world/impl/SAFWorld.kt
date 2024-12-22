@@ -30,6 +30,7 @@ class SAFWorld(
     mode: String,
     time: Long,
     seed: String,
+    version: String,
     private val config: Uri,
     tag: String = ""
 ) : World<Uri>(
@@ -39,7 +40,8 @@ class SAFWorld(
     time,
     seed,
     tag,
-    location.lastPathSegment ?: location.toString()
+    location.lastPathSegment ?: location.toString(),
+    version
 ) {
     override fun prepareIntent(intent: Intent) = intent
         .setData(this.location)

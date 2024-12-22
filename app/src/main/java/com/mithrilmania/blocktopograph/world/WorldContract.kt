@@ -8,10 +8,10 @@ const val FOLDER_DATABASE = "db"
 const val KEY_GAME_MODE = "GameType"
 const val KEY_LEVEL_NAME = "LevelName"
 const val KEY_RANDOM_SEED = "RandomSeed"
-const val KEY_LAST_PLAYED = "LastPlayed"
+const val KEY_LAST_PLAYED_TIME = "LastPlayed"
+const val KEY_LAST_PLAYED_VERSION = "lastOpenedWithVersion"
 const val BUNDLE_ENTRY_NAME = "Name"
 const val BUNDLE_ENTRY_PATH = "Path"
-const val BUNDLE_ENTRY_CONFIG = "Config"
 
 /*
     public static final String ARG_WORLD_SERIALIZED = "world_ser";

@@ -17,7 +17,10 @@
  */
 package org.iq80.leveldb.fileenv;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.io.Files;
+
 import org.iq80.leveldb.env.RandomInputFile;
 
 import java.io.File;
@@ -25,8 +28,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Memory mapped filed table.
@@ -70,7 +71,11 @@ class MMRandomInputFile implements RandomInputFile
     public ByteBuffer read(long offset, int length)
     {
         int newPosition = (int) (data.position() + offset);
-        return (ByteBuffer) data.duplicate().order(ByteOrder.LITTLE_ENDIAN).clear().limit(newPosition + length).position(newPosition);
+        /// ANDROID COMPAT START: ignore covariant return type
+        ByteBuffer buffer = ((ByteBuffer) data).duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear().limit(newPosition + length).position(newPosition);
+        return buffer;
+        /// ANDROID COMPAT END
     }
 
     @Override

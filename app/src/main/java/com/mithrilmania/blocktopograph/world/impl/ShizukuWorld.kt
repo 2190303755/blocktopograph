@@ -11,6 +11,7 @@ class ShizukuWorld(
     mode: String,
     time: Long,
     seed: String,
+    version: String,
     tag: String = ""
 ) : World<String>(
     location,
@@ -19,7 +20,8 @@ class ShizukuWorld(
     time,
     seed,
     tag,
-    location
+    location,
+    version
 ) {
     override fun prepareIntent(intent: Intent) = intent
         .putExtra(BUNDLE_ENTRY_PATH, this.location)

@@ -82,7 +82,7 @@ class WorldDetailsDialog(
         binding.path.text = world.path
         binding.mode.text = world.mode
         binding.date.text =
-            DateFormat.getDateFormat(context).format(Date(world.time))
+            DateFormat.getDateFormat(context).format(Date(world.time)) + " - " + world.version
         binding.size.text = world.size ?: context.getString(R.string.calculating_size)
         binding.seed.text = world.seed
         binding.editWorld.setOnClickListener {

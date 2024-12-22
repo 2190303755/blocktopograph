@@ -1,2 +1,3 @@
 include ':app'
 include ':tileview'
+include ':libs:hivemc:leveldb'

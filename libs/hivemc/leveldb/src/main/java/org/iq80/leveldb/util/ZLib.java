@@ -17,6 +17,8 @@
  */
 package org.iq80.leveldb.util;
 
+import android.os.Build;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
@@ -42,23 +44,41 @@ public final class ZLib
         Inflater inflater = (raw ? INFLATER_RAW : INFLATER).get();
         try {
             ByteBuffer buffer = ByteBuffer.allocate(1024);
-            inflater.setInput(compressed);
-            while (!inflater.finished()) {
-                if (inflater.inflate(buffer) == 0) {
-                    // Grow buffer
-                    ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1024);
-                    int position = buffer.position();
+            /// ANDROID COMPAT START: `setInput(Ljava/nio/ByteBuffer;)V` is only available since Android 15
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                byte[] input = new byte[compressed.remaining()];
+                compressed.get(input);
+                inflater.setInput(input);
+                while (!inflater.finished()) {
+                    if (buffer.remaining() == 0) {
+                        // Grow buffer
+                        ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1024);
+                        buffer.flip();
+                        newBuffer.put(buffer);
+                        buffer = newBuffer;
+                    }
+                    int length = inflater.inflate(buffer.array(), buffer.position(), buffer.remaining());
+                    buffer.position(buffer.position() + length);
+                }
+                /// ANDROID COMPAT END
+            } else {
+                inflater.setInput(compressed);
+                while (!inflater.finished()) {
+                    if (inflater.inflate(buffer) == 0) {
+                        // Grow buffer
+                        ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1024);
+                        int position = buffer.position();
 
-                    // Reset reader index
-                    buffer.flip();
-                    newBuffer.put(buffer);
+                        // Reset reader index
+                        buffer.flip();
+                        newBuffer.put(buffer);
 
-                    // Set position to the original
-                    newBuffer.position(position);
-                    buffer = newBuffer;
+                        // Set position to the original
+                        newBuffer.position(position);
+                        buffer = newBuffer;
+                    }
                 }
             }
-
             // Flip buffer
             buffer.flip();
             return buffer;
