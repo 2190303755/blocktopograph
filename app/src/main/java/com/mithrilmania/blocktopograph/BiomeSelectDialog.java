@@ -5,17 +5,17 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.mithrilmania.blocktopograph.databinding.DialogPickBiomeBinding;
-import com.mithrilmania.blocktopograph.databinding.ItemPickBiomeBinding;
-import com.mithrilmania.blocktopograph.map.Biome;
-import com.mithrilmania.blocktopograph.util.UiUtil;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.mithrilmania.blocktopograph.databinding.DialogPickBiomeBinding;
+import com.mithrilmania.blocktopograph.databinding.ItemPickBiomeBinding;
+import com.mithrilmania.blocktopograph.map.Biome;
+import com.mithrilmania.blocktopograph.util.UiUtil;
 
 public final class BiomeSelectDialog extends AppCompatActivity {
 
@@ -26,7 +26,6 @@ public final class BiomeSelectDialog extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setResult(RESULT_CANCELED);
-
         DialogPickBiomeBinding binding = DataBindingUtil.setContentView(this, R.layout.dialog_pick_biome);
         binding.list.setLayoutManager(new LinearLayoutManager(this));
         binding.list.setAdapter(new MeowAdapter());

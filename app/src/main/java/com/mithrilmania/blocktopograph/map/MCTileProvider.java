@@ -10,9 +10,9 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.qozix.tileview.graphics.BitmapProvider;
 import com.qozix.tileview.tiles.Tile;
 
@@ -68,7 +68,7 @@ public class MCTileProvider implements BitmapProvider {
     @Override
     public Bitmap getBitmap(Tile tile, Context context) {
 
-        WorldStorage storage = this.world.getStorage().getValue();
+        WorldStorage storage = this.world.getHandler().getStorage();
         if (storage == null) return null;
         Dimension dimension = this.world.getDimension();
         MapType mapType = (MapType) tile.getDetailLevel().getLevelType();

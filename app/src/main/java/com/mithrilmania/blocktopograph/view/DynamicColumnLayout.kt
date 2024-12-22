@@ -34,20 +34,23 @@ class DynamicColumnLayout @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val verticalPadding = this.paddingTop + this.paddingBottom
         val horizontalPadding = this.paddingLeft + this.paddingRight
-        val width = MeasureSpec.getSize(widthMeasureSpec) - horizontalPadding
+        val maxWidth = MeasureSpec.getSize(widthMeasureSpec) - horizontalPadding
         val count = this.childCount
+        var params: LayoutParams
         var totalHeight = verticalPadding
         var childState = 0
-        if (width < this.threshold) {
+        if (maxWidth < this.threshold) {
             this.compact = true
             for (index in 0..<count) {
                 val child = this.getChildAt(index)
+                params = child.layoutParams
                 child.measure(
-                    MeasureSpec.makeMeasureSpec(
-                        width,
-                        if (child.layoutParams.width == MATCH_PARENT) MeasureSpec.EXACTLY else MeasureSpec.AT_MOST
-                    ),
-                    getChildMeasureSpec(heightMeasureSpec, totalHeight, WRAP_CONTENT)
+                    when (params.width) {
+                        MATCH_PARENT -> MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.EXACTLY)
+                        WRAP_CONTENT -> MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST)
+                        else -> MeasureSpec.makeMeasureSpec(params.width, MeasureSpec.EXACTLY)
+                    },
+                    getChildMeasureSpec(heightMeasureSpec, totalHeight, params.height)
                 )
                 child.measuredHeight.let {
                     totalHeight += if (it > 0) it + this.spacing else this.spacing
@@ -56,25 +59,29 @@ class DynamicColumnLayout @JvmOverloads constructor(
             }
         } else {
             this.compact = false
-            val childWidth = (width - this.spacing) / 2
+            val width = (maxWidth - this.spacing) / 2
             var index = 0
             while (index < count) {
                 val first = this.getChildAt(index++)
-                val childHeightMeasureSpec =
-                    getChildMeasureSpec(heightMeasureSpec, totalHeight, WRAP_CONTENT)
+                params = first.layoutParams
                 first.measure(
-                    MeasureSpec.makeMeasureSpec(
-                        childWidth,
-                        if (first.layoutParams.width == MATCH_PARENT) MeasureSpec.EXACTLY else MeasureSpec.AT_MOST
-                    ), childHeightMeasureSpec
+                    when (params.width) {
+                        MATCH_PARENT -> MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
+                        WRAP_CONTENT -> MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST)
+                        else -> MeasureSpec.makeMeasureSpec(params.width, MeasureSpec.EXACTLY)
+                    },
+                    getChildMeasureSpec(heightMeasureSpec, totalHeight, params.height)
                 )
                 if (index < count) {
                     val second = this.getChildAt(index++)
+                    params = second.layoutParams
                     second.measure(
-                        MeasureSpec.makeMeasureSpec(
-                            childWidth,
-                            if (second.layoutParams.width == MATCH_PARENT) MeasureSpec.EXACTLY else MeasureSpec.AT_MOST
-                        ), childHeightMeasureSpec
+                        when (params.width) {
+                            MATCH_PARENT -> MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
+                            WRAP_CONTENT -> MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST)
+                            else -> MeasureSpec.makeMeasureSpec(params.width, MeasureSpec.EXACTLY)
+                        },
+                        getChildMeasureSpec(heightMeasureSpec, totalHeight, params.height)
                     )
                     max(first.measuredHeight, second.measuredHeight).let {
                         totalHeight += if (it > 0) it + this.spacing else this.spacing

@@ -41,7 +41,7 @@ import com.mithrilmania.blocktopograph.nbt.tags.LongTag;
 import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
 import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
 import com.unnamed.b.atv.model.TreeNode;
 import com.unnamed.b.atv.view.AndroidTreeView;
 

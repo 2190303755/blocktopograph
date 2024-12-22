@@ -12,7 +12,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.view.WorldModel;
+import com.mithrilmania.blocktopograph.world.WorldModel;
 
 /**
  * An activity representing a single WorldItem detail screen. This
@@ -28,9 +28,9 @@ public class WorldItemDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_worlditem_detail);
         WorldModel model = new ViewModelProvider(this).get(WorldModel.class);
-        if (model.getInstance() == null) {
+        if (model.getHandler() == null) {
             try {
-                model.init(this, this.getIntent().getData());
+                model.init(this, this.getIntent());
             } catch (Exception e) {
                 Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
                 this.finish();

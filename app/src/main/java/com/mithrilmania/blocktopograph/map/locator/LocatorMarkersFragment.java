@@ -18,7 +18,7 @@ import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.databinding.FragLocatorPlayersBinding;
 import com.mithrilmania.blocktopograph.databinding.ItemLocatorMarkerBinding;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
-import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldHandler;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -26,9 +26,9 @@ import java.util.Collection;
 public final class LocatorMarkersFragment extends LocatorPageFragment {
 
     private FragLocatorPlayersBinding mBinding;
-    private World mWorld;
+    private WorldHandler mWorld;
 
-    public static LocatorMarkersFragment create(World world) {
+    public static LocatorMarkersFragment create(WorldHandler world) {
         LocatorMarkersFragment ret = new LocatorMarkersFragment();
         ret.mWorld = world;
         return ret;
@@ -107,7 +107,7 @@ public final class LocatorMarkersFragment extends LocatorPageFragment {
 
     }
 
-    private static class LoadingTask extends AsyncTask<World, Void, AbstractMarker[]> {
+    private static class LoadingTask extends AsyncTask<WorldHandler, Void, AbstractMarker[]> {
 
         private final WeakReference<LocatorMarkersFragment> owner;
 
@@ -117,9 +117,9 @@ public final class LocatorMarkersFragment extends LocatorPageFragment {
 
         @Nullable
         @Override
-        protected AbstractMarker[] doInBackground(World... worlds) {
+        protected AbstractMarker[] doInBackground(WorldHandler... worlds) {
             try {
-                World world;
+                WorldHandler world;
                 if (worlds.length != 1 || (world = worlds[0]) == null) return null;
 
                 Collection<AbstractMarker> markers;

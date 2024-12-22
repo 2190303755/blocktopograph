@@ -22,8 +22,8 @@ import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.WorldActivity;
 import com.mithrilmania.blocktopograph.databinding.WorlditemDetailBinding;
 import com.mithrilmania.blocktopograph.test.MainTestActivity;
-import com.mithrilmania.blocktopograph.view.WorldModel;
-import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.WorldModel;
 
 import java.util.Arrays;
 
@@ -73,23 +73,23 @@ public class WorldItemDetailFragment extends Fragment implements View.OnClickLis
         super.onViewCreated(view, savedInstanceState);
         mSequence = new byte[]{-1, -1, -1, -1};
         FragmentActivity activity = this.requireActivity();
-        World world = this.model.getInstance();
-        String barTitle = world == null ? activity.getString(R.string.error_could_not_open_world) : world.getPlainName();
+        WorldHandler handler = this.model.getHandler();
+        String barTitle = handler == null ? activity.getString(R.string.error_could_not_open_world) : handler.getPlainName();
 
         CollapsingToolbarLayout appBarLayout = activity.findViewById(R.id.toolbar_layout);
         if (appBarLayout != null) {
             appBarLayout.setTitle(barTitle);
         }
-
+        WorlditemDetailBinding binding = this.binding;
         try {
-            if (world != null) {
+            if (handler != null) {
                 Context context = this.requireContext();
-                binding.setName(world.getPlainName());
+                binding.setName(handler.getPlainName());
                 binding.setSize(/*IoUtil.getFileSizeInText(FileUtils.sizeOf(world.getRoot()))*/"Calculating...");
-                binding.setMode(world.getWorldGameMode(context));
-                binding.setTime(world.getFormattedLastPlayedTimestamp(context));
-                binding.setSeed(String.valueOf(world.getWorldSeed(context)));
-                binding.setPath(world.getRoot().toString());
+                binding.setMode(handler.getWorldGameMode(context));
+                binding.setTime(handler.getFormattedLastPlayedTimestamp(context));
+                binding.setSeed(String.valueOf(handler.getWorldSeed(context)));
+                binding.setPath(handler.getPath());
             }
         } catch (Exception e) {
             Log.d(this, e);
@@ -104,7 +104,7 @@ public class WorldItemDetailFragment extends Fragment implements View.OnClickLis
     private void startWorldActivity() {
         Activity activity = getActivity();
         assert activity != null;
-        activity.startActivity(new Intent(activity, WorldActivity.class).setData(this.model.getInstance().getRoot()));
+        activity.startActivity(this.model.getHandler().prepareIntent(new Intent(activity, WorldActivity.class)));
     }
 
     private void sequence(byte code) {
@@ -114,7 +114,7 @@ public class WorldItemDetailFragment extends Fragment implements View.OnClickLis
         if (Arrays.equals(mSequence, SEQ_TEST)) {
             Activity activity = getActivity();
             assert activity != null;
-            activity.startActivity(new Intent(activity, MainTestActivity.class).setData(this.model.getInstance().getRoot()));
+            activity.startActivity(this.model.getHandler().prepareIntent(new Intent(activity, MainTestActivity.class)));
         }
     }
 

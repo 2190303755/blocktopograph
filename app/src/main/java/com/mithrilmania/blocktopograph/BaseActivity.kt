@@ -18,7 +18,7 @@ import com.mithrilmania.blocktopograph.util.INDICATOR_NAV_MODE_HARMONY
 abstract class BaseActivity(
     val supportDynamicColors: Boolean = true,
 ) : AppCompatActivity(), OnApplyWindowInsetsListener {
-    protected var isIndicatorUsed = false
+    var isIndicatorUsed = false
         private set
 
     open fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {

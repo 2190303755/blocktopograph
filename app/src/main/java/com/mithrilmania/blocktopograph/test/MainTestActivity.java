@@ -23,7 +23,7 @@ import com.mithrilmania.blocktopograph.util.ConvertUtil;
 import com.mithrilmania.blocktopograph.util.IoUtil;
 import com.mithrilmania.blocktopograph.util.McUtil;
 import com.mithrilmania.blocktopograph.util.UiUtil;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import org.iq80.leveldb.DBIterator;
@@ -109,9 +109,9 @@ public final class MainTestActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main_test);
         WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
-        if (model.getInstance() == null) {
+        if (model.getHandler() == null) {
             try {
-                model.init(this, this.getIntent().getData());
+                model.init(this, this.getIntent());
             } catch (Exception e) {
                 Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
                 this.finish();
@@ -124,7 +124,7 @@ public final class MainTestActivity extends AppCompatActivity {
         mBinding.fabMenuFixLdb.setOnClickListener(this::onClickFixLdb);
         mBinding.searchBtn.setLongClickable(true);
         mBinding.searchBtn.setOnLongClickListener(btn -> {
-            WorldStorage storage = this.model.getStorage().getValue();
+            WorldStorage storage = this.model.getHandler().getStorage();
             if (storage == null) {
                 Log.d(this, "db is null");
                 return false;
@@ -145,7 +145,7 @@ public final class MainTestActivity extends AppCompatActivity {
 
     private byte[] readItem(byte[] key) {
         byte[] ret;
-        WorldStorage storage = this.model.getStorage().getValue();
+        WorldStorage storage = this.model.getHandler().getStorage();
         if (storage == null) return null;
         try {
             ret = storage.db.get(key);
@@ -158,7 +158,7 @@ public final class MainTestActivity extends AppCompatActivity {
 
     public void onClickSearch(View view) {
         byte[] pattern = getDbKey();
-        WorldStorage storage = this.model.getStorage().getValue();
+        WorldStorage storage = this.model.getHandler().getStorage();
         if (storage == null) return;
         try {
             List<String> keys = new ArrayList<>();

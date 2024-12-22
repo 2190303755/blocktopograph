@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.CardWorldItemBinding
+import com.mithrilmania.blocktopograph.world.World
 import java.util.*
 
 class WorldItemAdapter(
@@ -39,9 +40,44 @@ class WorldItemAdapter(
         binding.date.text =
             DateFormat.getDateFormat(holder.context).format(Date(world.time))
         binding.size.text = world.size ?: holder.context.getString(R.string.calculating_size)
-        binding.path.text = world.location.lastPathSegment
+        binding.path.text = world.path
         binding.behavior.text = world.behavior.toString()
         binding.resource.text = world.resource.toString()
+    }
+
+    fun addWorld(world: World<*>): Boolean {
+        val worlds = this.model.worlds
+        synchronized(worlds) {
+            var flag = true
+            var index = worlds.size
+            while (--index >= 0) {
+                if (world.time < worlds[index].time) {
+                    if (++index != worlds.size && world == worlds[index]) return false
+                    worlds.add(index, world)
+                    flag = false
+                    break
+                }
+            }
+            if (flag && (worlds.isEmpty() || worlds[0] != world)) {
+                worlds.add(0, world)
+            }
+            this.notifyItemInserted(index)
+            return true
+        }
+    }
+
+    fun notifyItemChanged(world: World<*>) {
+        val worlds = this.model.worlds
+        synchronized(worlds) {
+            val index = worlds.indexOf(world)
+            if (index == -1) return
+            this.notifyItemChanged(index)
+            this.model.selected.let {
+                if (world == it.value) {
+                    it.value = world // notify
+                }
+            }
+        }
     }
 
     class WorldItemHolder(
@@ -49,143 +85,11 @@ class WorldItemAdapter(
         val model: WorldListModel,
         val binding: CardWorldItemBinding
     ) : RecyclerView.ViewHolder(binding.root), OnClickListener {
-        var world: WorldItem? = null
+        var world: World<*>? = null
         override fun onClick(v: View?) {
             this.model.selected.value = this.world ?: return
         }
     }
 
     override fun getItemCount(): Int = this.model.worlds.size
-    /*
-        private suspend fun getPackAmount(data: ByteArray?): Int {
-            return data?.let {
-                var amount = 0
-                withContext(Default) {
-                    try {
-                        amount = JSONArray(it.toString(StandardCharsets.UTF_8)).length()
-                    } catch (ignored: Exception) {
-                    }
-                }
-                amount
-            } ?: 0
-        }
-
-        suspend fun addWorld(file: DocumentFile, jobs: ArrayList<Job>, deep: Boolean) {
-            if (file.isDirectory) {
-                file.findFile(FILE_LEVEL_DAT).let { data ->
-                    when {
-                        data != null -> {
-                            jobs.size.let { index ->
-                                jobs.add(index, activity.lifecycleScope.launch(Default) {
-                                    val source = async(IO) { activity.readNBTSource(data.uri) }
-                                    val bitmap = async(IO) {
-                                        file.findFile(FILE_WORLD_ICON)?.let { icon ->
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                                activity.contentResolver.loadThumbnail(
-                                                    icon.uri, Size(
-                                                        activity.resources.getDimension(R.dimen.world_icon_width)
-                                                            .toInt(),
-                                                        activity.resources.getDimension(R.dimen.world_icon_height)
-                                                            .toInt()
-                                                    ), null
-                                                )
-                                            } else activity.contentResolver.openInputStream(icon.uri)
-                                                ?.let { BitmapFactory.decodeStream(it) }
-                                        }
-                                    }
-                                    val behavior = async(IO) {
-                                        getPackAmount(
-                                            file.findFile(FILE_BEHAVIOR_PACKS)
-                                                ?.let {
-                                                    activity.contentResolver.openInputStream(it.uri)
-                                                        ?.readBytes()
-                                                }
-                                        )
-                                    }
-                                    val resource = async(IO) {
-                                        getPackAmount(
-                                            file.findFile(FILE_RESOURCE_PACKS)
-                                                ?.let {
-                                                    activity.contentResolver.openInputStream(it.uri)
-                                                        ?.readBytes()
-                                                }
-                                        )
-                                    }
-                                    loadWorld(
-                                        jobs,
-                                        index,
-                                        file,
-                                        source.await(),
-                                        bitmap.await(),
-                                        behavior.await(),
-                                        resource.await()
-                                    )
-                                })
-                            }
-                        }
-
-                        deep -> {
-                            file.listFiles().sortedByDescending { it.lastModified() }
-                                .forEach { addWorld(it, jobs, false) }
-                        }
-
-                        else -> return
-                    }
-                }
-            }
-        }
-
-        private suspend fun loadWorld(
-            jobs: ArrayList<Job>,
-            index: Int,
-            world: DocumentFile,
-            source: NBTSource?,
-            icon: Bitmap?,
-            behavior: Int = 0,
-            resource: Int = 0,
-        ) {
-            withContext(Default) {
-                WorldItem(source?.uri, icon, world.lastModified(), behavior, resource).apply {
-                    try {
-                        path = world.uri.lastPathSegment ?: throw KotlinNullPointerException()
-                        source?.tag?.values?.firstOrNull()!!.nbtCompound.let { compound ->
-                            compound.getString(WORLD_NAME)?.let { name = it }
-                            mode = compound.getGameMode(activity, source.version != null)
-                        }
-                    } catch (e: Exception) {
-                    } finally {
-                        jobs.getOrNull(index - 1)?.join()
-                        this.uri?.let {
-                            worlds.add(this@apply)
-                            withContext(Main) {
-                                notifyItemInserted(itemCount)
-                                activity.setProgressIndeterminate(false)
-                            }
-                            activity.lifecycleScope.launch(IO) {
-                                getWorldSize(world).let { size ->
-                                    this@apply.size = size
-                                    withContext(Main) {
-                                        notifyItemChanged(worlds.indexOf(this@apply))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        @SuppressLint("NotifyDataSetChanged")
-        fun loadWorldList(uri: Uri) {
-            activity.lifecycleScope.launch(Default) {
-                worlds.clear()
-                withContext(Main) {
-                    notifyDataSetChanged()
-                    activity.setProgressIndeterminate(true)
-                }
-                withContext(IO) {
-                    DocumentFile.fromTreeUri(activity, uri)?.let { addWorld(it, arrayListOf(), true) }
-                }
-            }
-        }*/
 }

@@ -40,8 +40,8 @@ import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
-import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.io.IOException;
@@ -71,9 +71,9 @@ public class WorldActivity extends AppCompatActivity
          */
         Log.d(this, "World activity creating...");
         WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
-        if (model.getInstance() == null) {
+        if (model.getHandler() == null) {
             try {
-                if (!model.init(this, this.getIntent().getData())) {
+                if (!model.init(this, this.getIntent())) {
                     Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
                     this.finish();
                 }
@@ -88,7 +88,7 @@ public class WorldActivity extends AppCompatActivity
             }
         }
         this.model = model;
-        World instance = model.getInstance();
+        WorldHandler handler = model.getHandler();
         model.getShowMarkers().setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
 
         /*
@@ -118,7 +118,7 @@ public class WorldActivity extends AppCompatActivity
         // Title = world-name
         TextView title = headerView.findViewById(R.id.world_drawer_title);
         assert title != null;
-        title.setText(instance.getPlainName());
+        title.setText(handler.getPlainName());
 
         // Subtitle = world-seed (Tap worldseed to choose to copy it)
         TextView subtitle = headerView.findViewById(R.id.world_drawer_subtitle);
@@ -143,7 +143,7 @@ public class WorldActivity extends AppCompatActivity
 
             *link to results will be included here for reference when @mithrilmania is done*
          */
-        subtitle.setText(String.valueOf(instance.getWorldSeed(this)));
+        subtitle.setText(String.valueOf(handler.getWorldSeed(this)));
 
         // Open the world-map as default content
         openWorldMap();
@@ -421,7 +421,7 @@ public class WorldActivity extends AppCompatActivity
      */
     public EditableNBT openEditableNbtDbEntry(final String keyName) throws IOException {
         final byte[] keyBytes = keyName.getBytes(NBTConstants.CHARSET);
-        WorldStorage storage = model.getStorage().getValue();
+        WorldStorage storage = model.getHandler().getStorage();
         if (storage == null) return null;
         byte[] entryData = storage.db.get(keyBytes);
         if (entryData == null) return null;
@@ -539,7 +539,7 @@ public class WorldActivity extends AppCompatActivity
 
 
     public void openMultiplayerEditor() {
-        WorldStorage storage = this.model.getStorage().getValue();
+        WorldStorage storage = this.model.getHandler().getStorage();
         if (storage == null) return;
 
         //takes some time to find all players...
@@ -633,7 +633,7 @@ public class WorldActivity extends AppCompatActivity
     public EditableNBT openEditableNbtLevel(String subTagName) {
 
         //make a copy first, the user might not want to save changed tags.
-        final CompoundTag workCopy = model.getInstance().getData(this).getDeepCopy();
+        final CompoundTag workCopy = model.getHandler().getData(this).getDeepCopy();
         final ArrayList<Tag> workCopyContents;
         final String contentTitle;
         if (subTagName == null) {
@@ -657,7 +657,7 @@ public class WorldActivity extends AppCompatActivity
             @Override
             public boolean save() {
                 //write a copy of the workCopy, the workCopy may be edited after saving
-                AsyncKt.run(() -> model.getInstance().save(WorldActivity.this, workCopy.getDeepCopy()));
+                AsyncKt.run(() -> model.getHandler().save(WorldActivity.this, workCopy.getDeepCopy()));
                 return true;
             }
 
@@ -820,8 +820,6 @@ public class WorldActivity extends AppCompatActivity
      * Open a dialog; user chooses chunk-type -> open editor for this type
      **/
     public void openChunkNBTEditor(final int chunkX, final int chunkZ, final NBTChunkData nbtChunkData, final ViewGroup viewGroup) {
-
-
         if (nbtChunkData == null) {
             //should never happen
             Log.e(this, "User tried to open null chunkData in the nbt-editor!!!");

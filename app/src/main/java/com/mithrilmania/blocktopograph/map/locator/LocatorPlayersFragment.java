@@ -17,16 +17,16 @@ import com.mithrilmania.blocktopograph.databinding.FragLocatorPlayersBinding;
 import com.mithrilmania.blocktopograph.databinding.ItemLocatorPlayerBinding;
 import com.mithrilmania.blocktopograph.map.Player;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
-import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldHandler;
 
 import java.lang.ref.WeakReference;
 
 public final class LocatorPlayersFragment extends LocatorPageFragment {
 
     private FragLocatorPlayersBinding mBinding;
-    private World mWorld;
+    private WorldHandler mWorld;
 
-    public static LocatorPlayersFragment create(World world) {
+    public static LocatorPlayersFragment create(WorldHandler world) {
         LocatorPlayersFragment ret = new LocatorPlayersFragment();
         ret.mWorld = world;
         return ret;
@@ -100,7 +100,7 @@ public final class LocatorPlayersFragment extends LocatorPageFragment {
 
     }
 
-    private static class LoadingTask extends AsyncTask<World, Void, Player[]> {
+    private static class LoadingTask extends AsyncTask<WorldHandler, Void, Player[]> {
 
         private final WeakReference<LocatorPlayersFragment> owner;
 
@@ -109,7 +109,7 @@ public final class LocatorPlayersFragment extends LocatorPageFragment {
         }
 
         @Override
-        protected Player[] doInBackground(World... worlds) {
+        protected Player[] doInBackground(WorldHandler... worlds) {
             /*LocatorPlayersFragment owner = this.owner.get();
             World world;
             if (owner == null || worlds.length != 1 || (world = worlds[0]) == null) return null;

@@ -59,10 +59,11 @@ import com.mithrilmania.blocktopograph.map.marker.MarkerImageView;
 import com.mithrilmania.blocktopograph.map.picer.PicerFragment;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
+import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.io.IOException;
@@ -143,7 +144,7 @@ public class MapFragment extends Fragment {
         super.onStart();
         FragmentActivity activity = getActivity();
         if (activity == null) return;
-        activity.setTitle(model.getInstance().getPlainName());
+        activity.setTitle(model.getHandler().getPlainName());
         Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.MAPFRAGMENT_OPEN);
     }
 
@@ -163,7 +164,7 @@ public class MapFragment extends Fragment {
     }
 
     public void closeChunks() {
-        WorldStorage storage = this.model.getStorage().getValue();
+        WorldStorage storage = this.model.getHandler().getStorage();
         if (storage == null) return;
         storage.resetCache();
     }
@@ -213,7 +214,7 @@ public class MapFragment extends Fragment {
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Float> playerPos = model.getStorage().getValue().getLocalPlayerPos(this.model.getInstance().getData(activity));
+            DimensionVector3<Float> playerPos = model.getHandler().getStorage().getLocalPlayerPos(this.model.getHandler().getData(activity));
 
             if (playerPos == null) return;
             Snackbar.make(mBinding.tileView,
@@ -253,7 +254,7 @@ public class MapFragment extends Fragment {
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Integer> spawnPos = model.getStorage().getValue().getSpawnPos(this.model.getInstance().getData(activity));
+            DimensionVector3<Integer> spawnPos = model.getHandler().getStorage().getSpawnPos(this.model.getHandler().getData(activity));
 
             Snackbar.make(mBinding.tileView,
                     getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn),
@@ -281,7 +282,7 @@ public class MapFragment extends Fragment {
     @UiThread
     private void closeFloatPane() {
         if (mFloatingFragment != null) {
-            WorldStorage storage = this.model.getStorage().getValue();
+            WorldStorage storage = this.model.getHandler().getStorage();
             if (storage == null) return;
             FragmentManager fm = getChildFragmentManager();
             FragmentTransaction trans = fm.beginTransaction();
@@ -307,9 +308,9 @@ public class MapFragment extends Fragment {
         if (mFloatingFragment != null) {
             FloatPaneFragment fragment;
             if (mFloatingFragment instanceof AdvancedLocatorFragment) {
-                fragment = AdvancedLocatorFragment.create(model.getInstance(), this::frameTo);
+                fragment = AdvancedLocatorFragment.create(model.getHandler(), this::frameTo);
             } else if (mFloatingFragment instanceof SelectionMenuFragment) {
-                WorldStorage storage = this.model.getStorage().getValue();
+                WorldStorage storage = this.model.getHandler().getStorage();
                 if (storage == null) return;
                 fragment = SelectionMenuFragment
                         .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry,
@@ -430,12 +431,12 @@ public class MapFragment extends Fragment {
 
         // Display a menu allowing user to move camera to many places.
         mBinding.fabMenuGpsOthers.setOnClickListener(unusedView ->
-                openFloatPane(AdvancedLocatorFragment.create(model.getInstance(), this::frameTo)));
+                openFloatPane(AdvancedLocatorFragment.create(model.getHandler(), this::frameTo)));
         mBinding.fabMenuGpsOthers.setImageDrawable(
                 VectorDrawableCompat.create(resources, R.drawable.ic_action_search, null));
 
         mBinding.fabMenuGpsPicer.setOnClickListener(unusedView -> {
-            DialogFragment fragment = PicerFragment.create(model.getInstance(),
+            DialogFragment fragment = PicerFragment.create(model.getHandler(),
                     model.getDimension(), null, this::triggerLongPressAtCenter);
             fragment.show(getChildFragmentManager(), TAG_PICER);
         });
@@ -655,11 +656,10 @@ public class MapFragment extends Fragment {
                 //resetTileView();
             }
         });
-        model.getStorage().observe(owner, storage -> {
+        AsyncKt.openDB(model.getHandler(), activity, storage -> {
             boolean framedToPlayer = false;
             try {
-
-                DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getInstance().getData(activity));
+                DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getHandler().getData(activity));
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
                     Log.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
@@ -680,9 +680,8 @@ public class MapFragment extends Fragment {
                 Log.d(this, "Failed to place player marker. " + e);
             }
 
-
             try {
-                DimensionVector3<Integer> spawnPos = storage.getSpawnPos(model.getInstance().getData(activity));
+                DimensionVector3<Integer> spawnPos = storage.getSpawnPos(model.getHandler().getData(activity));
                 spawnMarker = new AbstractMarker(spawnPos.x, spawnPos.y, spawnPos.z, spawnPos.dimension,
                         new CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false);
                 this.staticMarkers.add(spawnMarker);
@@ -740,7 +739,7 @@ public class MapFragment extends Fragment {
             case LAMPSHADE:
             case CHBIOME:
             case DCHUNK:
-                WorldStorage storage = this.model.getStorage().getValue();
+                WorldStorage storage = this.model.getHandler().getStorage();
                 if (storage == null) return;
                 new SelectionBasedContextFreeEditTask(func, args, this, storage.mOldBlockRegistry).execute(
                         new RectEditTarget(
@@ -751,7 +750,7 @@ public class MapFragment extends Fragment {
                 break;
             case PICER: {
                 PicerFragment fragment = PicerFragment.create(
-                        model.getInstance(), this.model.getDimension(),
+                        model.getHandler(), this.model.getDimension(),
                         mBinding.selectionBoard.getSelection(), null
                 );
                 fragment.show(activity.getSupportFragmentManager(), TAG_PICER);
@@ -970,7 +969,7 @@ public class MapFragment extends Fragment {
             if (mFloatingFragment instanceof SelectionMenuFragment) closeFloatPane();
         } else {
             mBinding.selectionBoard.beginSelection(worldX, worldZ);
-            WorldStorage storage = this.model.getStorage().getValue();
+            WorldStorage storage = this.model.getHandler().getStorage();
             if (storage == null) return;
             SelectionMenuFragment fragment = SelectionMenuFragment
                     .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry, this::doSelectionBasedEdit);
@@ -986,7 +985,7 @@ public class MapFragment extends Fragment {
     }
 
     private void onChooseEditEntitiesOrTileEntities(Dimension dim, int chunkXint, int chunkZint, View container, boolean isEntity) {
-        WorldStorage storage = this.model.getStorage().getValue();
+        WorldStorage storage = this.model.getHandler().getStorage();
         if (storage == null) return;
         final Chunk chunk;
         try {
@@ -1461,7 +1460,7 @@ public class MapFragment extends Fragment {
 
         @Override
         protected String[] doInBackground(Void... arg0) {
-            WorldStorage storage = owner.get().model.getStorage().getValue();
+            WorldStorage storage = owner.get().model.getHandler().getStorage();
             if (storage == null) return null;
             try {
                 return storage.getNetworkPlayerNames();
@@ -1507,7 +1506,7 @@ public class MapFragment extends Fragment {
 
                             try {
                                 MapFragment fragment = this.owner.get();
-                                DimensionVector3<Float> playerPos = fragment.model.getStorage().getValue().getMultiPlayerPos(playerKey);
+                                DimensionVector3<Float> playerPos = fragment.model.getHandler().getStorage().getMultiPlayerPos(playerKey);
 
                                 Snackbar.make(fragment.mBinding.tileView,
                                                 fragment.getString(R.string.something_at_xyz_dim_float,

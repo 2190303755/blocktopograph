@@ -19,14 +19,20 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.window.layout.WindowMetricsCalculator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textview.MaterialTextView
 import com.mithrilmania.blocktopograph.BaseActivity
+import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.R
+import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldListBinding
 import com.mithrilmania.blocktopograph.util.FolderSelector
 import com.mithrilmania.blocktopograph.util.asFolder
+import com.mithrilmania.blocktopograph.world.impl.SAFWorldLoader
+import com.mithrilmania.blocktopograph.world.impl.ShizukuWorldLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import rikka.shizuku.Shizuku
 import kotlin.math.max
 
 class WorldListActivity : BaseActivity() {
@@ -63,9 +69,9 @@ class WorldListActivity : BaseActivity() {
 
     fun loadWorlds(location: Uri, tag: String = "") {
         lifecycleScope.launch(Dispatchers.IO) {
-            loadWorlds(
-                this@WorldListActivity.adapter,
-                this@WorldListActivity,
+            SAFWorldLoader.loadWorlds(
+                adapter,
+                applicationContext,
                 location.asFolder,
                 this@WorldListActivity.model.loading,
                 tag
@@ -83,7 +89,7 @@ class WorldListActivity : BaseActivity() {
             R.id.action_about -> {
                 val builder = MaterialAlertDialogBuilder(this)
                 val msg = MaterialTextView(this)
-                msg.ellipsize = TextUtils.TruncateAt.MARQUEE;
+                msg.ellipsize = TextUtils.TruncateAt.MARQUEE
                 val dpi = resources.displayMetrics.density
                 val horizontal = (19 * dpi).toInt();
                 val vertical = (5 * dpi).toInt();
@@ -111,7 +117,50 @@ class WorldListActivity : BaseActivity() {
             }
 
             R.id.action_help -> {
-                Toast.makeText(this, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT).show()
+                val service = Blocktopograph.fileService
+                if (service != null) {
+                    val text = TextInputEditText(this)
+                    text.setText("/storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/")
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Load Worlds")
+                        .setView(text)
+                        .setCancelable(false)
+                        .setNegativeButton("Cancel") { dialog, index ->
+
+                        }
+                        .setPositiveButton("Next") { dialog, index ->
+                            this.lifecycleScope.launch(Dispatchers.Default) {
+                                ShizukuWorldLoader.loadWorlds(
+                                    adapter,
+                                    applicationContext,
+                                    text.text.toString(),
+                                    model.loading
+                                )
+                            }
+                        }
+                        .show()
+                    return true
+                }
+                when (Blocktopograph.getShizukuStatus()) {
+                    ShizukuStatus.UNAUTHORIZED -> {
+                        if (!Shizuku.shouldShowRequestPermissionRationale()) {
+                            Shizuku.requestPermission(1)
+                        }
+                    }
+
+                    ShizukuStatus.UNSUPPORTED -> {
+                        Toast.makeText(this, "Shizuku版本过低", Toast.LENGTH_SHORT).show()
+                    }
+
+                    ShizukuStatus.UNKNOWN -> {
+                        Toast.makeText(this, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+
+                    ShizukuStatus.AVAILABLE -> {
+                        Toast.makeText(this, "!", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 true
             }
 
@@ -140,7 +189,7 @@ class WorldListActivity : BaseActivity() {
         if (isIndicatorUsed) {
             binding.worldList.apply {
                 updatePadding(
-                    bottom = bottom + resources.getDimension(R.dimen.medium_content_padding).toInt()
+                    bottom = bottom + resources.getDimension(R.dimen.large_content_padding).toInt()
                 )
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = 0
@@ -149,7 +198,7 @@ class WorldListActivity : BaseActivity() {
         } else {
             binding.worldList.apply {
                 updatePadding(
-                    bottom = resources.getDimension(R.dimen.medium_content_padding).toInt()
+                    bottom = resources.getDimension(R.dimen.large_content_padding).toInt()
                 )
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = bottom

@@ -34,8 +34,8 @@ import com.mithrilmania.blocktopograph.CreateWorldActivity;
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.util.FolderSelector;
-import com.mithrilmania.blocktopograph.view.WorldModel;
-import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.WorldModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -410,7 +410,7 @@ public class OldWorldItemListActivity extends AppCompatActivity {
 
     public static class WorldItemRecyclerViewAdapter extends RecyclerView.Adapter<WorldItemRecyclerViewAdapter.ViewHolder> {
 
-        private final List<World> mWorlds;
+        private final List<WorldHandler> mWorlds;
 
         private boolean disabled;
         private final OldWorldItemListActivity activity;
@@ -512,26 +512,15 @@ public class OldWorldItemListActivity extends AppCompatActivity {
             holder.mWorld = mWorlds.get(position);
             holder.mWorldNameView.setText(holder.mWorld.getPlainName());
             holder.mWorldSize.setText(/*IoUtil.getFileSizeInText(FileUtils.sizeOf(holder.mWorld.worldFolder))*/"Calculating...");
-            World data = holder.mWorld;
+            WorldHandler data = holder.mWorld;
             holder.mWorldGamemode.setText(data.getWorldGameMode(this.activity));
             holder.mWorldLastPlayed.setText(data.getFormattedLastPlayedTimestamp(this.activity));
-            holder.mWorldPath.setText(holder.mWorld.getRoot().toString());
-            holder.mWorldMark.setText(holder.mWorld.getTag());
+            holder.mWorldPath.setText(holder.mWorld.getPath());
 
 
-            holder.mView.setOnClickListener(v -> {
-                if (this.activity.mTwoPane) {
-                    this.activity.world.init(this.activity, holder.mWorld.getRoot());
-                    WorldItemDetailFragment fragment = new WorldItemDetailFragment();
-                    this.activity.getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.worlditem_detail_container, fragment)
-                            .commit();
-                } else {
-                    Intent intent = new Intent(this.activity, WorldItemDetailActivity.class);
-                    intent.setData(holder.mWorld.getRoot());
-                    this.activity.startActivity(intent);
-                }
-            });
+            holder.mView.setOnClickListener(v -> this.activity.startActivity(
+                    holder.mWorld.prepareIntent(new Intent(this.activity, WorldItemDetailActivity.class))
+            ));
         }
 
         @Override
@@ -547,7 +536,7 @@ public class OldWorldItemListActivity extends AppCompatActivity {
             final TextView mWorldGamemode;
             final TextView mWorldLastPlayed;
             final TextView mWorldPath;
-            World mWorld;
+            WorldHandler mWorld;
 
             ViewHolder(View view) {
                 super(view);

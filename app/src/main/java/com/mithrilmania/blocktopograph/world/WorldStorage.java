@@ -1,6 +1,5 @@
 package com.mithrilmania.blocktopograph.world;
 
-import android.net.Uri;
 import android.util.LruCache;
 
 import androidx.annotation.NonNull;
@@ -28,12 +27,15 @@ import org.iq80.leveldb.env.Env;
 import org.iq80.leveldb.fileenv.EnvImpl;
 import org.iq80.leveldb.impl.DbImpl;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
+import kotlin.io.FilesKt;
 
 /**
  * Wrapper around level.dat world spec en levelDB database.
@@ -46,13 +48,13 @@ public class WorldStorage {
     private LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
     public final OldBlockRegistry mOldBlockRegistry;
     public final DB db;
-    public final Uri src;
+    public final String path;
 
-    public WorldStorage(String path, Options options, Uri src) throws IOException {
+    public WorldStorage(String path, Options options) throws IOException {
         this.mOldBlockRegistry = new OldBlockRegistry(2048);
-        Log.d(this, "Open DB " + path);
+        Log.d(this, "[Open DB]" + path);
+        this.path = path;
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);
-        this.src = src;
     }
 
     static String bytesToHex(byte[] bytes, int start, int end) {
@@ -300,5 +302,13 @@ public class WorldStorage {
             Log.d(this, e);
             throw new Exception("Could not find spawn");
         }
+    }
+
+    public void close() {
+        try {
+            this.db.close();
+        } catch (Throwable ignored) {
+        }
+        FilesKt.deleteRecursively(new File(this.path));
     }
 }

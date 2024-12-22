@@ -7,7 +7,6 @@ import android.view.ViewParent;
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.FloatTag;
@@ -15,7 +14,8 @@ import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
 import com.mithrilmania.blocktopograph.nbt.tags.ListTag;
 import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
-import com.mithrilmania.blocktopograph.view.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldMapModel;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class MarkerAsyncTask extends AsyncTask<Void, AbstractMarker, Void> {
 
     @Override
     protected Void doInBackground(Void... v) {
-        WorldStorage storage = this.world.getStorage().getValue();
+        WorldStorage storage = this.world.getHandler().getStorage();
         if (storage == null) return null;
         Dimension dimension = this.dimension;
         int cX, cZ;

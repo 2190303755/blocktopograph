@@ -1,8 +1,18 @@
 package com.mithrilmania.blocktopograph.util
 
+import android.annotation.TargetApi
 import android.content.ContentResolver
+import android.content.res.AssetFileDescriptor
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.net.Uri
+import android.os.Build
+import android.os.CancellationSignal
+import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
+import android.provider.DocumentsContract.EXTRA_ORIENTATION
+import android.util.Size
 import com.mithrilmania.blocktopograph.Log
 import org.apache.commons.io.IOUtils
 import java.io.BufferedReader
@@ -152,4 +162,45 @@ fun Uri.queryString(resolver: ContentResolver, column: String): String? {
         if (it.moveToFirst() && !it.isNull(0)) return it.getString(0)
     }
     return null
+}
+
+val File.size: Long
+    get() = if (this.isDirectory) {
+        var size = 0L
+        this.listFiles()?.forEach { size += it.size }
+        size
+    } else this.length()
+
+/**
+ * @see [ContentResolver.loadThumbnail]
+ */
+@TargetApi(Build.VERSION_CODES.Q)
+fun ParcelFileDescriptor.loadThumbnail(
+    size: Size,
+    signal: CancellationSignal? = null
+): Bitmap? {
+    var orientation = 0.0F
+    val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource {
+        AssetFileDescriptor(this, 0, AssetFileDescriptor.UNKNOWN_LENGTH).apply {
+            orientation = extras?.getInt(EXTRA_ORIENTATION, 0)?.toFloat() ?: 0.0F
+        }
+    }) { decoder, info, source ->
+        decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
+        // One last-ditch check to see if we've been canceled.
+        signal?.throwIfCanceled();
+        // We requested a rough thumbnail size, but the remote size may have
+        // returned something giant, so defensively scale down as needed.
+        val sample = info.size.let {
+            (it.width / size.width).coerceAtLeast(it.height / size.height)
+        }
+        if (sample > 1) {
+            decoder.setTargetSampleSize(sample)
+        }
+    }
+    if (orientation == 0.0F) return bitmap
+    val width = bitmap.width
+    val height = bitmap.height
+    return Bitmap.createBitmap(bitmap, 0, 0, width, height, Matrix().apply {
+        setRotate(orientation, width / 2.0F, height / 2.0F)
+    }, false)
 }
