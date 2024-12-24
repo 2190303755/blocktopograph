@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.world.impl
 
 import android.content.Context
-import android.content.Intent
 import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.Log
 import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter
@@ -21,7 +20,6 @@ class ShizukuWorldHandler(
     root: String,
     name: String
 ) : WorldHandler(name, root) {
-    override fun prepareIntent(intent: Intent) = intent
     override fun load(context: Context) {
         val service = Blocktopograph.fileService ?: return
         try {

@@ -17,7 +17,6 @@
         android:layout_height="wrap_content"
         android:background="@drawable/rect_border_round_corner"
         android:gravity="center"
-        android:onClick="onClickChangeBiome"
         android:orientation="horizontal"
         tools:showIn="@layout/activity_create_world">
 

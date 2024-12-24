@@ -27,7 +27,7 @@ import com.mithrilmania.blocktopograph.world.IWorldLoader
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
 import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
 import com.mithrilmania.blocktopograph.world.KEY_RANDOM_SEED
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.world.WorldInfo
 import com.mithrilmania.blocktopograph.worldlist.WorldItemAdapter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -50,7 +50,7 @@ object ShizukuWorldLoader : IWorldLoader<String> {
     ) {
         val service = Blocktopograph.fileService ?: return
         state.postValue(true)
-        val jobs = HashMap<String, CompletableDeferred<ShizukuWorld>>()
+        val jobs = HashMap<String, CompletableDeferred<ShizukuWorldInfo>>()
         val callback = object : Callback {
             override fun handleMessage(msg: Message): Boolean {
                 when (msg.what) {
@@ -92,11 +92,11 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                             val compound = LevelDataConverter.read(
                                 FileInputStream(config.fileDescriptor)
                             )
-                            val world = ShizukuWorld(
+                            val world = ShizukuWorldInfo(
                                 location,
                                 (compound?.getChildTagByKey(KEY_LEVEL_NAME) as? StringTag)?.value
                                     ?: File(location).name
-                                    ?: context.getString(R.string.default_world_name),
+                                    ?: context.getString(R.string.world_default_name),
                                 compound.getGameMode(context),
                                 (compound?.getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value?.let {
                                     it * 1000L
@@ -106,9 +106,9 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                                 compound.lastPlayedVersion,
                                 tag
                             )
-                            if (!withContext(Dispatchers.Main) {
-                                    adapter.addWorld(world)
-                                }) return@launch
+                            if (
+                                !withContext(Dispatchers.Main) { adapter.addWorld(world) }
+                            ) return@launch
                             world.icon = icon.await()
                             synchronized(jobs) {
                                 jobs.computeIfAbsent(location) {
@@ -126,7 +126,7 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                         val behavior = msg.arg1
                         val resource = msg.arg2
                         CoroutineScope(Dispatchers.Default).launch {
-                            var job: Deferred<World<*>>
+                            var job: Deferred<WorldInfo<*>>
                             synchronized(jobs) {
                                 job = jobs.computeIfAbsent(location) {
                                     CompletableDeferred()

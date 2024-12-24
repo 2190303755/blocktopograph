@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.world
 
 import android.content.Context
-import android.content.Intent
 import android.text.format.DateFormat
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.tags.LongTag
@@ -34,12 +33,6 @@ abstract class WorldHandler(
      * Save [CompoundTag] to `level.dat` and update [data]
      */
     abstract fun save(context: Context, data: CompoundTag)
-
-    /**
-     * append basic info to recreate an equivalent instance
-     */
-    @Deprecated("for removal")
-    abstract fun prepareIntent(intent: Intent): Intent
 
     /**
      * try open leveldb if [storage] is `null`

@@ -21,7 +21,7 @@ open class WorldModel : ViewModel() {
             this.handler = ShizukuWorldHandler(
                 intent.getStringExtra(BUNDLE_ENTRY_PATH) ?: return false,
                 intent.getStringExtra(BUNDLE_ENTRY_NAME)
-                    ?: context.getString(R.string.default_world_name)
+                    ?: context.getString(R.string.world_default_name)
             )
         } else {
             val config = uri.findChild(context.contentResolver, FILE_LEVEL_DAT) ?: return false
@@ -29,7 +29,7 @@ open class WorldModel : ViewModel() {
                 uri,
                 config,
                 intent.getStringExtra(BUNDLE_ENTRY_NAME)
-                    ?: context.getString(R.string.default_world_name)
+                    ?: context.getString(R.string.world_default_name)
             )
         }
         return true

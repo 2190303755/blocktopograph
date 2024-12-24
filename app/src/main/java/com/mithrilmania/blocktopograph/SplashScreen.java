@@ -9,7 +9,7 @@ import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.mithrilmania.blocktopograph.worldlist.OldWorldItemListActivity;
+import com.mithrilmania.blocktopograph.worldlist.WorldListActivity;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +44,7 @@ public class SplashScreen extends AppCompatActivity {
         new Handler().postDelayed(() -> {
             // This method will be executed once the timer is over
             // Start your app main activity
-            Intent i = new Intent(SplashScreen.this, OldWorldItemListActivity.class);
+            Intent i = new Intent(SplashScreen.this, WorldListActivity.class);
             SplashScreen.this.startActivity(i);
 
             //user can not go back to splashscreen

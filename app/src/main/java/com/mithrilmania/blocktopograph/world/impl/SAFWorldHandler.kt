@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.world.impl
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import com.mithrilmania.blocktopograph.Log
 import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter
@@ -26,7 +25,6 @@ class SAFWorldHandler(
     name,
     root.lastPathSegment ?: root.toString()
 ) {
-    override fun prepareIntent(intent: Intent) = intent.setData(this.root)
     override fun load(context: Context) {
         try {
             this.data = LevelDataConverter.read(

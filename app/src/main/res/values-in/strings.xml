@@ -71,12 +71,6 @@
     <string name="error_could_not_open_world_details_lost_track_world"> Kesalahan: tidak bisa membuka detail dunia; kehilangan jejak dunia.</string>
     <string name="error_could_not_open_world">Kesalahan: tidak bisa membuka dunia.</string>
     <string name="no_level_data_available">tidak ada data level yang tersedia</string>
-    <string name="worldlist_detail_world_name">Nama dunia:</string>
-    <string name="worldlist_detail_world_size">Ukuran dunia:</string>
-    <string name="worldlist_detail_gamemode">Modus permainan:</string>
-    <string name="worldlist_detail_last_played">Putar terakhir:</string>
-    <string name="worldlist_detail_world_seed">Benih dunia:</string>
-    <string name="worldlist_detail_file_path">Jalur file:</string>
     <string name="loading_world">Memuat dunia ...</string>
     <string name="x_is_invalid" formatted="false"> \ "<ns0:g example="something" id="something_invalid">%1$s</ns0:g>\" is invalid!</string>
     <string name="edit_cancel">Membatalkan</string>
@@ -161,9 +155,9 @@
     <string name="dimension2_nbt">Dimensi2 NBT</string>
     <string name="autonomousentities_nbt">AutonomousEntities NBT</string>
     <string name="open_nbt_by_name">Buka NBT dengan nama</string>
-    <string name="gamemode_survival">Bertahan hidup</string>
-    <string name="gamemode_creative">Kreatif</string>
-    <string name="gamemode_adventure">Petualangan</string>
+    <string name="game_mode_survival">Bertahan hidup</string>
+    <string name="game_mode_creative">Kreatif</string>
+    <string name="game_mode_adventure">Petualangan</string>
     <string name="postion_2D_floats_with_chunkpos"> (<ns0:g example="123.4" id="x_coordinate">%1$.1f</ns0:g>, <ns0:g example="-123.9" id="z_coordinate">%2$.1f</ns0:g>) Chunk(<ns0:g example="123" id="x_chunk">%3$d</ns0:g>, <ns0:g example="-42" id="z_chunk">%4$d</ns0:g>)</string>
     <string name="action_teleport">Teleport!</string>
     <string name="go_to_spawn">Pergi untuk bertelur</string>
@@ -172,7 +166,7 @@
     <string name="world_mark_neteas">[NetEase]</string>
     <string name="create_world_title">Buat Dunia Datar</string>
     <string name="create_world_name">Nama:</string>
-    <string name="create_world_default_name">Duniaku</string>
+    <string name="world_default_name">Duniaku</string>
     <string name="create_world_version_aqua">1.2.13 ~ terbaru</string>
     <string name="create_world_version">Versi:</string>
     <string name="create_world_layers">Lapisan:</string>

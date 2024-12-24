@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.CardWorldItemBinding
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.world.WorldInfo
 import java.util.*
 
 class WorldItemAdapter(
@@ -44,7 +44,7 @@ class WorldItemAdapter(
         binding.resource.text = world.resource.toString()
     }
 
-    fun addWorld(world: World<*>): Boolean {
+    fun addWorld(world: WorldInfo<*>): Boolean {
         val worlds = this.model.worlds
         synchronized(worlds) {
             var flag = true
@@ -57,7 +57,8 @@ class WorldItemAdapter(
                     break
                 }
             }
-            if (flag && (worlds.isEmpty() || worlds[0] != world)) {
+            if (flag) {
+                if (worlds.firstOrNull() == world) return false
                 worlds.add(0, world)
             }
             this.notifyItemInserted(index)
@@ -65,7 +66,7 @@ class WorldItemAdapter(
         }
     }
 
-    fun notifyItemChanged(world: World<*>) {
+    fun notifyItemChanged(world: WorldInfo<*>) {
         val worlds = this.model.worlds
         synchronized(worlds) {
             val index = worlds.indexOf(world)
@@ -84,7 +85,7 @@ class WorldItemAdapter(
         val model: WorldListModel,
         val binding: CardWorldItemBinding
     ) : RecyclerView.ViewHolder(binding.root), OnClickListener {
-        var world: World<*>? = null
+        var world: WorldInfo<*>? = null
         override fun onClick(v: View?) {
             this.model.selected.value = this.world ?: return
         }

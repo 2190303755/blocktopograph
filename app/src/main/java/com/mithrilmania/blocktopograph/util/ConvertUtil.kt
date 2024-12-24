@@ -8,13 +8,16 @@ import com.mithrilmania.blocktopograph.nbt.tags.ListTag
 import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_VERSION
 
-fun CompoundTag?.getGameMode(context: Context) = when (
-    (this?.getChildTagByKey(KEY_GAME_MODE) as? IntTag)?.value
-) {
-    0 -> context.getString(R.string.gamemode_survival)
-    1 -> context.getString(R.string.gamemode_creative)
-    2 -> context.getString(R.string.gamemode_adventure)
-    else -> "Unknown"
+fun CompoundTag?.getGameMode(context: Context) = (this?.getChildTagByKey(
+    KEY_GAME_MODE
+) as? IntTag)?.value.let {
+    when (it) {
+        0 -> context.getString(R.string.game_mode_survival)
+        1 -> context.getString(R.string.game_mode_creative)
+        2 -> context.getString(R.string.game_mode_adventure)
+        6 -> context.getString(R.string.game_mode_spectator)
+        else -> context.getString(R.string.game_mode_unknown, it.toString())
+    }
 }
 
 val CompoundTag?.lastPlayedVersion: String

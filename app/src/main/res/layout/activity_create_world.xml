@@ -1,114 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    <data>
-
-    </data>
-
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/toolbar_layout"
+        android:fitsSystemWindows="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="6dp">
+        app:liftOnScroll="true">
 
-        <com.mithrilmania.blocktopograph.view.MeowScrollView
-            android:id="@+id/scroll"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_height="wrap_content"
+            app:title="@string/create_world_title"
+            app:navigationIcon="@drawable/ic_arrow_back" />
+    </com.google.android.material.appbar.AppBarLayout>
 
-            <RelativeLayout
-                android:id="@+id/help_frame_layers"
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="6dp"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+
+        <LinearLayout
+            android:id="@+id/help_frame_layers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="?attr/textInputOutlinedStyle"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:hint="@string/create_world_name"
+                app:placeholderText="@string/world_default_name">
 
-                <LinearLayout
+                <com.google.android.material.textfield.TextInputEditText
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_world_name" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/create_world_biome_id" />
 
-                    <EditText
-                        android:id="@+id/world_name"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/create_world_default_name"
-                        android:inputType="text"
-                        tools:ignore="Autofill" />
+            <include
+                android:id="@+id/biome_view"
+                layout="@layout/include_biome_disp" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_world_biome_id" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/create_world_version" />
 
-                    <include
-                        android:id="@+id/biome_view"
-                        layout="@layout/include_biome_disp" />
+            <RadioGroup
+                android:id="@+id/version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checkedButton="@id/version_aqua"
+                android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_world_version" />
+                <RadioButton
+                    android:id="@+id/version_aqua"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_world_version_aqua" />
 
-                    <RadioGroup
-                        android:id="@+id/version"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:checkedButton="@id/version_aqua"
-                        android:orientation="vertical">
+            </RadioGroup>
 
-                        <RadioButton
-                            android:id="@+id/version_aqua"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/create_world_version_aqua" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/help_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawableEnd="@drawable/ic_help"
+                android:text="@string/create_world_layers" />
 
-                    </RadioGroup>
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/frag_layers"
+                android:name="com.mithrilmania.blocktopograph.flat.EditFlatFragment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/create_need_restart" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/create_world_layers" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        style="@style/Widget.Material3.FloatingActionButton.Surface"
+        android:id="@+id/fab_create"
+        android:src="@drawable/ic_arrow_forward"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/medium_floating_margin"
+        app:layout_anchor="@id/scroll"
+        app:layout_anchorGravity="bottom|end"
+        android:contentDescription="@string/open" />
 
-                        <ImageView
-                            android:id="@+id/help_amount"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:onClick="onClickHelpLayers"
-                            app:srcCompat="@drawable/ic_help_black" />
-
-                    </LinearLayout>
-
-                    <fragment
-                        android:id="@+id/frag_layers"
-                        android:name="com.mithrilmania.blocktopograph.flat.EditFlatFragment"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_need_restart" />
-
-                </LinearLayout>
-
-            </RelativeLayout>
-
-        </com.mithrilmania.blocktopograph.view.MeowScrollView>
-
-        <include layout="@layout/common_dialog_activity_posibtn_bar" />
-
-    </LinearLayout>
-
-</layout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

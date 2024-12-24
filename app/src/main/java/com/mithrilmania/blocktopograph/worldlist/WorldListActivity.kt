@@ -26,8 +26,10 @@ import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldListBinding
-import com.mithrilmania.blocktopograph.util.FolderSelector
+import com.mithrilmania.blocktopograph.util.FolderPicker
+import com.mithrilmania.blocktopograph.util.WorldCreator
 import com.mithrilmania.blocktopograph.util.asFolder
+import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.impl.SAFWorldLoader
 import com.mithrilmania.blocktopograph.world.impl.ShizukuWorldLoader
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,7 @@ import kotlin.math.max
 
 class WorldListActivity : BaseActivity() {
     private lateinit var selectMultipleWorlds: ActivityResultLauncher<Uri?>
+    private lateinit var createWorld: ActivityResultLauncher<Unit>
     private lateinit var adapter: WorldItemAdapter
     private lateinit var model: WorldListModel
     private lateinit var binding: ActivityWorldListBinding
@@ -50,9 +53,14 @@ class WorldListActivity : BaseActivity() {
         this.initLayoutManager()
         this.adapter = WorldItemAdapter(this.model)
         this.binding.worldList.setAdapter(this.adapter)
-        this.selectMultipleWorlds = registerForActivityResult(FolderSelector()) {
+        this.selectMultipleWorlds = registerForActivityResult(FolderPicker) {
             if (it != null) {
                 this.loadWorlds(it)
+            }
+        }
+        this.createWorld = registerForActivityResult(WorldCreator) {
+            if (it != null) {
+                this.adapter.addWorld(it)
             }
         }
         this.model.loading.observe(this) {
@@ -85,7 +93,7 @@ class WorldListActivity : BaseActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
+        when (item.itemId) {
             R.id.action_about -> {
                 val builder = MaterialAlertDialogBuilder(this)
                 val msg = MaterialTextView(this)
@@ -102,20 +110,10 @@ class WorldListActivity : BaseActivity() {
                     .setCancelable(true)
                     .setPositiveButton(android.R.string.ok, null)
                     .show()
-                true
             }
 
-            R.id.action_open -> {
-                this.details.show()
-                Toast.makeText(this, "测试", Toast.LENGTH_SHORT).show()
-                true
-            }
-
-            R.id.action_create -> {
-                Toast.makeText(this, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT).show()
-                true
-            }
-
+            R.id.action_open -> this.details.show()
+            R.id.action_create -> this.createWorld.launch(Unit)
             R.id.action_help -> {
                 val service = Blocktopograph.fileService
                 if (service != null) {
@@ -152,20 +150,15 @@ class WorldListActivity : BaseActivity() {
                         Toast.makeText(this, "Shizuku版本过低", Toast.LENGTH_SHORT).show()
                     }
 
-                    ShizukuStatus.UNKNOWN -> {
-                        Toast.makeText(this, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT)
-                            .show()
-                    }
+                    ShizukuStatus.UNKNOWN -> this.upcoming()
 
                     ShizukuStatus.AVAILABLE -> {
                         Toast.makeText(this, "!", Toast.LENGTH_SHORT).show()
                     }
                 }
-                true
             }
-
-            else -> true
         }
+        return true
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -186,7 +179,7 @@ class WorldListActivity : BaseActivity() {
     override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
         super.updateDecorViewPadding(decorView, systemBars, ime)
         val bottom = systemBars.bottom
-        if (isIndicatorUsed) {
+        if (isIndicatorEnabled) {
             binding.worldList.apply {
                 updatePadding(
                     bottom = bottom + resources.getDimension(R.dimen.large_content_padding).toInt()
@@ -206,7 +199,7 @@ class WorldListActivity : BaseActivity() {
             }
         }
         binding.fabLoadWorlds.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin = bottom + resources.getDimension(R.dimen.fab_margin).toInt()
+            bottomMargin = bottom + resources.getDimension(R.dimen.medium_floating_margin).toInt()
         }
     }
 }

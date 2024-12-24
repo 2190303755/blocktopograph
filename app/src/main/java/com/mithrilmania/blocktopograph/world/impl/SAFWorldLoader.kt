@@ -53,13 +53,13 @@ object SAFWorldLoader : IWorldLoader<Uri> {
                 val compound: CompoundTag? = LevelDataConverter.read(
                     resolver.openInputStream(config)
                 )
-                val world = SAFWorld(
+                val world = SAFWorldInfo(
                     candidate,
                     (compound?.getChildTagByKey(KEY_LEVEL_NAME) as? StringTag)?.value
                         ?: location.queryString(
                             context.contentResolver,
                             DocumentsContract.Document.COLUMN_DISPLAY_NAME
-                        ) ?: context.getString(R.string.default_world_name),
+                        ) ?: context.getString(R.string.world_default_name),
                     compound.getGameMode(context),
                     (compound?.getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value?.let {
                         it * 1000L
@@ -79,10 +79,9 @@ object SAFWorldLoader : IWorldLoader<Uri> {
                         continue@forEachCandidate
                     }
                 }
-                if (worlds.isEmpty() || worlds[0] != world) {
-                    worlds.add(0, world)
-                    world.populate(adapter, context)
-                }
+                if (worlds.firstOrNull() == world) continue
+                worlds.add(0, world)
+                world.populate(adapter, context)
             } while (it.moveToPrevious())
         }
         state.postValue(false)

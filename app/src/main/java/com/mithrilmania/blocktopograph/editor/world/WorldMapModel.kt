@@ -1,9 +1,10 @@
-package com.mithrilmania.blocktopograph.world
+package com.mithrilmania.blocktopograph.editor.world
 
 import androidx.lifecycle.MutableLiveData
 import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.map.renderer.MapType
+import com.mithrilmania.blocktopograph.world.WorldModel
 
 class WorldMapModel : WorldModel() {
     val markers: MutableLiveData<ArrayList<AbstractMarker>> =

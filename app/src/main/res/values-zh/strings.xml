@@ -146,12 +146,6 @@
     <string name="error_could_not_open_world_details_lost_track_world">错误：无法打开世界详情；世界信息丢失</string>
     <string name="error_could_not_open_world">错误：无法打开世界</string>
     <string name="no_level_data_available">没有有效的存档数据</string>
-    <string name="worldlist_detail_world_name">世界名称：</string>
-    <string name="worldlist_detail_world_size">世界大小：</string>
-    <string name="worldlist_detail_gamemode">游戏模式：</string>
-    <string name="worldlist_detail_last_played">上次游玩：</string>
-    <string name="worldlist_detail_world_seed">世界种子：</string>
-    <string name="worldlist_detail_file_path">文件路径：</string>
     <string name="loading_world">加载世界中……</string>
     <string name="x_is_invalid">
         “<xliff:g example="something" id="something_invalid">%1$s</xliff:g>”无效
@@ -227,7 +221,7 @@
     <string name="cave">洞穴</string>
     <string name="slime_chunks">史莱姆区块</string>
     <string name="heightmap">高度图</string>
-    <string name="biomes">生态群系</string>
+    <string name="biomes">生物群系</string>
     <string name="foliage_color">植被颜色</string>
     <string name="x_ray">透视</string>
     <string name="light">光照强度</string>
@@ -247,9 +241,11 @@
     <string name="dimension2_nbt">dimension2 NBT</string>
     <string name="autonomousentities_nbt">AutonomousEntities NBT</string>
     <string name="open_nbt_by_name">按名称打开NBT</string>
-    <string name="gamemode_survival">生存</string>
-    <string name="gamemode_creative">创造</string>
-    <string name="gamemode_adventure">冒险</string>
+    <string name="game_mode_survival">生存模式</string>
+    <string name="game_mode_creative">创造模式</string>
+    <string name="game_mode_adventure">冒险模式</string>
+    <string name="game_mode_spectator">旁观模式</string>
+    <string name="game_mode_unknown">未知（%s）</string>
     <string name="postion_2D_floats_with_chunkpos">
     (<xliff:g example="123.45" id="x_coordinate">%1$.1f</xliff:g>,
     <xliff:g example="-123.987" id="z_coordinate">%2$.1f</xliff:g>)
@@ -269,7 +265,7 @@
     </string>
     <string name="create_world_title">创建平坦世界</string>
     <string name="create_world_name">名字：</string>
-    <string name="create_world_default_name">我的世界</string>
+    <string name="world_default_name">我的世界</string>
     <string name="create_world_version_aqua">1.2.13至今</string>
     <string name="create_world_version">版本：</string>
     <string name="create_world_layers">层：</string>
@@ -380,8 +376,8 @@
     <string name="map_uioption_open_drawer">打开抽屉</string>
     <string name="general_got_it">哦</string>
     <string name="picer_failed_corrupt">这个世界没法被Blocktopograph理解，可能版本过旧或者过新。</string>
-    <string name="biome_pick_title">选择生态群系</string>
-    <string name="map_edit_func_chbiome">更改生态群系</string>
+    <string name="biome_pick_title">选择生物群系</string>
+    <string name="map_edit_func_chbiome">更改生物群系</string>
     <string name="map_edit_chbiome_for">对于</string>
     <string name="map_edit_chbiome_all">全部</string>
     <string name="map_edit_chbiome_for_specific">特定的群系</string>
@@ -418,7 +414,6 @@
     <string name="restore_caption">恢复先前的备份文件</string>
     <string name="restore_warn">这将撤销所有在该备份创建以后进行的更改！您确定吗？注意不要丢失进度。</string>
     <string name="world_name_broken">损坏的世界</string>
-    <string name="default_world_name">新的世界</string>
     <string name="calculating_size">正在计算…</string>
     <string name="action_create">创建世界</string>
     <string name="edit_config">编辑配置</string>
@@ -428,4 +423,14 @@
     <string name="world_detail_game_mode">游戏模式</string>
     <string name="world_detail_size">世界大小</string>
     <string name="world_detail_seed">世界种子</string>
+    <string name="world_test_fix">修复</string>
+    <string name="world_test_query">查询</string>
+    <string name="world_test_export">导出</string>
+    <string name="world_test_match">匹配</string>
+    <string name="world_test_key">键</string>
+    <string name="world_test_key_type">键类型</string>
+    <string name="world_test_key_type_plain">纯文本</string>
+    <string name="world_test_key_type_hex">十六进制文本</string>
+    <string name="world_test_export_done">导出完成</string><!--不想加句号。-->
+    <string name="world_test_open_file">打开文件</string>
 </resources>

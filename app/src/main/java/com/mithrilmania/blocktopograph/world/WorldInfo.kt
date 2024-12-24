@@ -3,7 +3,7 @@ package com.mithrilmania.blocktopograph.world
 import android.content.Intent
 import android.graphics.Bitmap
 
-abstract class World<T>(
+abstract class WorldInfo<T>(
     val location: T,
     val name: String,
     val mode: String,
@@ -22,5 +22,5 @@ abstract class World<T>(
     override fun hashCode(): Int = this.location.hashCode()
 
     override fun equals(other: Any?): Boolean =
-        this === other || (other is World<*> && this.location == other.location)
+        this === other || (other is WorldInfo<*> && this.location == other.location)
 }

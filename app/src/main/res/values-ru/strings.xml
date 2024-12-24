@@ -155,7 +155,7 @@ Minecraft является торговой маркой Mojang AB.
 "</string>
     <string name="create_world_book_recipe_many">"  §r..И больше"</string>
     <string name="create_world_book_title">Мяу~</string>
-    <string name="create_world_default_name">Мой мир</string>
+    <string name="world_default_name">Мой мир</string>
     <string name="create_world_extra_file_name">от_Blocktopograph.txt</string>
     <string name="create_world_extra_file_text">"Добро~ пожаловать~ Мяу~
 Этот мир создан программой Blocktopograph,
@@ -249,9 +249,9 @@ NBT редактором миров Minecraft для Android.
     <string name="full_date_format">dd/MM/yyyy hh:mm a</string>
     <string name="func_begin_selection">Выделить область</string>
     <string name="func_cancel_selection">Убрать выделитель области</string>
-    <string name="gamemode_adventure">Приключения</string>
-    <string name="gamemode_creative">Креатив</string>
-    <string name="gamemode_survival">Выживание</string>
+    <string name="game_mode_adventure">Приключения</string>
+    <string name="game_mode_creative">Креатив</string>
+    <string name="game_mode_survival">Выживание</string>
     <string name="gcm_defaultSenderId">245780358673</string>
     <string name="general_cancelled">Отменено.</string>
     <string name="general_delete">Удалить</string>
@@ -504,12 +504,6 @@ NBT редактором миров Minecraft для Android.
     <string name="world_name_broken">Повреждëнный мир</string>
     <string name="world_nbt">NBT данные level.dat</string>
     <string name="world_seed_prefix">Сид мира:</string>
-    <string name="worldlist_detail_file_path">Путь к файлу:</string>
-    <string name="worldlist_detail_gamemode">Режим игры:</string>
-    <string name="worldlist_detail_last_played">Последняя игра:</string>
-    <string name="worldlist_detail_world_name">Имя мира:</string>
-    <string name="worldlist_detail_world_seed">Сид мира:</string>
-    <string name="worldlist_detail_world_size">Размер мира:</string>
     <string name="worldpath_is_not_directory">Этот путь (необязательно с суффиксом /level.dat) не является директорией!</string>
     <string name="x_is_invalid">\"%1$s\" некорректный!</string>
     <string name="x_ray">X-Ray (показать руды)</string>

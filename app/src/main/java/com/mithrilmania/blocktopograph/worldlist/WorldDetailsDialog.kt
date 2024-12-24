@@ -19,13 +19,15 @@ import com.google.android.material.textview.MaterialTextView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
 import com.mithrilmania.blocktopograph.databinding.DialogWorldDetailsBinding
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.test.WorldTestActivity
+import com.mithrilmania.blocktopograph.util.upcoming
+import com.mithrilmania.blocktopograph.world.WorldInfo
 import java.util.Date
 
 class WorldDetailsDialog(
     activity: WorldListActivity,
     val model: WorldListModel
-) : BottomSheetDialog(activity), DialogInterface.OnCancelListener {
+) : BottomSheetDialog(activity, 0), DialogInterface.OnCancelListener {
     val binding: DialogWorldDetailsBinding
     val callback = object : BottomSheetCallback() {
         override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -70,19 +72,43 @@ class WorldDetailsDialog(
         }
     }
 
-    fun bindWorld(world: World<*>) {
+    fun bindWorld(world: WorldInfo<*>) {
         val binding = this.binding
         val context = this.context
         binding.name.text = world.name
-        if (world.icon == null) {
-            binding.icon.setImageResource(R.drawable.world_icon_default)
-        } else {
-            binding.icon.setImageBitmap(world.icon)
+        binding.icon.apply {
+            if (world.icon == null) {
+                setImageResource(R.drawable.world_icon_default)
+            } else {
+                setImageBitmap(world.icon)
+            }
+            var lastClick = 0L
+            var clickCount = 0L
+            setOnClickListener {
+                val current = System.currentTimeMillis()
+                if (current - lastClick < 500) {
+                    if (++clickCount > 4) {
+                        clickCount = 0
+                        context.startActivity(
+                            world.prepareIntent(Intent(context, WorldTestActivity::class.java))
+                        )
+                    }
+                } else {
+                    clickCount = 1
+                }
+                lastClick = current
+            }
         }
         binding.path.text = world.path
         binding.mode.text = world.mode
-        binding.date.text =
-            DateFormat.getDateFormat(context).format(Date(world.time)) + " - " + world.version
+        DateFormat.getTimeFormat(context)
+        binding.date.text = Date(world.time).let {
+            "${
+                DateFormat.getMediumDateFormat(context).format(it)
+            } ${
+                DateFormat.getTimeFormat(context).format(it)
+            } - ${world.version}"
+        }
         binding.size.text = world.size ?: context.getString(R.string.calculating_size)
         binding.seed.text = world.seed
         binding.editWorld.setOnClickListener {
@@ -91,7 +117,7 @@ class WorldDetailsDialog(
             )
         }
         binding.editConfig.setOnClickListener {
-            Toast.makeText(context, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT).show()
+            context.upcoming()
         }
     }
 
@@ -104,13 +130,14 @@ class WorldDetailsDialog(
         super.onAttachedToWindow()
         if (window == null) return
         @Suppress("DEPRECATION") window.navigationBarColor = Color.TRANSPARENT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.attributes.apply {
-                blurBehindRadius = 20
-                dimAmount = 0.16F
-            }
-            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        window.isNavigationBarContrastEnforced = true
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        window.attributes.apply {
+            blurBehindRadius = 20
+            dimAmount = 0.16F
         }
+        window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
     }
 
     override fun onCancel(dialog: DialogInterface?) {

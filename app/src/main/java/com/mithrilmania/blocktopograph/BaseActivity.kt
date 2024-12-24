@@ -18,7 +18,7 @@ import com.mithrilmania.blocktopograph.util.INDICATOR_NAV_MODE_HARMONY
 abstract class BaseActivity(
     val supportDynamicColors: Boolean = true,
 ) : AppCompatActivity(), OnApplyWindowInsetsListener {
-    var isIndicatorUsed = false
+    var isIndicatorEnabled = false
         private set
 
     open fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
@@ -42,7 +42,7 @@ abstract class BaseActivity(
     }
 
     final override fun onApplyWindowInsets(view: View, insets: WindowInsets): WindowInsets {
-        isIndicatorUsed =
+        isIndicatorEnabled =
             when (Settings.Secure.getInt(this.contentResolver, "navigation_mode", 0)) {
                 INDICATOR_NAV_MODE_ANDROID, INDICATOR_NAV_MODE_HARMONY -> true
                 else -> false

@@ -3,9 +3,9 @@ package com.mithrilmania.blocktopograph.world.impl
 import android.content.Intent
 import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_NAME
 import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_PATH
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.world.WorldInfo
 
-class ShizukuWorld(
+class ShizukuWorldInfo(
     location: String,
     name: String,
     mode: String,
@@ -13,7 +13,7 @@ class ShizukuWorld(
     seed: String,
     version: String,
     tag: String = ""
-) : World<String>(
+) : WorldInfo<String>(
     location,
     name,
     mode,

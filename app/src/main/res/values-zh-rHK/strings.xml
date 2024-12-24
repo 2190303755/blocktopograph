@@ -146,12 +146,6 @@
     <string name="error_could_not_open_world_details_lost_track_world">錯誤：無法打開地圖詳情；地圖信息丟失</string>
     <string name="error_could_not_open_world">錯誤：無法打開地圖</string>
     <string name="no_level_data_available">沒有有效的存檔數據</string>
-    <string name="worldlist_detail_world_name">地圖名字：</string>
-    <string name="worldlist_detail_world_size">地圖大小：</string>
-    <string name="worldlist_detail_gamemode">遊戲模式：</string>
-    <string name="worldlist_detail_last_played">上次遊玩：</string>
-    <string name="worldlist_detail_world_seed">地圖種子碼：</string>
-    <string name="worldlist_detail_file_path">文件路徑：</string>
     <string name="loading_world">載入地圖中……</string>
     <string name="x_is_invalid">
         「<xliff:g example="something" id="something_invalid">%1$s</xliff:g>」無效
@@ -247,9 +241,9 @@
     <string name="dimension2_nbt">dimension2 NBT</string>
     <string name="autonomousentities_nbt">AutonomousEntities NBT</string>
     <string name="open_nbt_by_name">按名稱打開NBT</string>
-    <string name="gamemode_survival">生存</string>
-    <string name="gamemode_creative">創造</string>
-    <string name="gamemode_adventure">冒險</string>
+    <string name="game_mode_survival">生存</string>
+    <string name="game_mode_creative">創造</string>
+    <string name="game_mode_adventure">冒險</string>
     <string name="postion_2D_floats_with_chunkpos">
     (<xliff:g example="123.45" id="x_coordinate">%1$.1f</xliff:g>,
     <xliff:g example="-123.987" id="z_coordinate">%2$.1f</xliff:g>)
@@ -269,7 +263,7 @@
     </string>
     <string name="create_world_title">創建平坦地圖</string>
     <string name="create_world_name">名字：</string>
-    <string name="create_world_default_name">我的地圖</string>
+    <string name="world_default_name">我的地圖</string>
     <string name="create_world_version_aqua">1.2.13至今</string>
     <string name="create_world_version">版本：</string>
     <string name="create_world_layers">層：</string>

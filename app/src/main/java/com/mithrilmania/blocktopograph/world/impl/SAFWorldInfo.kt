@@ -14,7 +14,7 @@ import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_NAME
 import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.world.WorldInfo
 import com.mithrilmania.blocktopograph.worldlist.WorldItemAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -24,7 +24,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
-class SAFWorld(
+class SAFWorldInfo(
     location: Uri,
     name: String,
     mode: String,
@@ -33,7 +33,7 @@ class SAFWorld(
     version: String,
     private val config: Uri,
     tag: String = ""
-) : World<Uri>(
+) : WorldInfo<Uri>(
     location,
     name,
     mode,
@@ -50,9 +50,9 @@ class SAFWorld(
     suspend fun populate(adapter: WorldItemAdapter, context: Context) {
         withContext(Dispatchers.IO) {
             val insert = async(Dispatchers.Main) {
-                adapter.notifyItemInserted(adapter.model.worlds.indexOf(this@SAFWorld))
+                adapter.notifyItemInserted(adapter.model.worlds.indexOf(this@SAFWorldInfo))
             }
-            val root = this@SAFWorld.location
+            val root = this@SAFWorldInfo.location
             val resolver = context.contentResolver
             val bitmap = async(Dispatchers.IO) {
                 val resources = context.resources
@@ -88,16 +88,16 @@ class SAFWorld(
             }
             val size = async(Dispatchers.IO) { root.getSize(resolver) }
             async(Dispatchers.Default) {
-                this@SAFWorld.behavior = behavior.await()
-                this@SAFWorld.resource = resource.await()
-                this@SAFWorld.icon = bitmap.await()
+                this@SAFWorldInfo.behavior = behavior.await()
+                this@SAFWorldInfo.resource = resource.await()
+                this@SAFWorldInfo.icon = bitmap.await()
                 insert.await()
                 withContext(Dispatchers.Main) {
-                    adapter.notifyItemChanged(this@SAFWorld)
+                    adapter.notifyItemChanged(this@SAFWorldInfo)
                 }
-                this@SAFWorld.size = ConvertUtil.formatSize(size.await())
+                this@SAFWorldInfo.size = ConvertUtil.formatSize(size.await())
                 withContext(Dispatchers.Main) {
-                    adapter.notifyItemChanged(this@SAFWorld)
+                    adapter.notifyItemChanged(this@SAFWorldInfo)
                 }
             }
         }

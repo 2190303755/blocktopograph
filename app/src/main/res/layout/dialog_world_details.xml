@@ -41,7 +41,7 @@
                     android:id="@+id/name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/default_world_name"
+                    android:text="@string/world_default_name"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
             </com.mithrilmania.blocktopograph.view.DynamicColumnLayout>
@@ -257,10 +257,11 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <LinearLayout
+    <com.google.android.material.button.MaterialButtonGroup
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:spacing="@dimen/small_content_padding">
 
         <com.google.android.material.button.MaterialButton
             style="@style/Widget.Material3.Button.OutlinedButton"
@@ -268,8 +269,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="@string/edit_config"
-            android:layout_marginEnd="@dimen/small_content_padding" />
+            android:text="@string/edit_config" />
 
         <com.google.android.material.button.MaterialButton
             style="@style/Widget.Material3.Button.OutlinedButton"
@@ -278,5 +278,5 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="@string/edit_world" />
-    </LinearLayout>
+    </com.google.android.material.button.MaterialButtonGroup>
 </LinearLayout>
