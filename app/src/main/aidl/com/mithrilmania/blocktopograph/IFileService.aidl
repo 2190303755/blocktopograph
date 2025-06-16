@@ -15,5 +15,5 @@ interface IFileService {
 
     @nullable ParcelFileDescriptor getFileDescriptor(String path) = 3;
 
-    @nullable String prepareDB(String cache,String world) = 4;
+    @nullable String prepareDB(String cache, String world) = 4;
 }

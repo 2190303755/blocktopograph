@@ -214,7 +214,7 @@ public class MapFragment extends Fragment {
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Float> playerPos = model.getHandler().getStorage().getLocalPlayerPos(this.model.getHandler().getData(activity));
+            DimensionVector3<Float> playerPos = model.getHandler().getStorage().getLocalPlayerPos(this.model.getHandler().getDataCompat(activity));
 
             if (playerPos == null) return;
             Snackbar.make(mBinding.tileView,
@@ -254,7 +254,7 @@ public class MapFragment extends Fragment {
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Integer> spawnPos = model.getHandler().getStorage().getSpawnPos(this.model.getHandler().getData(activity));
+            DimensionVector3<Integer> spawnPos = model.getHandler().getStorage().getSpawnPos(this.model.getHandler().getDataCompat(activity));
 
             Snackbar.make(mBinding.tileView,
                     getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn),
@@ -659,7 +659,7 @@ public class MapFragment extends Fragment {
         AsyncKt.openDB(model.getHandler(), activity, storage -> {
             boolean framedToPlayer = false;
             try {
-                DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getHandler().getData(activity));
+                DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getHandler().getDataCompat(activity));
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
                     Log.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
@@ -681,7 +681,7 @@ public class MapFragment extends Fragment {
             }
 
             try {
-                DimensionVector3<Integer> spawnPos = storage.getSpawnPos(model.getHandler().getData(activity));
+                DimensionVector3<Integer> spawnPos = storage.getSpawnPos(model.getHandler().getDataCompat(activity));
                 spawnMarker = new AbstractMarker(spawnPos.x, spawnPos.y, spawnPos.z, spawnPos.dimension,
                         new CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false);
                 this.staticMarkers.add(spawnMarker);

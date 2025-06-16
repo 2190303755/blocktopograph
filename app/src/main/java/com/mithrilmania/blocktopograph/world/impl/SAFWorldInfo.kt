@@ -12,6 +12,7 @@ import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.util.getSize
 import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_NAME
 import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
+import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
 import com.mithrilmania.blocktopograph.world.WorldInfo
@@ -43,9 +44,15 @@ class SAFWorldInfo(
     location.lastPathSegment ?: location.toString(),
     version
 ) {
-    override fun prepareIntent(intent: Intent) = intent
+    override fun makeWorldIntent(intent: Intent) = intent
         .setData(this.location)
         .putExtra(BUNDLE_ENTRY_NAME, this.name)
+
+    override fun makeConfigIntent(context: Context, intent: Intent): Intent {
+        val config = this.location.findChild(context.contentResolver, FILE_LEVEL_DAT)
+            ?: return intent
+        return intent.setData(config)
+    }
 
     suspend fun populate(adapter: WorldItemAdapter, context: Context) {
         withContext(Dispatchers.IO) {
@@ -60,8 +67,8 @@ class SAFWorldInfo(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         resolver.loadThumbnail(
                             icon, Size(
-                                resources.getDimension(R.dimen.large_world_icon_width).toInt(),
-                                resources.getDimension(R.dimen.large_world_icon_height).toInt()
+                                resources.getDimensionPixelSize(R.dimen.large_world_icon_width),
+                                resources.getDimensionPixelSize(R.dimen.large_world_icon_height)
                             ), null
                         )
                     } else resolver.openInputStream(icon)

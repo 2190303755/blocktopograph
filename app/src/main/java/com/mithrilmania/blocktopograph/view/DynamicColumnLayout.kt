@@ -24,10 +24,10 @@ class DynamicColumnLayout @JvmOverloads constructor(
             R.styleable.DynamicColumnLayout_threshold,
             resources.getDimension(R.dimen.bottom_sheet_threshold)
         )
-        this.spacing = array.getDimension(
+        this.spacing = array.getDimensionPixelSize(
             R.styleable.DynamicColumnLayout_spacing,
-            resources.getDimension(R.dimen.small_content_padding)
-        ).toInt()
+            resources.getDimensionPixelSize(R.dimen.small_content_padding)
+        )
         array.recycle()
     }
 

@@ -17,9 +17,10 @@ import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
 import com.mithrilmania.blocktopograph.world.FOLDER_DATABASE
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import java.io.BufferedReader
@@ -53,8 +54,8 @@ class FileServiceServer() : IFileService.Stub() {
     override fun loadWorldsAsync(path: String, messenger: Messenger) {
         val root = File(path)
         if (!root.isDirectory) return
-        CoroutineScope(Dispatchers.IO).launch {
-            val jobs = ArrayList<Deferred<*>>()
+        CoroutineScope(Dispatchers.IO.limitedParallelism(10)).launch {
+            val jobs = ArrayList<Job>()
             root.listFiles { it.isDirectory }?.forEach {
                 val config = File(it, FILE_LEVEL_DAT)
                 if (!config.isFile) return@forEach
@@ -81,7 +82,7 @@ class FileServiceServer() : IFileService.Stub() {
                         }
                     }
                 })
-                jobs.add(async(Dispatchers.IO) {
+                jobs.add(launch(Dispatchers.IO) {
                     val behavior = async(Dispatchers.IO) {
                         val file = File(it, FILE_BEHAVIOR_PACKS)
                         if (file.isFile) {
@@ -112,7 +113,7 @@ class FileServiceServer() : IFileService.Stub() {
                     })
                 })
             }
-            jobs.forEach { it.await() }
+            jobs.joinAll()
             messenger.send(Message.obtain().apply { what = CODE_RELEASE })
         }
     }

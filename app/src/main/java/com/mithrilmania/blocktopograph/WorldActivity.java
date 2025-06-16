@@ -40,6 +40,7 @@ import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
+import com.mithrilmania.blocktopograph.util.LoggerKt;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.WorldHandler;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
@@ -210,7 +211,6 @@ public class WorldActivity extends AppCompatActivity
         Log.d(this, "World activity created");
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         // Handle navigation view item clicks here.
@@ -220,7 +220,6 @@ public class WorldActivity extends AppCompatActivity
 
 
         final DrawerLayout drawer = mBinding.drawerLayout;
-        assert drawer != null;
 
 
         switch (id) {
@@ -633,7 +632,7 @@ public class WorldActivity extends AppCompatActivity
     public EditableNBT openEditableNbtLevel(String subTagName) {
 
         //make a copy first, the user might not want to save changed tags.
-        final CompoundTag workCopy = model.getHandler().getData(this).getDeepCopy();
+        final CompoundTag workCopy = model.getHandler().getDataCompat(this).getDeepCopy();
         final ArrayList<Tag> workCopyContents;
         final String contentTitle;
         if (subTagName == null) {
@@ -745,13 +744,9 @@ public class WorldActivity extends AppCompatActivity
     public void onDrawerStateChanged(int newState) {
     }
 
-    public interface OpenFragmentCallback {
-        void onOpen();
-    }
-
     public String confirmContentClose = null;
 
-    public void changeContentFragment(final OpenFragmentCallback callback) {
+    public void changeContentFragment(final Runnable callback) {
 
         final FragmentManager manager = getSupportFragmentManager();
 
@@ -764,13 +759,13 @@ public class WorldActivity extends AppCompatActivity
                     .setPositiveButton(android.R.string.yes,
                             (dialog, id) -> {
                                 manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-                                callback.onOpen();
+                                callback.run();
                             })
                     .setNegativeButton(android.R.string.no, null)
                     .show();
         } else {
             manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-            callback.onOpen();
+            callback.run();
         }
 
     }
@@ -890,7 +885,7 @@ public class WorldActivity extends AppCompatActivity
                         nbtChunkData.write();
                         return true;
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e(LoggerKt.LOG_TAG, e);
                     }
                     return false;
                 }
@@ -898,14 +893,14 @@ public class WorldActivity extends AppCompatActivity
                 @Override
                 public String getRootTitle() {
                     final String format = "%s (cX:%d;cZ:%d)";
-                    switch ((nbtChunkData).dataType) {
-                        case ENTITY:
-                            return String.format(format, getString(R.string.entity_chunk_data), chunkX, chunkZ);
-                        case BLOCK_ENTITY:
-                            return String.format(format, getString(R.string.tile_entity_chunk_data), chunkX, chunkZ);
-                        default:
-                            return String.format(format, getString(R.string.nbt_chunk_data), chunkX, chunkZ);
-                    }
+                    return switch ((nbtChunkData).dataType) {
+                        case ENTITY ->
+                                String.format(format, getString(R.string.entity_chunk_data), chunkX, chunkZ);
+                        case BLOCK_ENTITY ->
+                                String.format(format, getString(R.string.tile_entity_chunk_data), chunkX, chunkZ);
+                        default ->
+                                String.format(format, getString(R.string.nbt_chunk_data), chunkX, chunkZ);
+                    };
                 }
 
                 @Override

@@ -182,7 +182,7 @@ class WorldListActivity : BaseActivity() {
         if (isIndicatorEnabled) {
             binding.worldList.apply {
                 updatePadding(
-                    bottom = bottom + resources.getDimension(R.dimen.large_content_padding).toInt()
+                    bottom = bottom + resources.getDimensionPixelSize(R.dimen.large_content_padding)
                 )
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = 0
@@ -191,7 +191,7 @@ class WorldListActivity : BaseActivity() {
         } else {
             binding.worldList.apply {
                 updatePadding(
-                    bottom = resources.getDimension(R.dimen.large_content_padding).toInt()
+                    bottom = resources.getDimensionPixelSize(R.dimen.large_content_padding)
                 )
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = bottom
@@ -199,7 +199,7 @@ class WorldListActivity : BaseActivity() {
             }
         }
         binding.fabLoadWorlds.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin = bottom + resources.getDimension(R.dimen.medium_floating_margin).toInt()
+            bottomMargin = bottom + resources.getDimensionPixelSize(R.dimen.medium_floating_margin)
         }
     }
 }

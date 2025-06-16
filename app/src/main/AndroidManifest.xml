@@ -67,6 +67,28 @@
             android:theme="@style/AppTheme.NoActionBar" />
 
         <activity
+            android:name=".test.NBTTestActivity"
+            android:label="@string/title_test_page"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar" />
+
+        <activity
+            android:name=".editor.nbt.NBTEditorActivity"
+            android:label="@string/activity_nbt_editor"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="content" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".BiomeSelectDialog"
             android:label="@string/biome_pick_title"
             android:theme="@style/AppTheme.Dialog" />

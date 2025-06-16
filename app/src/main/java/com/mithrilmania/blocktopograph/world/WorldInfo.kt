@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.world
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 
@@ -17,7 +18,8 @@ abstract class WorldInfo<T>(
     var resource: Int = 0
     var icon: Bitmap? = null
     var size: String? = null
-    abstract fun prepareIntent(intent: Intent): Intent
+    abstract fun makeWorldIntent(intent: Intent): Intent
+    abstract fun makeConfigIntent(context: Context, intent: Intent): Intent
 
     override fun hashCode(): Int = this.location.hashCode()
 

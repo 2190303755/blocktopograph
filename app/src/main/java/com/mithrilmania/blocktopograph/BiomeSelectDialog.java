@@ -61,7 +61,7 @@ public final class BiomeSelectDialog extends AppCompatActivity {
             return Biome.values().length;
         }
 
-        private class MeowHolder extends RecyclerView.ViewHolder {
+        private static class MeowHolder extends RecyclerView.ViewHolder {
 
             private ItemPickBiomeBinding binding;
 

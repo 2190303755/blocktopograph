@@ -10,6 +10,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.List;
+
 public final class FlatLayers {
 
     private static final String KEY_BIOME_ID = "biome_id";
@@ -23,7 +25,7 @@ public final class FlatLayers {
     private boolean hasStructureOps;
     private int biomeId;
     private int encodingVersion;
-    private Layer[] mLayers;
+    private List<Layer> mLayers;
 
     @Nullable
     public static FlatLayers parse(String json) {
@@ -52,7 +54,7 @@ public final class FlatLayers {
     }
 
     @NonNull
-    public static FlatLayers createNew(int biomeId, Layer[] layers) {
+    public static FlatLayers createNew(int biomeId, List<Layer> layers) {
         FlatLayers ret = new FlatLayers();
         ret.biomeId = biomeId;
         ret.encodingVersion = 4;
@@ -79,11 +81,11 @@ public final class FlatLayers {
         this.encodingVersion = encodingVersion;
     }
 
-    public Layer[] getmLayers() {
+    public List<Layer> getmLayers() {
         return mLayers;
     }
 
-    public void setmLayers(Layer[] mLayers) {
+    public void setmLayers(List<Layer> mLayers) {
         this.mLayers = mLayers;
     }
 

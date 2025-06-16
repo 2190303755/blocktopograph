@@ -19,8 +19,8 @@ import com.google.android.material.textview.MaterialTextView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
 import com.mithrilmania.blocktopograph.databinding.DialogWorldDetailsBinding
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.test.WorldTestActivity
-import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldInfo
 import java.util.Date
 
@@ -90,7 +90,7 @@ class WorldDetailsDialog(
                     if (++clickCount > 4) {
                         clickCount = 0
                         context.startActivity(
-                            world.prepareIntent(Intent(context, WorldTestActivity::class.java))
+                            world.makeWorldIntent(Intent(context, WorldTestActivity::class.java))
                         )
                     }
                 } else {
@@ -113,11 +113,16 @@ class WorldDetailsDialog(
         binding.seed.text = world.seed
         binding.editWorld.setOnClickListener {
             context.startActivity(
-                world.prepareIntent(Intent(context, WorldActivity::class.java))
+                world.makeWorldIntent(Intent(context, WorldActivity::class.java))
             )
         }
         binding.editConfig.setOnClickListener {
-            context.upcoming()
+            context.startActivity(
+                world.makeConfigIntent(
+                    context,
+                    Intent(context, NBTEditorActivity::class.java).setAction(Intent.ACTION_VIEW)
+                )
+            )
         }
     }
 
@@ -125,11 +130,13 @@ class WorldDetailsDialog(
         val window = this.window
         if (window != null) {
             // to enable edge to edge
-            @Suppress("DEPRECATION") window.navigationBarColor = 0x00FFFFFF
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = 0x00FFFFFF
         }
         super.onAttachedToWindow()
         if (window == null) return
-        @Suppress("DEPRECATION") window.navigationBarColor = Color.TRANSPARENT
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = Color.TRANSPARENT
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         window.isNavigationBarContrastEnforced = true
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return

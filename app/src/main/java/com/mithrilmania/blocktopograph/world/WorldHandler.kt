@@ -15,17 +15,17 @@ abstract class WorldHandler(
     var storage: WorldStorage? = null
         protected set
     val plainName = this.name.replace("§.", "")
-    protected var data: CompoundTag? = null
+    protected var dataCompat: CompoundTag? = null
 
-    fun getData(context: Context?): CompoundTag {
-        if (this.data != null) return this.data!!
-        if (context == null) return CompoundTag("", java.util.ArrayList())
+    fun getDataCompat(context: Context?): CompoundTag {
+        if (this.dataCompat != null) return this.dataCompat!!
+        if (context == null) return CompoundTag("", ArrayList())
         this.load(context)
-        return this.data ?: CompoundTag("", java.util.ArrayList())
+        return this.dataCompat ?: CompoundTag("", ArrayList())
     }
 
     /**
-     * Read [CompoundTag] from `level.dat` and update [data]
+     * Read [CompoundTag] from `level.dat` and update [dataCompat]
      */
     abstract fun load(context: Context)
 
@@ -45,10 +45,10 @@ abstract class WorldHandler(
     abstract fun sync(scope: CoroutineScope, context: Context)
 
     fun getWorldSeed(context: Context?): Long =
-        (this.getData(context).getChildTagByKey(KEY_RANDOM_SEED) as? LongTag)?.value ?: 0
+        (this.getDataCompat(context).getChildTagByKey(KEY_RANDOM_SEED) as? LongTag)?.value ?: 0
 
     fun getLastPlayedTimestamp(context: Context?): Long =
-        (this.getData(context).getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value ?: 0
+        (this.getDataCompat(context).getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value ?: 0
 
     fun getFormattedLastPlayedTimestamp(context: Context?): String {
         val time = this.getLastPlayedTimestamp(context)
@@ -57,6 +57,6 @@ abstract class WorldHandler(
     }
 
     fun getWorldGameMode(context: Context): String {
-        return this.getData(context).getGameMode(context)
+        return this.getDataCompat(context).getGameMode(context)
     }
 }

@@ -151,7 +151,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
             this.selectOutput.launch(null)
         }
         this.binding = binding
-        this.selectOutput = registerForActivityResult(FileCreator) { uri ->
+        this.selectOutput = this.registerForActivityResult(FileCreator) { uri ->
             if (uri == null) return@registerForActivityResult
             val key = this.getDBKey() ?: return@registerForActivityResult
             this.lifecycleScope.launch(Dispatchers.IO) {
@@ -184,7 +184,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                             fitsSystemWindows = false
                             updateLayoutParams<ViewGroup.MarginLayoutParams> {
                                 bottomMargin =
-                                    resources.getDimension(R.dimen.large_content_padding).toInt()
+                                    resources.getDimensionPixelSize(R.dimen.large_content_padding)
                             }
                         }, null)
                     }.setGestureInsetBottomIgnored(true).show()

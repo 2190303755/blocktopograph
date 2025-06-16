@@ -27,7 +27,7 @@ class SAFWorldHandler(
 ) {
     override fun load(context: Context) {
         try {
-            this.data = LevelDataConverter.read(
+            this.dataCompat = LevelDataConverter.read(
                 context.contentResolver.openInputStream(this.config)
             )
         } catch (e: IOException) {
@@ -41,7 +41,7 @@ class SAFWorldHandler(
         } catch (e: IOException) {
             Log.e(this, e)
         }
-        this.data = data
+        this.dataCompat = data
     }
 
     override fun open(scope: CoroutineScope, context: Context) = scope.async(Dispatchers.IO) {

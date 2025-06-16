@@ -83,7 +83,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_dodgeInsetEdges="bottom"
-        style="@style/Widget.Material3.FloatingToolbar.Horizontal">
+        style="@style/Widget.Material3.FloatingToolbar">
 
         <com.google.android.material.button.MaterialButtonGroup
             android:layout_width="match_parent"

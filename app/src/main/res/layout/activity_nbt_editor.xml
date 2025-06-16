@@ -15,39 +15,23 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:title="@string/create_world_title"
             app:navigationIcon="@drawable/ic_arrow_back" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll"
+    <com.mithrilmania.blocktopograph.editor.nbt.NBTEditorView
+        android:id="@+id/editor"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="6dp"
-        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
-
-        <LinearLayout
-            android:id="@+id/help_frame_layers"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/create_need_restart" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         style="@style/Widget.Material3.FloatingActionButton.Surface"
-        android:id="@+id/fab_create"
+        android:id="@+id/fab_save"
         android:src="@drawable/ic_save"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/medium_floating_margin"
-        app:layout_anchor="@id/scroll"
+        app:layout_anchor="@id/editor"
         app:layout_anchorGravity="bottom|end"
         android:contentDescription="@string/open" />
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 
+const val BYTE_0 = 0.toByte()
 const val INDICATOR_NAV_MODE_ANDROID = 2
 const val INDICATOR_NAV_MODE_HARMONY = 105
 const val VIEW_DOCUMENT_FLAG =

@@ -502,4 +502,11 @@
     <string name="world_test_key_type_hex">Hex Text</string>
     <string name="world_test_export_done">Export Complete.</string>
     <string name="world_test_open_file">Open File</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_replace">Replace</string>
+    <string name="action_insert">Insert</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_delete">Delete</string>
+    <string name="activity_nbt_editor">NBT Editor</string>
+    <string name="activity_nbt_editor_subtitle">Storage Version: %d</string>
 </resources>

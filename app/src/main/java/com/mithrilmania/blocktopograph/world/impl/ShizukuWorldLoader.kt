@@ -38,9 +38,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.ConcurrentLinkedQueue
 
 object ShizukuWorldLoader : IWorldLoader<String> {
-    private val callbacks = ArrayList<Callback>()
+    private val callbacks = ConcurrentLinkedQueue<Callback>()
     override suspend fun loadWorlds(
         adapter: WorldItemAdapter,
         context: Context,
@@ -57,35 +58,35 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                     CODE_RELEASE -> callbacks.remove(this)
                     CODE_BASIC_WORLD_INFO -> {
                         val bundle = msg.data
-                        val location = bundle.getString("Path") ?: return true
-                        var icon: ParcelFileDescriptor?
-                        var config: ParcelFileDescriptor
+                        val path = bundle.getString("Path") ?: return true
+                        val icon: ParcelFileDescriptor?
+                        val config: ParcelFileDescriptor
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                             @Suppress("DEPRECATION")
-                            config = bundle.getParcelable<ParcelFileDescriptor>("Dat")
+                            config = bundle.getParcelable("Dat")
                                 ?: return true
                             @Suppress("DEPRECATION")
-                            icon = bundle.getParcelable<ParcelFileDescriptor>("Icon")
+                            icon = bundle.getParcelable("Icon")
                         } else {
-                            config = bundle.getParcelable<ParcelFileDescriptor>(
+                            config = bundle.getParcelable(
                                 "Dat",
                                 ParcelFileDescriptor::class.java
                             ) ?: return true
-                            icon = bundle.getParcelable<ParcelFileDescriptor>(
+                            icon = bundle.getParcelable(
                                 "Icon",
                                 ParcelFileDescriptor::class.java
                             )
                         }
                         CoroutineScope(Dispatchers.IO).launch {
-                            val icon = async(Dispatchers.IO) {
+                            val res = async(Dispatchers.IO) {
                                 if (icon == null) null else if (
                                     Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                                 ) {
                                     BitmapFactory.decodeStream(FileInputStream(icon.fileDescriptor))
                                 } else icon.loadThumbnail(context.resources.let {
                                     Size(
-                                        it.getDimension(R.dimen.large_world_icon_width).toInt(),
-                                        it.getDimension(R.dimen.large_world_icon_height).toInt()
+                                        it.getDimensionPixelSize(R.dimen.large_world_icon_width),
+                                        it.getDimensionPixelSize(R.dimen.large_world_icon_height)
                                     )
                                 })
                             }
@@ -93,9 +94,9 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                                 FileInputStream(config.fileDescriptor)
                             )
                             val world = ShizukuWorldInfo(
-                                location,
+                                path,
                                 (compound?.getChildTagByKey(KEY_LEVEL_NAME) as? StringTag)?.value
-                                    ?: File(location).name
+                                    ?: File(path).name
                                     ?: context.getString(R.string.world_default_name),
                                 compound.getGameMode(context),
                                 (compound?.getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value?.let {
@@ -109,9 +110,9 @@ object ShizukuWorldLoader : IWorldLoader<String> {
                             if (
                                 !withContext(Dispatchers.Main) { adapter.addWorld(world) }
                             ) return@launch
-                            world.icon = icon.await()
+                            world.icon = res.await()
                             synchronized(jobs) {
-                                jobs.computeIfAbsent(location) {
+                                jobs.computeIfAbsent(path) {
                                     CompletableDeferred()
                                 }.complete(world)
                             }
@@ -121,14 +122,14 @@ object ShizukuWorldLoader : IWorldLoader<String> {
 
                     CODE_EXTRA_WORLD_INFO -> {
                         val bundle = msg.data
-                        val location = bundle.getString("Path") ?: return true
+                        val path = bundle.getString("Path") ?: return true
                         val size = ConvertUtil.formatSize(bundle.getLong("Size"))
                         val behavior = msg.arg1
                         val resource = msg.arg2
                         CoroutineScope(Dispatchers.Default).launch {
                             var job: Deferred<WorldInfo<*>>
                             synchronized(jobs) {
-                                job = jobs.computeIfAbsent(location) {
+                                job = jobs.computeIfAbsent(path) {
                                     CompletableDeferred()
                                 }
                             }

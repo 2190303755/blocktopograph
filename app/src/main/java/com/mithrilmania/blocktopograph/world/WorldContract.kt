@@ -10,6 +10,7 @@ const val KEY_LEVEL_NAME = "LevelName"
 const val KEY_RANDOM_SEED = "RandomSeed"
 const val KEY_LAST_PLAYED_TIME = "LastPlayed"
 const val KEY_LAST_PLAYED_VERSION = "lastOpenedWithVersion"
+const val KEY_STORAGE_VERSION = "StorageVersion"
 const val BUNDLE_ENTRY_NAME = "Name"
 const val BUNDLE_ENTRY_PATH = "Path"
 
@@ -21,7 +22,6 @@ const val BUNDLE_ENTRY_PATH = "Path"
     public static final String KEY_INVENTORY_VERSION = "InventoryVersion";
     public static final String KEY_MINIMUM_VERSION = "MinimumCompatibleClientVersion";
     public static final String KEY_MINIMUM_VERSION_SHORT = "MinClientVersion";
-    public static final String KEY_STORAGE_VERSION = "StorageVersion";
     public static final String KEY_LAST_VERSION = "lastOpenedWithVersion";
     public static final String KEY_LAST_VERSION_SHORT = "lastWithVersion";
     public static final String KEY_SHOW_COORDINATES = "showcoordinates";

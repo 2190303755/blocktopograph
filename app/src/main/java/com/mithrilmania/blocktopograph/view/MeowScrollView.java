@@ -1,8 +1,6 @@
 package com.mithrilmania.blocktopograph.view;
 
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.widget.EdgeEffect;
 import android.widget.ScrollView;
@@ -35,7 +33,6 @@ public class MeowScrollView extends ScrollView {
         init();
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public MeowScrollView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init();

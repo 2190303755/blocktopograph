@@ -433,4 +433,9 @@
     <string name="world_test_key_type_hex">十六进制文本</string>
     <string name="world_test_export_done">导出完成</string><!--不想加句号。-->
     <string name="world_test_open_file">打开文件</string>
+    <string name="action_copy">复制</string>
+    <string name="action_replace">替换</string>
+    <string name="action_insert">插入</string>
+    <string name="action_rename">重命名</string>
+    <string name="action_delete">删除</string>
 </resources>

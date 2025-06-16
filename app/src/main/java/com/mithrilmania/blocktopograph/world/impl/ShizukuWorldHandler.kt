@@ -24,7 +24,7 @@ class ShizukuWorldHandler(
         val service = Blocktopograph.fileService ?: return
         try {
             service.getFileDescriptor(this.path + '/' + FILE_LEVEL_DAT)?.use {
-                this.data = LevelDataConverter.read(FileInputStream(it.fileDescriptor))
+                this.dataCompat = LevelDataConverter.read(FileInputStream(it.fileDescriptor))
             }
         } catch (e: IOException) {
             Log.e(this, e)
@@ -40,7 +40,7 @@ class ShizukuWorldHandler(
         } catch (e: IOException) {
             Log.e(this, e)
         }
-        this.data = data
+        this.dataCompat = data
     }
 
     override fun open(scope: CoroutineScope, context: Context) = scope.async(Dispatchers.IO) {

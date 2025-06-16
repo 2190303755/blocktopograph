@@ -27,4 +27,8 @@
         android:orderInCategory="100"
         android:title="@string/action_changelog"
         app:showAsAction="never" /-->
+    <item
+        android:id="@+id/action_test"
+        android:title="TEST"
+        app:showAsAction="never" />
 </menu>

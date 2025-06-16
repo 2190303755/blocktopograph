@@ -1,7 +1,7 @@
 package com.mithrilmania.blocktopograph.util
 
-import android.annotation.TargetApi
 import android.content.ContentResolver
+import android.content.Intent
 import android.content.res.AssetFileDescriptor
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
@@ -13,6 +13,7 @@ import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Size
+import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.Log
 import org.apache.commons.io.IOUtils
 import java.io.BufferedReader
@@ -174,7 +175,7 @@ val File.size: Long
 /**
  * @see [ContentResolver.loadThumbnail]
  */
-@TargetApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.Q)
 fun ParcelFileDescriptor.loadThumbnail(
     size: Size,
     signal: CancellationSignal? = null
@@ -203,4 +204,43 @@ fun ParcelFileDescriptor.loadThumbnail(
     return Bitmap.createBitmap(bitmap, 0, 0, width, height, Matrix().apply {
         setRotate(orientation, width / 2.0F, height / 2.0F)
     }, false)
+}
+
+const val FLAG_GRANT_ALL_URI_PERMISSION =
+    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+/*
+suspend inline fun <T> DataStore<Preferences>.setAsync(key: Preferences.Key<T>, value: T) =
+    this.edit { it[key] = value }
+
+fun <T> DataStore<Preferences>.getAsync(key: Preferences.Key<T>, default: T): Flow<T> =
+    this.data.catch { emit(emptyPreferences()) }.map { it[key] ?: default }
+
+fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>, default: T): T {
+    var result = default
+    runBlocking {
+        this@get.data.first {
+            result = it[key] ?: result
+            true
+        }
+    }
+    return result
+}
+*/
+
+fun formatSize(size: Long): String {
+    var temp: Double = size.toDouble()
+    var count = 0
+    while (temp > 1024 && count++ < 4) {
+        temp /= 1024
+    }
+    return "%.2f %s".format(
+        temp,
+        when (count) {
+            1 -> "KB"
+            2 -> "MB"
+            3 -> "GB"
+            else -> "B"
+        }
+    )
 }
