@@ -2,27 +2,24 @@ package com.mithrilmania.blocktopograph.editor.nbt;
 
 import android.content.Context
 import android.util.AttributeSet
-import android.view.ContextMenu
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
 
 class NBTEditorView : RecyclerView {
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet?, style: Int) : super(context, attrs, style)
 
-    private var info: ContextMenuInfo? = null
-    override fun getContextMenuInfo() = this.info
+    private var holder: NodeHolder<*, *>? = null
+    override fun getContextMenuInfo() = this.holder
 
-    override fun showContextMenuForChild(view: View): Boolean {
-        this.info = ContextMenuInfo(this.getChildViewHolder(view))
-        return super.showContextMenuForChild(view)
+    fun getNodeHolder(child: View): NodeHolder<*, *>? = if (this == child.parent)
+        this.getChildViewHolder(child) as? NodeHolder<*, *>
+    else null
+
+    override fun showContextMenuForChild(child: View): Boolean {
+        this.holder = this.getNodeHolder(child)
+        return super.showContextMenuForChild(child)
     }
-
-    override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter !is NBTAdapter) throw IllegalArgumentException()
-        super.setAdapter(adapter)
-    }
-
-    class ContextMenuInfo(val holder: ViewHolder) : ContextMenu.ContextMenuInfo
 }

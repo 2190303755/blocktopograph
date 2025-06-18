@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.core.util.Consumer
 import com.mithrilmania.blocktopograph.world.WorldHandler
 import com.mithrilmania.blocktopograph.world.WorldStorage
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,8 +15,6 @@ import kotlinx.coroutines.withContext
 fun run(action: Runnable) = CoroutineScope(Dispatchers.Default).launch {
     action.run()
 }
-
-fun <T> T.asCompleted() = CompletableDeferred(this)
 
 fun openDB(
     handler: WorldHandler,

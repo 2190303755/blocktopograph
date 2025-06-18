@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.worldlist
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
@@ -11,10 +12,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.viewModels
 import androidx.core.graphics.Insets
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.window.layout.WindowMetricsCalculator
@@ -26,12 +27,13 @@ import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldListBinding
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.util.WorldCreator
 import com.mithrilmania.blocktopograph.util.asFolder
 import com.mithrilmania.blocktopograph.util.upcoming
-import com.mithrilmania.blocktopograph.world.impl.SAFWorldLoader
-import com.mithrilmania.blocktopograph.world.impl.ShizukuWorldLoader
+import com.mithrilmania.blocktopograph.world.impl.loadSAFWorlds
+import com.mithrilmania.blocktopograph.world.impl.loadShizukuWorlds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
@@ -40,48 +42,39 @@ import kotlin.math.max
 class WorldListActivity : BaseActivity() {
     private lateinit var selectMultipleWorlds: ActivityResultLauncher<Uri?>
     private lateinit var createWorld: ActivityResultLauncher<Unit>
-    private lateinit var adapter: WorldItemAdapter
-    private lateinit var model: WorldListModel
     private lateinit var binding: ActivityWorldListBinding
     private lateinit var details: WorldDetailsDialog
+    private val model by viewModels<WorldListModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.model = ViewModelProvider(this)[WorldListModel::class]
+        val model = this.model
         this.binding = ActivityWorldListBinding.inflate(this.layoutInflater)
         this.setContentView(this.binding.root)
         this.setSupportActionBar(this.binding.toolbar)
         this.initLayoutManager()
-        this.adapter = WorldItemAdapter(this.model)
-        this.binding.worldList.setAdapter(this.adapter)
-        this.selectMultipleWorlds = registerForActivityResult(FolderPicker) {
-            if (it != null) {
-                this.loadWorlds(it)
-            }
+        this.binding.worldList.setAdapter(this.model.adapter)
+        this.selectMultipleWorlds = registerForActivityResult(FolderPicker) registry@{
+            this.loadWorlds(it ?: return@registry)
         }
-        this.createWorld = registerForActivityResult(WorldCreator) {
-            if (it != null) {
-                this.adapter.addWorld(it)
-            }
+        this.createWorld = registerForActivityResult(WorldCreator) registry@{
+            //this.adapter.addWorld(it ?: return@registry)
         }
-        this.model.loading.observe(this) {
-            this.binding.progressIndicator.apply {
-                isIndeterminate = it
-                visibility = if (it) View.VISIBLE else View.INVISIBLE
-            }
+        model.loading.observe(this) {
+            if (it) this.binding.progress.show() else this.binding.progress.hide()
         }
         this.binding.fabLoadWorlds.setOnClickListener {
             this.selectMultipleWorlds.launch(null)
         }
-        this.details = WorldDetailsDialog(this, this.model)
+        this.details = WorldDetailsDialog(this, model)
     }
 
     fun loadWorlds(location: Uri, tag: String = "") {
+        val activity = this
         lifecycleScope.launch(Dispatchers.IO) {
-            SAFWorldLoader.loadWorlds(
-                adapter,
-                applicationContext,
+            loadSAFWorlds(
+                activity.model,
+                activity.applicationContext,
                 location.asFolder,
-                this@WorldListActivity.model.loading,
                 tag
             )
         }
@@ -112,51 +105,51 @@ class WorldListActivity : BaseActivity() {
                     .show()
             }
 
-            R.id.action_open -> this.details.show()
-            R.id.action_create -> this.createWorld.launch(Unit)
-            R.id.action_help -> {
+            R.id.action_open -> {
                 val service = Blocktopograph.fileService
-                if (service != null) {
-                    val text = TextInputEditText(this)
-                    text.setText("/storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/")
-                    MaterialAlertDialogBuilder(this)
-                        .setTitle("Load Worlds")
-                        .setView(text)
-                        .setCancelable(false)
-                        .setNegativeButton("Cancel") { dialog, index ->
-
-                        }
-                        .setPositiveButton("Next") { dialog, index ->
-                            this.lifecycleScope.launch(Dispatchers.Default) {
-                                ShizukuWorldLoader.loadWorlds(
-                                    adapter,
-                                    applicationContext,
-                                    text.text.toString(),
-                                    model.loading
-                                )
+                if (service == null) {
+                    when (Blocktopograph.getShizukuStatus()) {
+                        ShizukuStatus.UNAUTHORIZED -> {
+                            if (!Shizuku.shouldShowRequestPermissionRationale()) {
+                                Shizuku.requestPermission(1)
                             }
                         }
-                        .show()
-                    return true
-                }
-                when (Blocktopograph.getShizukuStatus()) {
-                    ShizukuStatus.UNAUTHORIZED -> {
-                        if (!Shizuku.shouldShowRequestPermissionRationale()) {
-                            Shizuku.requestPermission(1)
+
+                        ShizukuStatus.UNSUPPORTED -> {
+                            Toast.makeText(this, "Shizuku版本过低", Toast.LENGTH_SHORT).show()
+                        }
+
+                        ShizukuStatus.UNKNOWN -> this.upcoming()
+
+                        ShizukuStatus.AVAILABLE -> {
+                            Toast.makeText(this, "!", Toast.LENGTH_SHORT).show()
                         }
                     }
-
-                    ShizukuStatus.UNSUPPORTED -> {
-                        Toast.makeText(this, "Shizuku版本过低", Toast.LENGTH_SHORT).show()
-                    }
-
-                    ShizukuStatus.UNKNOWN -> this.upcoming()
-
-                    ShizukuStatus.AVAILABLE -> {
-                        Toast.makeText(this, "!", Toast.LENGTH_SHORT).show()
-                    }
+                    return true
                 }
+                val activity = this
+                val text = TextInputEditText(this)
+                text.setText("/storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/")
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Load Worlds")
+                    .setView(text)
+                    .setCancelable(false)
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Next") { dialog, index ->
+                        this.lifecycleScope.launch(Dispatchers.Default) {
+                            loadShizukuWorlds(
+                                activity.model,
+                                activity.applicationContext,
+                                text.text.toString(),
+                            )
+                        }
+                    }
+                    .show()
             }
+
+            R.id.action_create -> this.createWorld.launch(Unit)
+            R.id.action_edit -> this.startActivity(Intent(this, NBTEditorActivity::class.java))
+            R.id.action_help -> this.upcoming()
         }
         return true
     }
@@ -179,20 +172,14 @@ class WorldListActivity : BaseActivity() {
     override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
         super.updateDecorViewPadding(decorView, systemBars, ime)
         val bottom = systemBars.bottom
-        if (isIndicatorEnabled) {
-            binding.worldList.apply {
-                updatePadding(
-                    bottom = bottom + resources.getDimensionPixelSize(R.dimen.large_content_padding)
-                )
+        binding.worldList.apply {
+            if (isIndicatorEnabled) {
+                updatePadding(bottom = bottom + resources.getDimensionPixelSize(R.dimen.large_content_padding))
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = 0
                 }
-            }
-        } else {
-            binding.worldList.apply {
-                updatePadding(
-                    bottom = resources.getDimensionPixelSize(R.dimen.large_content_padding)
-                )
+            } else {
+                updatePadding(bottom = resources.getDimensionPixelSize(R.dimen.large_content_padding))
                 updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     bottomMargin = bottom
                 }

@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.util
 
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.content.res.AssetFileDescriptor
 import android.graphics.Bitmap
@@ -11,6 +12,7 @@ import android.os.Build
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
+import android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
 import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Size
 import androidx.annotation.RequiresApi
@@ -164,6 +166,8 @@ fun Uri.queryString(resolver: ContentResolver, column: String): String? {
     }
     return null
 }
+
+fun Uri.queryName(context: Context) = this.queryString(context.contentResolver, COLUMN_DISPLAY_NAME)
 
 val File.size: Long
     get() = if (this.isDirectory) {

@@ -4,22 +4,23 @@
     <item
         android:id="@+id/action_open"
         android:icon="@drawable/ic_folder_open"
-        android:orderInCategory="100"
         android:title="@string/open_world_custom_path"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_edit"
+        android:icon="@drawable/ic_edit"
+        android:title="@string/activity_nbt_editor"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_create"
-        android:orderInCategory="100"
         android:title="@string/action_create"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_about"
-        android:orderInCategory="100"
         android:title="@string/action_about"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_help"
-        android:orderInCategory="100"
         android:title="@string/action_help"
         app:showAsAction="never" />
     <!--item
@@ -27,8 +28,4 @@
         android:orderInCategory="100"
         android:title="@string/action_changelog"
         app:showAsAction="never" /-->
-    <item
-        android:id="@+id/action_test"
-        android:title="TEST"
-        app:showAsAction="never" />
 </menu>

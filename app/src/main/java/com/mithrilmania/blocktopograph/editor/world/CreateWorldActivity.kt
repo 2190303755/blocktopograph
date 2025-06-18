@@ -1,15 +1,16 @@
 package com.mithrilmania.blocktopograph.editor.world
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.viewModels
 import androidx.core.graphics.Insets
 import androidx.core.view.updateLayoutParams
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.BaseActivity
 import com.mithrilmania.blocktopograph.R
@@ -22,9 +23,8 @@ import com.mithrilmania.blocktopograph.nbt.asTag
 import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter.skip
 import com.mithrilmania.blocktopograph.nbt.modifyAsCompound
 import com.mithrilmania.blocktopograph.nbt.readCompound
-import com.mithrilmania.blocktopograph.nbt.unwrapAfterRead
-import com.mithrilmania.blocktopograph.nbt.wrapBeforeSave
-import com.mithrilmania.blocktopograph.util.BYTE_0
+import com.mithrilmania.blocktopograph.nbt.unwrap
+import com.mithrilmania.blocktopograph.nbt.writeCompound
 import com.mithrilmania.blocktopograph.util.BiomePicker
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
@@ -33,21 +33,16 @@ import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToByteArray
-import net.benwoodworth.knbt.Nbt
 import net.benwoodworth.knbt.NbtCompression
 import net.benwoodworth.knbt.NbtLong
-import net.benwoodworth.knbt.NbtVariant
-
 
 class CreateWorldActivity : BaseActivity() {
     private lateinit var binding: ActivityCreateWorldBinding
-    private lateinit var model: CreateWorldModel
+    private val model by viewModels<CreateWorldModel>()
     private lateinit var selectBiome: ActivityResultLauncher<Any?>
     private lateinit var selectOutput: ActivityResultLauncher<Uri?>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.model = ViewModelProvider(this)[CreateWorldModel::class]
         val binding = ActivityCreateWorldBinding.inflate(this.layoutInflater)
         this.binding = binding
         this.setContentView(binding.root)
@@ -66,17 +61,17 @@ class CreateWorldActivity : BaseActivity() {
         this.selectBiome = this.registerForActivityResult(BiomePicker) {
             it?.let { this.model.biome.value = it }
         }
-        this.selectOutput = this.registerForActivityResult(FolderPicker) { path ->
-            if (path == null) return@registerForActivityResult
-            val folder = DocumentFile.fromTreeUri(this@CreateWorldActivity, path)
-                ?: return@registerForActivityResult
-            val config = folder.createFile("application/octet-stream", FILE_LEVEL_DAT)
-                ?: return@registerForActivityResult
+        this.selectOutput = this.registerForActivityResult(FolderPicker) registry@{ path ->
+            if (path == null) return@registry
+            val activity = this
+            val folder = DocumentFile.fromTreeUri(activity, path) ?: return@registry
+            val config =
+                folder.createFile("application/octet-stream", FILE_LEVEL_DAT) ?: return@registry
             this.model.apply {
-                layers = this@CreateWorldActivity.binding.fragLayers
+                layers = activity.binding.fragLayers
                     .getFragment<EditFlatFragment>().resultLayers
                 viewModelScope.launch(Dispatchers.IO) {
-                    val assets = this@CreateWorldActivity.assets
+                    val assets = activity.assets
                     val model = this@apply
                     val data = try {
                         assets.open("dats/1_2_13.dat").use {
@@ -85,9 +80,9 @@ class CreateWorldActivity : BaseActivity() {
                         }
                     } catch (_: Exception) {
                         return@launch
-                    }.unwrapAfterRead().modifyAsCompound {
+                    }.unwrap().modifyAsCompound {
                         this[KEY_LEVEL_NAME] = model.name.ifBlank {
-                            this@CreateWorldActivity.getString(R.string.create_world_name)
+                            activity.getString(R.string.create_world_name)
                         }.asTag()
                         this[KEY_LAST_PLAYED_TIME] = NbtLong(System.currentTimeMillis() / 1000)
                         var layers = model.layers
@@ -105,26 +100,13 @@ class CreateWorldActivity : BaseActivity() {
                             this[FLAT_WORLD_LAYERS] = it.asTag()
                         }
                     }
-                    this@CreateWorldActivity.contentResolver.openOutputStream(config.uri)?.use {
-                        it.write(Nbt {
-                            variant = NbtVariant.Bedrock
-                            compression = NbtCompression.None
-                        }.encodeToByteArray(data.wrapBeforeSave()).let { nbt ->
-                            byteArrayOf(
-                                4,
-                                BYTE_0,
-                                BYTE_0,
-                                BYTE_0,
-                                (nbt.size and 255).toByte(),
-                                (nbt.size ushr 8 and 255).toByte(),
-                                (nbt.size ushr 16 and 255).toByte(),
-                                (nbt.size ushr 24 and 255).toByte()
-                            ).plus(nbt)
-                        })
+                    activity.contentResolver.openOutputStream(config.uri)?.use {
+                        it.writeCompound(4, data, "blocktopograph")
                     }
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@CreateWorldActivity, "Done!", Toast.LENGTH_SHORT).show()
-                        this@CreateWorldActivity.finish()
+                        Toast.makeText(activity, "Done!", Toast.LENGTH_SHORT).show()
+                        activity.setResult(RESULT_OK, Intent().setData(folder.uri))
+                        activity.finish()
                     }
                 }
             }

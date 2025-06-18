@@ -7,27 +7,25 @@ import androidx.viewbinding.ViewBinding
 import com.mithrilmania.blocktopograph.databinding.TagCompoundLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagListLayoutBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter
-import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter.Companion.reloadAsync
 import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.CompoundNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.applyIndent
+import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 
-abstract class CollectionHolder<T : ViewBinding>(
+abstract class CollectionHolder<V : ViewBinding, T : RootNode<*>>(
     val adapter: NBTAdapter,
     parent: ViewGroup,
-    binding: (LayoutInflater, ViewGroup, Boolean) -> T,
-) : NodeHolder<T>(
-    parent.context,
+    binding: (LayoutInflater, ViewGroup, Boolean) -> V,
+) : NodeHolder<V, T>(
     binding(LayoutInflater.from(parent.context), parent, false)
 ), View.OnClickListener {
-    protected var node: CollectionNode<*, *>? = null
-
     init {
         this.binding.root.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
-        val node = this.node ?: return
+        val node = this.node as? CollectionNode<*, *> ?: return
         node.expanded = !node.expanded
         this.adapter.reloadAsync()
     }
@@ -36,29 +34,37 @@ abstract class CollectionHolder<T : ViewBinding>(
 class CompoundHolder(
     adapter: NBTAdapter,
     parent: ViewGroup
-) : CollectionHolder<TagCompoundLayoutBinding>(adapter, parent, TagCompoundLayoutBinding::inflate) {
-    override fun bind(adapter: NBTAdapter, node: NBTNode) {
-        if (node is CollectionNode<*, *>) {
-            this.node = node
-            this.binding.apply {
-                applyIndent(node, this@CompoundHolder.context)
-                tagName.text = node.name
-            }
-        }
+) : CollectionHolder<TagCompoundLayoutBinding, CompoundNode>(
+    adapter,
+    parent,
+    TagCompoundLayoutBinding::inflate
+) {
+    override fun bind(node: NBTNode) {
+        this.node = node as? CompoundNode ?: return
+        this.binding.root.text = node.name
+    }
+
+    override fun rename(name: String) {
+        this.binding.tagName.text = name
+        this.node?.name = name
     }
 }
 
 class ListHolder(
     adapter: NBTAdapter,
     parent: ViewGroup
-) : CollectionHolder<TagListLayoutBinding>(adapter, parent, TagListLayoutBinding::inflate) {
-    override fun bind(adapter: NBTAdapter, node: NBTNode) {
-        if (node is CollectionNode<*, *>) {
-            this.node = node
-            this.binding.apply {
-                applyIndent(node, this@ListHolder.context)
-                tagName.text = node.name
-            }
-        }
+) : CollectionHolder<TagListLayoutBinding, ListNode>(
+    adapter,
+    parent,
+    TagListLayoutBinding::inflate
+) {
+    override fun bind(node: NBTNode) {
+        this.node = node as? ListNode ?: return
+        this.binding.tagName.text = node.name
+    }
+
+    override fun rename(name: String) {
+        this.binding.tagName.text = name
+        this.node?.name = name
     }
 }

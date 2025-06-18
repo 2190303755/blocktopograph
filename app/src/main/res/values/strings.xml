@@ -509,4 +509,29 @@
     <string name="action_delete">Delete</string>
     <string name="activity_nbt_editor">NBT Editor</string>
     <string name="activity_nbt_editor_subtitle">Storage Version: %d</string>
+    <string name="action_file">File</string>
+    <string name="action_file_create">New</string>
+    <string name="action_file_open">Open</string>
+    <string name="action_file_save">Save</string>
+    <string name="action_file_save_as">Save As</string>
+    <string name="action_file_reload">Reload</string>
+    <string name="action_file_info">Properties</string>
+    <string name="action_quit">Quit</string>
+    <string name="dialog_storage_option_type">Type</string>
+    <string name="dialog_storage_option_type_nbt" translatable="false">NBT</string>
+    <string name="dialog_storage_option_type_snbt" translatable="false">SNBT</string>
+    <string name="dialog_storage_option_endian">Endian</string>
+    <string name="dialog_storage_option_endian_little">Little-Endian</string>
+    <string name="dialog_storage_option_endian_big">Big-Endian</string>
+    <string name="dialog_storage_option_compression">Compression</string>
+    <string name="dialog_storage_option_compression_gzip" translatable="false">G-Zip</string>
+    <string name="dialog_storage_option_compression_zlib" translatable="false">ZLib</string>
+    <string name="dialog_storage_option_header">Header</string>
+    <string name="dialog_storage_option_format">Format</string>
+    <string name="option_on">On</string>
+    <string name="option_off">Off</string>
+    <string name="option_none">None</string>
+    <string name="option_positive">Next</string>
+    <string name="option_negative">Cancel</string>
+    <string name="toast_copy_success">Copied to clipboard</string>
 </resources>

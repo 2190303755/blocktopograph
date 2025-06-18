@@ -438,4 +438,31 @@
     <string name="action_insert">插入</string>
     <string name="action_rename">重命名</string>
     <string name="action_delete">删除</string>
+    <string name="activity_nbt_editor">NBT编辑器</string>
+    <string name="activity_nbt_editor_subtitle">存储版本：%d</string>
+    <string name="action_file">文件</string>
+    <string name="action_file_create">新建</string>
+    <string name="action_file_open">打开</string>
+    <string name="action_file_save">保存</string>
+    <string name="action_file_save_as">另存为</string>
+    <string name="action_file_reload">重载</string>
+    <string name="action_file_info">属性</string>
+    <string name="action_quit">退出</string>
+    <string name="dialog_storage_option_type">Type</string>
+    <string name="dialog_storage_option_type_nbt" translatable="false">NBT</string>
+    <string name="dialog_storage_option_type_snbt" translatable="false">SNBT</string>
+    <string name="dialog_storage_option_endian">Endian</string>
+    <string name="dialog_storage_option_endian_little">Little-Endian</string>
+    <string name="dialog_storage_option_endian_big">Big-Endian</string>
+    <string name="dialog_storage_option_compression">Compression</string>
+    <string name="dialog_storage_option_compression_gzip" translatable="false">G-Zip</string>
+    <string name="dialog_storage_option_compression_zlib" translatable="false">ZLib</string>
+    <string name="dialog_storage_option_header">Header</string>
+    <string name="dialog_storage_option_format">Format</string>
+    <string name="option_on">开启</string>
+    <string name="option_off">关闭</string>
+    <string name="option_none">无</string>
+    <string name="option_positive">继续</string>
+    <string name="option_negative">取消</string>
+    <string name="toast_copy_success">已复制到剪贴板</string>
 </resources>

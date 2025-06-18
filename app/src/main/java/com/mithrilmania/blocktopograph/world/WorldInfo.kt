@@ -1,28 +1,25 @@
 package com.mithrilmania.blocktopograph.world
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import com.mithrilmania.blocktopograph.storage.Location
 
-abstract class WorldInfo<T>(
-    val location: T,
+class WorldInfo(
+    val location: Location,
+    val config: Location,
     val name: String,
     val mode: String,
     val time: Long,
     val seed: String,
-    val tag: String,
-    val path: String,
-    val version: String
+    val version: String,
+    val tag: String
 ) {
+    val path: String = location.location
     var behavior: Int = 0
     var resource: Int = 0
     var icon: Bitmap? = null
     var size: String? = null
-    abstract fun makeWorldIntent(intent: Intent): Intent
-    abstract fun makeConfigIntent(context: Context, intent: Intent): Intent
 
-    override fun hashCode(): Int = this.location.hashCode()
-
-    override fun equals(other: Any?): Boolean =
-        this === other || (other is WorldInfo<*> && this.location == other.location)
+    fun applyTo(intent: Intent) = this.location.applyTo(intent)
+        .putExtra(BUNDLE_ENTRY_NAME, this.name)
 }

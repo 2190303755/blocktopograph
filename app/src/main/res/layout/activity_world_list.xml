@@ -38,10 +38,11 @@
         android:contentDescription="@string/open" />
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/progress_indicator"
+        android:id="@+id/progress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:indeterminate="false"
-        android:progress="0" />
+        app:showAnimationBehavior="outward"
+        app:hideAnimationBehavior="escape"
+        android:indeterminate="true" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

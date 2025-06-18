@@ -1,8 +1,6 @@
 package com.mithrilmania.blocktopograph.worldlist
 
 import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
@@ -10,7 +8,6 @@ import android.os.Build
 import android.text.format.DateFormat
 import android.view.View
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.core.view.ViewCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
@@ -21,6 +18,8 @@ import com.mithrilmania.blocktopograph.WorldActivity
 import com.mithrilmania.blocktopograph.databinding.DialogWorldDetailsBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.test.WorldTestActivity
+import com.mithrilmania.blocktopograph.util.clipboard
+import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.WorldInfo
 import java.util.Date
 
@@ -47,17 +46,18 @@ class WorldDetailsDialog(
     private fun bindDetail(view: MaterialTextView) {
         (view.parent?.parent?.parent as? View)?.setOnClickListener {
             if (view.text.isNullOrBlank()) return@setOnClickListener
-            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
-                ClipData.newPlainText("", view.text)
-            )
-            Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+            this.context.clipboard?.setPrimaryClip(ClipData.newPlainText("", view.text))
+                ?: return@setOnClickListener
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                this.context.toast(R.string.toast_copy_success)
+            }
         }
     }
 
     init {
         val binding = DialogWorldDetailsBinding.inflate(activity.layoutInflater)
         this.binding = binding
-        this.model.selected.observe(activity) {
+        this.model.adapter.selected.observe(activity) {
             this.bindWorld(it ?: return@observe)
             this.show()
         }
@@ -72,7 +72,7 @@ class WorldDetailsDialog(
         }
     }
 
-    fun bindWorld(world: WorldInfo<*>) {
+    fun bindWorld(world: WorldInfo) {
         val binding = this.binding
         val context = this.context
         binding.name.text = world.name
@@ -90,7 +90,7 @@ class WorldDetailsDialog(
                     if (++clickCount > 4) {
                         clickCount = 0
                         context.startActivity(
-                            world.makeWorldIntent(Intent(context, WorldTestActivity::class.java))
+                            world.applyTo(Intent(context, WorldTestActivity::class.java))
                         )
                     }
                 } else {
@@ -113,14 +113,16 @@ class WorldDetailsDialog(
         binding.seed.text = world.seed
         binding.editWorld.setOnClickListener {
             context.startActivity(
-                world.makeWorldIntent(Intent(context, WorldActivity::class.java))
+                world.applyTo(Intent(context, WorldActivity::class.java))
             )
         }
         binding.editConfig.setOnClickListener {
             context.startActivity(
-                world.makeConfigIntent(
-                    context,
-                    Intent(context, NBTEditorActivity::class.java).setAction(Intent.ACTION_VIEW)
+                world.config.applyTo(
+                    Intent(
+                        context,
+                        NBTEditorActivity::class.java
+                    ).setAction(Intent.ACTION_VIEW)
                 )
             )
         }
@@ -148,6 +150,6 @@ class WorldDetailsDialog(
     }
 
     override fun onCancel(dialog: DialogInterface?) {
-        this.model.selected.value = null
+        this.model.adapter.selected.value = null
     }
 }

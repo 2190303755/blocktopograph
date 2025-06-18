@@ -1,16 +1,17 @@
 package com.mithrilmania.blocktopograph.util
 
+import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
-import com.mithrilmania.blocktopograph.world.WorldInfo
 
-object WorldCreator : ActivityResultContract<Unit, WorldInfo<*>?>() {
+object WorldCreator : ActivityResultContract<Unit, Uri?>() {
     override fun createIntent(context: Context, input: Unit) =
         Intent(context, CreateWorldActivity::class.java)
 
-    override fun parseResult(resultCode: Int, intent: Intent?): WorldInfo<*>? {
-        return null
+    override fun parseResult(code: Int, intent: Intent?): Uri? {
+        return if (code == RESULT_OK) intent?.data else null
     }
 }

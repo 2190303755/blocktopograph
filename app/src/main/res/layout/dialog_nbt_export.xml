@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/large_content_padding"
+    android:paddingEnd="@dimen/large_content_padding">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+        android:layout_marginVertical="@dimen/large_content_padding"
+        android:gravity="center" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="@dimen/large_content_padding">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/options"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_storage_option_type" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/type"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/type_nbt"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_type_nbt"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/type_snbt"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_type_snbt"
+                    android:layout_weight="1" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_storage_option_endian" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/endian"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/endian_little"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_endian_little"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/endian_big"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_endian_big"
+                    android:layout_weight="1" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_storage_option_compression" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/compression"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/compression_none"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/option_none"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/compression_gzip"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_compression_gzip"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:id="@+id/compression_zlib"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_storage_option_compression_zlib"
+                    android:layout_weight="1" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                style="@style/Widget.Material3.CompoundButton.MaterialSwitch"
+                android:id="@+id/header"
+                android:text="@string/dialog_storage_option_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                style="@style/Widget.Material3.CompoundButton.MaterialSwitch"
+                android:id="@+id/format"
+                android:text="@string/dialog_storage_option_format"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="@dimen/large_content_padding">
+
+        <com.google.android.material.button.MaterialButton
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:id="@+id/button_negative"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/option_negative"
+            android:layout_marginEnd="@dimen/large_content_padding" />
+
+        <com.google.android.material.button.MaterialButton
+            style="@style/Widget.Material3.Button.UnelevatedButton"
+            android:id="@+id/button_positive"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/option_positive" />
+    </LinearLayout>
+</LinearLayout>

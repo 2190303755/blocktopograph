@@ -8,10 +8,10 @@ import android.provider.DocumentsContract
 import androidx.activity.result.contract.ActivityResultContract
 
 object FilePicker : ActivityResultContract<Uri?, Uri?>() {
-    override fun createIntent(context: Context, initial: Uri?): Intent {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-        return intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initial ?: return intent)
-    }
+    override fun createIntent(context: Context, initial: Uri?) = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").let {
+            it.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initial ?: return it)
+        }
 
     override fun parseResult(code: Int, intent: Intent?) = if (code == RESULT_OK) intent?.data else null
 }

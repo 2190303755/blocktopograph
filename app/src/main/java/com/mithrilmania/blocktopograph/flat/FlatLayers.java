@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.util.List;
 
+// TODO kotlin serialization
 public final class FlatLayers {
 
     private static final String KEY_BIOME_ID = "biome_id";

@@ -6,32 +6,35 @@ import com.mithrilmania.blocktopograph.databinding.TagDefaultLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagRootLayoutBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.applyIndent
 
 class RootHolder(
     parent: ViewGroup
-) : NodeHolder<TagRootLayoutBinding>(
-    parent.context,
+) : NodeHolder<TagRootLayoutBinding, NBTAdapter>(
     TagRootLayoutBinding.inflate(LayoutInflater.from(parent.context), parent, false)
 ) {
-    override fun bind(adapter: NBTAdapter, node: NBTNode) {
-        this.binding.apply {
-            applyIndent(node, this@RootHolder.context)
-            tagName.text = node.name
-        }
+    override fun bind(node: NBTNode) {
+        this.node = node as? NBTAdapter
+        this.binding.tagName.text = node.name
+    }
+
+    override fun rename(name: String) {
+        this.binding.tagName.text = name
+        this.node?.name = name
     }
 }
 
 class UnknownHolder(
     parent: ViewGroup
-) : NodeHolder<TagDefaultLayoutBinding>(
-    parent.context,
+) : NodeHolder<TagDefaultLayoutBinding, NBTNode>(
     TagDefaultLayoutBinding.inflate(LayoutInflater.from(parent.context), parent, false)
 ) {
-    override fun bind(adapter: NBTAdapter, node: NBTNode) {
-        this.binding.apply {
-            applyIndent(node, this@UnknownHolder.context)
-            tagName.text = node.name
-        }
+    override fun bind(node: NBTNode) {
+        this.node = node
+        this.binding.tagName.text = node.name
+    }
+
+    override fun rename(name: String) {
+        this.binding.tagName.text = name
+        this.node?.name = name
     }
 }

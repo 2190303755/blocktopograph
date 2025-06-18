@@ -10,11 +10,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.viewModels
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -39,11 +39,11 @@ import kotlin.math.max
 
 class WorldTestActivity : BaseActivity(), TextWatcher {
     private lateinit var binding: ActivityWorldTestBinding
-    private lateinit var model: WorldTestModel
     private lateinit var selectOutput: ActivityResultLauncher<Uri?>
+    private val model by viewModels<WorldTestModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val model = ViewModelProvider(this)[WorldTestModel::class]
+        val model = this.model
         var storage: Deferred<WorldStorage?> =
             CompletableDeferred<WorldStorage?>(model.handler?.storage)
         if (model.handler == null) {
@@ -59,7 +59,6 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                 return
             }
         }
-        this.model = model
         val binding = ActivityWorldTestBinding.inflate(this.layoutInflater)
         this.setContentView(binding.root)
         binding.toolbar.let {

@@ -14,14 +14,15 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:navigationIcon="@drawable/ic_arrow_back" />
+            android:layout_height="wrap_content" />
     </com.google.android.material.appbar.AppBarLayout>
+
 
     <com.mithrilmania.blocktopograph.editor.nbt.NBTEditorView
         android:id="@+id/editor"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -34,5 +35,14 @@
         app:layout_anchor="@id/editor"
         app:layout_anchorGravity="bottom|end"
         android:contentDescription="@string/open" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/progress"
+        android:indeterminate="true"
+        app:showAnimationBehavior="inward"
+        app:hideAnimationBehavior="escape"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
