@@ -17,7 +17,6 @@ import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Size
 import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.Log
-import org.apache.commons.io.IOUtils
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -137,7 +136,7 @@ fun Uri.copyFolderTo(resolver: ContentResolver, folder: File) {
             }
         }
     } else {
-        Log.e(IOUtils::class, "Failed to copy folder: " + folder.path)
+        Log.e(IoUtil::class, "Failed to copy folder: " + folder.path)
     }
 }
 

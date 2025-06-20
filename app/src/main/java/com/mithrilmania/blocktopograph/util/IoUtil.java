@@ -13,15 +13,12 @@ import androidx.core.app.ActivityCompat;
 
 import com.mithrilmania.blocktopograph.Log;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
 
 public class IoUtil {
 
@@ -129,50 +126,6 @@ public class IoUtil {
         return target;
     }
 
-    public static boolean writeTextFile(@NonNull File file, @NonNull String name) {
-        try {
-            FileUtils.writeStringToFile(file, name);
-            return true;
-        } catch (IOException ignored) {
-            return false;
-        }
-    }
-
-    public static boolean writeBinaryFile(@NonNull File file, @NonNull byte[] data) {
-        try {
-            FileUtils.writeByteArrayToFile(file, data);
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Simple helper function to get the size of a folder or file in text format,
-     *
-     * @param size size
-     * @return size, formatted with a "B", "MB, "GB" or "TB", precise to 2 decimals.
-     */
-    @NonNull
-    public static String getFileSizeInText(long size) {
-        if (size < 1024) return size + " B";
-        double v = size / 1024.0;
-        String suffix = "KB";
-        if (v > 1024.0) {
-            v /= 1024.0;
-            if (v > 1024.0) {
-                v /= 1024.0;
-                if (v > 1024.0) {
-                    v /= 1024.0;
-                    suffix = "TB";//very high end android device here
-                } else suffix = "GB";
-            } else suffix = "MB";
-        }
-
-        return String.format(Locale.ENGLISH, "%.2f %s", v, suffix);
-
-    }
-
     public enum Errno {
         OK, FILE_WITH_SAME_NAME_EXISTS, CANNOT_MKDIRS,
         PERMISSION_DENIED, UNKNOWN
@@ -244,8 +197,5 @@ public class IoUtil {
             }
             return null;
         }
-    }
-
-    public static void rubbish() {
     }
 }

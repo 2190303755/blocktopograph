@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.map.edit;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -25,8 +27,6 @@ import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
 import com.mithrilmania.blocktopograph.util.UiUtil;
 
 import java.io.Serializable;
-
-import static android.app.Activity.RESULT_OK;
 
 public final class ChBiomeFragment extends DialogFragment {
 

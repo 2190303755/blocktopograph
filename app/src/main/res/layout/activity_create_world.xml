@@ -23,7 +23,8 @@
         android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="6dp"
+        android:padding="@dimen/small_content_padding"
+        android:clipToPadding="false"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
 
         <LinearLayout
@@ -101,7 +102,7 @@
         android:src="@drawable/ic_arrow_forward"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/medium_floating_margin"
+        android:layout_margin="@dimen/large_floating_margin"
         app:layout_anchor="@id/scroll"
         app:layout_anchorGravity="bottom|end"
         android:contentDescription="@string/open" />

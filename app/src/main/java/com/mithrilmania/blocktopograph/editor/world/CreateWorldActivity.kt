@@ -4,12 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
 import androidx.core.graphics.Insets
-import androidx.core.view.updateLayoutParams
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.BaseActivity
@@ -41,8 +39,8 @@ class CreateWorldActivity : BaseActivity() {
     private val model by viewModels<CreateWorldModel>()
     private lateinit var selectBiome: ActivityResultLauncher<Any?>
     private lateinit var selectOutput: ActivityResultLauncher<Uri?>
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
         val binding = ActivityCreateWorldBinding.inflate(this.layoutInflater)
         this.binding = binding
         this.setContentView(binding.root)
@@ -117,11 +115,17 @@ class CreateWorldActivity : BaseActivity() {
         }
     }
 
-    override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
-        super.updateDecorViewPadding(decorView, systemBars, ime)
-        this.binding.fabCreate.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin =
-                systemBars.bottom + resources.getDimensionPixelSize(R.dimen.medium_floating_margin)
+    override fun applyContentInsets(window: View, insets: Insets) {
+        val res = this.resources
+        this.binding.fabCreate.applyFloatingInsets(insets) {
+            res.getDimensionPixelSize(R.dimen.large_floating_margin)
         }
+        val padding = res.getDimensionPixelSize(R.dimen.small_content_padding)
+        this.binding.scroll.applyListInsets(
+            this.isIndicatorEnabled,
+            insets,
+            padding,
+            padding
+        )
     }
 }

@@ -19,8 +19,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_marginLeft="@dimen/medium_floating_margin"
-                android:layout_marginRight="@dimen/medium_floating_margin"
+                android:layout_marginLeft="@dimen/large_floating_margin"
+                android:layout_marginRight="@dimen/large_floating_margin"
                 android:layout_marginBottom="64dp"
                 android:focusable="false">
             </com.google.android.material.floatingactionbutton.FloatingActionButton>

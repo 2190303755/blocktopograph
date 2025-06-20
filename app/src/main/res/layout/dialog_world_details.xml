@@ -261,10 +261,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_horizontal"
         android:spacing="@dimen/small_content_padding">
 
         <com.google.android.material.button.MaterialButton
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="?attr/materialButtonOutlinedStyle"
             android:id="@+id/edit_config"
             android:layout_width="0dp"
             android:layout_weight="1"
@@ -272,7 +273,7 @@
             android:text="@string/edit_config" />
 
         <com.google.android.material.button.MaterialButton
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="?attr/materialButtonOutlinedStyle"
             android:id="@+id/edit_world"
             android:layout_width="0dp"
             android:layout_weight="1"

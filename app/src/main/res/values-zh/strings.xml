@@ -434,7 +434,10 @@
     <string name="world_test_export_done">导出完成</string><!--不想加句号。-->
     <string name="world_test_open_file">打开文件</string>
     <string name="action_copy">复制</string>
+    <string name="action_paste">粘贴</string>
     <string name="action_replace">替换</string>
+    <string name="action_move_up">上移</string>
+    <string name="action_move_dowm">下移</string>
     <string name="action_insert">插入</string>
     <string name="action_rename">重命名</string>
     <string name="action_delete">删除</string>
@@ -464,5 +467,9 @@
     <string name="option_none">无</string>
     <string name="option_positive">继续</string>
     <string name="option_negative">取消</string>
+    <string name="option_tag_type">标签类型</string>
+    <string name="option_tag_name">标签键名</string>
     <string name="toast_copy_success">已复制到剪贴板</string>
+    <string name="toast_empty_clipboard">剪贴板为空</string>
+    <string name="error_duplicate_key">重复的键名：%s</string>
 </resources>

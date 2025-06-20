@@ -4,8 +4,8 @@ import net.benwoodworth.knbt.NbtCompound
 import net.benwoodworth.knbt.NbtCompression
 import net.benwoodworth.knbt.NbtVariant
 
-class ParsedNBT(
-    val snbt: Boolean,
+class NBTInput(
+    val string: Boolean,
     val name: String,
     val data: NbtCompound,
     val version: Byte? = null,

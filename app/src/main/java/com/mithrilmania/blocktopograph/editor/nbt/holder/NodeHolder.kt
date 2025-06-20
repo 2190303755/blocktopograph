@@ -14,5 +14,5 @@ abstract class NodeHolder<V : ViewBinding, T : NBTNode>(
         protected set
 
     abstract fun bind(node: NBTNode)
-    abstract fun rename(name: String)
+    abstract fun onRename(name: String)
 }

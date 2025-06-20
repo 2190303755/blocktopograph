@@ -35,14 +35,13 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.max
 
 class WorldTestActivity : BaseActivity(), TextWatcher {
     private lateinit var binding: ActivityWorldTestBinding
     private lateinit var selectOutput: ActivityResultLauncher<Uri?>
     private val model by viewModels<WorldTestModel>()
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
         val model = this.model
         var storage: Deferred<WorldStorage?> =
             CompletableDeferred<WorldStorage?>(model.handler?.storage)
@@ -211,12 +210,12 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
         this.model.text = s.toString()
     }
 
-    override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
-        decorView.updatePadding(
+    override fun applyContentInsets(window: View, insets: Insets) {
+        window.updatePadding(
             top = 0,
-            bottom = max(systemBars.bottom, ime.bottom),
-            left = systemBars.left,
-            right = systemBars.right
+            bottom = insets.bottom,
+            left = insets.left,
+            right = insets.right
         )
     }
 }

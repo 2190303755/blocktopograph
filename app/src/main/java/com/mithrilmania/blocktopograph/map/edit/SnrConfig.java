@@ -1,14 +1,12 @@
 package com.mithrilmania.blocktopograph.map.edit;
 
-import android.util.Pair;
+import static com.mithrilmania.blocktopograph.util.ConvertUtilKt.isDifferentState;
 
 import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.block.Block;
-import com.mithrilmania.blocktopograph.util.StreamUtil;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Objects;
 
 public class SnrConfig implements Serializable {
@@ -62,12 +60,7 @@ public class SnrConfig implements Serializable {
 
         public boolean matches(Block block) {
             if (!examplar.getName().equals(block.getName())) return false;
-            var examplarKnownProperties = examplar.getKnownProperties();
-            if (examplarKnownProperties != null && StreamUtil.zip(Arrays.stream(examplarKnownProperties),
-                    Arrays.stream(block.getKnownProperties()), Pair::new)
-                    .anyMatch(pair -> pair.first != null && !Objects.equals(pair.first, pair.second))) {
-                return false;
-            }
+            if (isDifferentState(examplar, block)) return false;
             var examplarCustomProperties = examplar.getCustomProperties();
             var blockCustomProperties = block.getCustomProperties();
             if (!allowExtraStates && blockCustomProperties.size() > examplarCustomProperties.size())

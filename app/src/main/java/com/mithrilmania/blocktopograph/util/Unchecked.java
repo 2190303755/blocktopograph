@@ -20,4 +20,11 @@ public class Unchecked {
         }
         return (NbtList<T>) NbtList.Companion.invoke$NbtList(tags);
     }
+
+    /**
+     * @noinspection unchecked
+     */
+    public static <R, T extends R> ArrayList<R> cast(ArrayList<T> list) {
+        return (ArrayList<R>) list;
+    }
 }

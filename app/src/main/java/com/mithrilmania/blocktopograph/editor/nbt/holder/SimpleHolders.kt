@@ -4,22 +4,21 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import com.mithrilmania.blocktopograph.databinding.TagDefaultLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagRootLayoutBinding
-import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter
+import com.mithrilmania.blocktopograph.editor.nbt.NBTTree
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 
 class RootHolder(
     parent: ViewGroup
-) : NodeHolder<TagRootLayoutBinding, NBTAdapter>(
+) : NodeHolder<TagRootLayoutBinding, NBTTree>(
     TagRootLayoutBinding.inflate(LayoutInflater.from(parent.context), parent, false)
 ) {
     override fun bind(node: NBTNode) {
-        this.node = node as? NBTAdapter
-        this.binding.tagName.text = node.name
+        this.node = node as? NBTTree
+        this.binding.root.text = node.name
     }
 
-    override fun rename(name: String) {
-        this.binding.tagName.text = name
-        this.node?.name = name
+    override fun onRename(name: String) {
+        this.binding.root.text = name
     }
 }
 
@@ -30,11 +29,10 @@ class UnknownHolder(
 ) {
     override fun bind(node: NBTNode) {
         this.node = node
-        this.binding.tagName.text = node.name
+        this.binding.root.text = node.name
     }
 
-    override fun rename(name: String) {
-        this.binding.tagName.text = name
-        this.node?.name = name
+    override fun onRename(name: String) {
+        this.binding.root.text = name
     }
 }

@@ -10,14 +10,11 @@ import android.view.ContextMenu.ContextMenuInfo
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
 import androidx.core.graphics.Insets
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,6 +26,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
 import com.mithrilmania.blocktopograph.editor.nbt.holder.RootHolder
 import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
 import com.mithrilmania.blocktopograph.nbt.readUnknownNBT
 import com.mithrilmania.blocktopograph.nbt.writeCompound
@@ -45,13 +43,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 
-
 class NBTEditorActivity : BaseActivity() {
     private lateinit var binding: ActivityNbtEditorBinding
     private lateinit var open: ActivityResultLauncher<Uri?>
     private lateinit var saveAs: ActivityResultLauncher<Uri?>
     private val model by viewModels<NBTEditorModel>()
-    private var adapter: NBTAdapter? = null
     private val requiringConfirmation = object : OnBackPressedCallback(false), Observer<Boolean> {
         override fun handleOnBackPressed() {
             MaterialAlertDialogBuilder(this@NBTEditorActivity)
@@ -76,18 +72,23 @@ class NBTEditorActivity : BaseActivity() {
         val binding = ActivityNbtEditorBinding.inflate(this.layoutInflater)
         this.binding = binding
         this.setContentView(binding.root)
-        this.setSupportActionBar(binding.toolbar)
+        binding.appBar.let {
+            this.setSupportActionBar(it)
+            it.setNavigationOnClickListener {
+                this.onBackPressedDispatcher.onBackPressed()
+            }
+        }
         binding.editor.let {
             it.layoutManager = LinearLayoutManager(this)
             this.registerForContextMenu(it)
         }
-        model.version.observe(this) {
-            this.binding.toolbar.subtitle = if (it == null) null else
-                this.getString(R.string.activity_nbt_editor_subtitle, it)
+        model.tree.observe(this) {
+            this.binding.editor.adapter = it ?: return@observe
+            it.reloadAsync()
         }
-        model.data.observe(this) {
-            this.adapter = NBTAdapter(this.model, it)
-            this.binding.editor.adapter = this.adapter
+        model.version.observe(this) {
+            this.binding.appBar.subtitle = if (it == null) null else
+                this.getString(R.string.activity_nbt_editor_subtitle, it)
         }
         model.loading.observe(this) {
             if (it) this.binding.progress.show() else this.binding.progress.hide()
@@ -96,11 +97,26 @@ class NBTEditorActivity : BaseActivity() {
             this.title = it?.getName(this)
                 ?: this.resources.getString(R.string.nbt_editor)
         }
+        model.history.observe(this) {
+            this.binding.apply {
+                undo.isEnabled = it.undo
+                redo.isEnabled = it.redo
+            }
+        }
         this.requiringConfirmation.let {
             this.onBackPressedDispatcher.addCallback(this, it)
             model.modified.observe(this, it)
         }
-        binding.fabSave.setOnClickListener {
+        binding.undo.setOnClickListener callback@{
+            this.model.undo()
+        }
+        binding.redo.setOnClickListener callback@{
+            this.model.redo()
+        }
+        binding.search.setOnClickListener {
+            this.upcoming()
+        }
+        binding.save.setOnClickListener {
             this.saveFile()
         }
         this.saveAs = registerForActivityResult(FileCreator) registry@{
@@ -130,7 +146,7 @@ class NBTEditorActivity : BaseActivity() {
     fun saveFileAsync() {
         val activity = this // to avoid label
         this.lifecycleScope.launch(Dispatchers.Default) {
-            val data = activity.adapter?.asTag() ?: return@launch
+            val data = activity.model.tree.value?.asTag() ?: return@launch
             withContext(Dispatchers.IO) {
                 activity.model.apply {
                     source.value?.save(activity) { stream ->
@@ -170,71 +186,113 @@ class NBTEditorActivity : BaseActivity() {
     override fun onCreateContextMenu(menu: ContextMenu, view: View?, info: ContextMenuInfo?) {
         if (info !is NodeHolder<*, *>) return
         menu.add(R.string.action_copy).setOnMenuItemClickListener callback@{
-            val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-            this@NBTEditorActivity.clipboard?.apply {
+            val holder = it.menuInfo as? NodeHolder<*, *> ?: return@callback true
+            val node = holder.node ?: return@callback true
+            holder.context.clipboard?.apply {
                 setPrimaryClip(ClipData.newPlainText("Copy", node.stringify()))
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    this@NBTEditorActivity.toast(R.string.toast_copy_success)
+                    holder.context.toast(R.string.toast_copy_success)
                 }
             }
             true
         }
         val holding = info.node
-        if (holding?.parent is MapNode) {
-            menu.add(R.string.action_rename).setOnMenuItemClickListener callback@{
-                val holder = it.menuInfo as? NodeHolder<*, *> ?: return@callback true
-                val node = holder.node ?: return@callback true
-                val parent = node.parent as? MapNode ?: return@callback true
-                this.renameNode(node.name) {
-                    parent.remove(node.name)
-                    holder.rename(it)
-                    parent.put(it, node)
-                    this.model.modified.value = true
+        val parent = holding?.parent
+        when (parent) {
+            is MapNode -> {
+                menu.add(R.string.action_rename).setOnMenuItemClickListener callback@{
+                    val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
+                    val parent = node.parent as? MapNode ?: return@callback true
+                    this.renameNode(node.name, parent) rename@{ old, neo ->
+                        if (old == neo) return@rename
+                        parent.remove(old)
+                        node.name = neo
+                        parent.put(neo, node)
+                        this.model += Rename(node, parent, old, neo)
+                    }
+                    true
                 }
-                true
+                menu.add(R.string.action_replace).setOnMenuItemClickListener callback@{
+                    val old = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
+                    val parent = old.parent as? MapNode ?: return@callback true
+                    this.replaceNode(parent, old) { neo ->
+                        parent.remove(old.name)
+                        parent.put(neo.name, neo)
+                        this.model += Replace(old, parent, neo)
+                        if (parent.expanded) {
+                            parent.tree.reloadAsync()
+                        }
+                    }
+                    true
+                }
             }
+
+            is ListNode -> {
+                val index = parent.indexOf(holding)
+                if (index > 0) {
+                    menu.add(R.string.action_move_up).setOnMenuItemClickListener callback@{
+                        val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
+                        val parent = node.parent as? ListNode ?: return@callback true
+                        val index = parent.indexOf(node)
+                        if (index > 0 && parent.swap(index, index - 1)) {
+                            this.model += Move(node, parent, index, index - 1)
+                            parent.notifyMovedChildren()
+                        }
+                        true
+                    }
+                }
+                if (index + 1 < parent.size) {
+                    menu.add(R.string.action_move_dowm).setOnMenuItemClickListener callback@{
+                        val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
+                        val parent = node.parent as? ListNode ?: return@callback true
+                        val index = parent.indexOf(node)
+                        if (index >= 0 && parent.swap(index, index + 1)) {
+                            this.model += Move(node, parent, index, index + 1)
+                            parent.notifyMovedChildren()
+                        }
+                        true
+                    }
+                }
+            }
+
+            else -> {}
         }
         when (holding) {
-            is NBTAdapter -> {
+            is NBTTree -> {
                 menu.add(R.string.action_rename).setOnMenuItemClickListener callback@{
-                    val holder = it.menuInfo as? RootHolder ?: return@callback true
-                    this.renameNode(this.model.name, holder::rename)
-                    this.model.modified.value = true
+                    val node = (it.menuInfo as? RootHolder)?.node ?: return@callback true
+                    this.renameNode(this.model.name, null) rename@{ old, neo ->
+                        if (old == neo) return@rename
+                        this.model.name = neo
+                        this.model += Relabel(node, old, neo)
+                    }
                     true
                 }
-                menu.add(R.string.action_insert).setOnMenuItemClickListener callback@{
-                    this.upcoming()
-                    true
-                }
+                holding.makeInsertOption(menu.add(R.string.action_insert), this)
                 return
             }
 
-            is ListNode -> menu.add(R.string.action_insert).setOnMenuItemClickListener callback@{
-                this.upcoming()
-                true
-            }
-
-            is MapNode -> {
-                menu.add(R.string.action_insert).setOnMenuItemClickListener callback@{
-                    this.upcoming()
-                    true
-                }
-            }
-        }
-        menu.add(R.string.action_replace).setOnMenuItemClickListener callback@{
-            this.upcoming()
-            true
+            is RootNode<*> -> holding.makeInsertOption(menu.add(R.string.action_insert), this)
         }
         menu.add(R.string.action_delete).setOnMenuItemClickListener callback@{
             val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
             val parent = node.parent
             when (parent) {
-                is ListNode -> if (!parent.remove(node)) return@callback true
-                is MapNode -> if (parent.remove(node.name) == null) return@callback true
+                is ListNode -> {
+                    val index = parent.indexOf(node)
+                    if (index < 0 || parent.remove(index) == null) return@callback true
+                    this.model += Delete<Int>(node, parent, index)
+                }
+
+                is MapNode -> {
+                    if (parent.remove(node.name) == null) return@callback true
+                    this.model += Delete<String>(node, parent, node.name)
+                }
                 else -> return@callback true
             }
-            this.model.modified.value = true
-            this.adapter?.reloadAsync()
+            if (parent.expanded) {
+                this.model.tree.value?.reloadAsync()
+            }
             true
         }
     }
@@ -247,14 +305,13 @@ class NBTEditorActivity : BaseActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_file_create -> {
-                model.reset()
+                this.model.reset()
                 invalidateOptionsMenu()
             }
-
             R.id.action_file_open -> this.open.launch(null)
             R.id.action_file_save -> this.saveFile()
             R.id.action_file_save_as -> this.saveAs.launch(null)
-            R.id.action_test -> this.upcoming()
+            R.id.action_file_reload, R.id.action_info -> this.upcoming()
             R.id.action_quit -> this.onBackPressedDispatcher.onBackPressed()
         }
         return super.onOptionsItemSelected(item)
@@ -271,24 +328,14 @@ class NBTEditorActivity : BaseActivity() {
         return super.onPrepareOptionsMenu(menu)
     }
 
-    override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
-        super.updateDecorViewPadding(decorView, systemBars, ime)
-        val bottom = systemBars.bottom
-        binding.editor.apply {
-            if (isIndicatorEnabled) {
-                updatePadding(bottom = bottom + resources.getDimensionPixelSize(R.dimen.large_content_padding))
-                updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    bottomMargin = 0
-                }
-            } else {
-                updatePadding(bottom = resources.getDimensionPixelSize(R.dimen.large_content_padding))
-                updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    bottomMargin = bottom
-                }
-            }
-        }
-        this.binding.fabSave.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin = bottom + resources.getDimensionPixelSize(R.dimen.medium_floating_margin)
-        }
+    override fun applyContentInsets(window: View, insets: Insets) {
+        val res = this.resources
+        val margin = res.getDimensionPixelSize(R.dimen.small_floating_margin)
+        this.binding.toolbar.applyFloatingInsets(insets) { margin }
+        this.binding.editor.applyListInsets(
+            this.isIndicatorEnabled,
+            insets,
+            res.getDimensionPixelSize(R.dimen.editor_extra_padding) + margin
+        )
     }
 }

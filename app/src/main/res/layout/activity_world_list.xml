@@ -32,7 +32,7 @@
         android:src="@drawable/ic_file_open"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/medium_floating_margin"
+        android:layout_margin="@dimen/large_floating_margin"
         app:layout_anchor="@id/world_list"
         app:layout_anchorGravity="bottom|end"
         android:contentDescription="@string/open" />

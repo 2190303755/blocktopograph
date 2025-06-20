@@ -22,6 +22,23 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.Charset
 
+const val TAG_END = 0
+const val TAG_BYTE = 1
+const val TAG_SHORT = 2
+const val TAG_INT = 3
+const val TAG_LONG = 4
+const val TAG_FLOAT = 5
+const val TAG_DOUBLE = 6
+const val TAG_BYTE_ARRAY = 7
+const val TAG_STRING = 8
+const val TAG_LIST = 9
+const val TAG_COMPOUND = 10
+const val TAG_INT_ARRAY = 11
+const val TAG_LONG_ARRAY = 12
+const val TAG_ROOT = 13 // for layout
+
+val EMPTY_COMPOUND = NbtCompound(emptyMap())
+
 val NbtTag?.stringValue: String? get() = (this as? NbtString)?.value
 val NbtTag?.byteValue: Byte? get() = (this as? NbtByte)?.value
 val NbtTag?.shortValue: Short? get() = (this as? NbtShort)?.value
@@ -29,8 +46,6 @@ val NbtTag?.intValue: Int? get() = (this as? NbtInt)?.value
 val NbtTag?.longValue: Long? get() = (this as? NbtLong)?.value
 val NbtTag?.doubleValue: Double? get() = (this as? NbtDouble)?.value
 val NbtTag?.floatValue: Float? get() = (this as? NbtFloat)?.value
-
-val EMPTY_COMPOUND = NbtCompound(emptyMap())
 
 fun NbtCompound.wrap(name: String = "") =
     if (name.isEmpty() && this.size == 1) this
@@ -57,21 +72,21 @@ fun NbtTag.asResult(
     version: Byte? = null,
     variant: NbtVariant = NbtVariant.Bedrock,
     compression: NbtCompression = NbtCompression.None
-): ParsedNBT {
-    if (this !is NbtCompound) return ParsedNBT(false, "", EMPTY_COMPOUND)
+): NBTInput {
+    if (this !is NbtCompound) return NBTInput(false, "", EMPTY_COMPOUND)
     if (this.size == 1) {
         this.entries.firstOrNull()?.let { pair ->
             val data = pair.value as? NbtCompound
             if (data != null) {
-                return ParsedNBT(snbt, pair.key, data, version, variant, compression)
+                return NBTInput(snbt, pair.key, data, version, variant, compression)
             }
         }
     }
-    return ParsedNBT(snbt, "", this, version, variant, compression)
+    return NBTInput(snbt, "", this, version, variant, compression)
 }
 
 // TODO: use okio or stream instead of byte array
-fun InputStream.readUnknownNBT(): ParsedNBT {
+fun InputStream.readUnknownNBT(): NBTInput {
     var data = this.readBytes()
     try {
         var version: Byte? = null
@@ -103,7 +118,7 @@ fun InputStream.readUnknownNBT(): ParsedNBT {
         } catch (_: Exception) {
         }
     }
-    return ParsedNBT(false, "", EMPTY_COMPOUND)
+    return NBTInput(false, "", EMPTY_COMPOUND)
 }
 
 fun InputStream.readCompound(

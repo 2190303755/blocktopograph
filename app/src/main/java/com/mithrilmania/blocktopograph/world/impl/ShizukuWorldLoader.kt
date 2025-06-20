@@ -21,6 +21,7 @@ import com.mithrilmania.blocktopograph.storage.FileServiceClient.CODE_RELEASE
 import com.mithrilmania.blocktopograph.storage.ShizukuLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.getGameMode
+import com.mithrilmania.blocktopograph.util.getSafely
 import com.mithrilmania.blocktopograph.util.lastPlayedVersion
 import com.mithrilmania.blocktopograph.util.loadThumbnail
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
@@ -67,14 +68,8 @@ fun loadShizukuWorlds(
                         @Suppress("DEPRECATION")
                         icon = bundle.getParcelable("Icon")
                     } else {
-                        config = bundle.getParcelable(
-                            "Dat",
-                            ParcelFileDescriptor::class.java
-                        ) ?: return true
-                        icon = bundle.getParcelable(
-                            "Icon",
-                            ParcelFileDescriptor::class.java
-                        )
+                        config = bundle.getSafely("Dat") ?: return true
+                        icon = bundle.getSafely("Icon")
                     }
                     CoroutineScope(Dispatchers.IO).launch {
                         val res = async(Dispatchers.IO) {

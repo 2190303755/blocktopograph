@@ -1,5 +1,10 @@
 package com.mithrilmania.blocktopograph.flat;
 
+import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_EXISTING_SUM;
+import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_INDEX;
+import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_IS_ADD;
+import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_LAYER;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -16,16 +21,10 @@ import com.andreabaccega.widget.FormEditText;
 import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
-import com.mithrilmania.blocktopograph.block.ListingBlock;
 import com.mithrilmania.blocktopograph.databinding.DialogEditLayerBinding;
 import com.mithrilmania.blocktopograph.util.UiUtil;
 
 import java.io.Serializable;
-
-import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_EXISTING_SUM;
-import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_INDEX;
-import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_IS_ADD;
-import static com.mithrilmania.blocktopograph.flat.EditFlatFragment.EXTRA_KEY_LIST_LAYER;
 
 public final class EditLayerDialog extends AppCompatActivity {
 

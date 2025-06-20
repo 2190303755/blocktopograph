@@ -503,7 +503,10 @@
     <string name="world_test_export_done">Export Complete.</string>
     <string name="world_test_open_file">Open File</string>
     <string name="action_copy">Copy</string>
+    <string name="action_paste">Paste</string>
     <string name="action_replace">Replace</string>
+    <string name="action_move_up">Move Up</string>
+    <string name="action_move_dowm">Move Down</string>
     <string name="action_insert">Insert</string>
     <string name="action_rename">Rename</string>
     <string name="action_delete">Delete</string>
@@ -533,5 +536,23 @@
     <string name="option_none">None</string>
     <string name="option_positive">Next</string>
     <string name="option_negative">Cancel</string>
+    <string name="option_tag_type">Tag Type</string>
+    <string name="option_tag_name">Tag Name</string>
     <string name="toast_copy_success">Copied to clipboard</string>
+    <string name="toast_empty_clipboard">Clipboard is empty</string>
+    <string name="error_duplicate_key">Duplicate key: %s</string>
+    <string-array name="tag_types">
+        <item>Byte Tag</item>
+        <item>Short Tag</item>
+        <item>Int Tag</item>
+        <item>Long Tag</item>
+        <item>Float Tag</item>
+        <item>Double Tag</item>
+        <item>Byte Array Tag</item>
+        <item>String Tag</item>
+        <item>List Tag</item>
+        <item>Compound Tag</item>
+        <item>Int Array Tag</item>
+        <item>Long Array Tag</item>
+    </string-array>
 </resources>

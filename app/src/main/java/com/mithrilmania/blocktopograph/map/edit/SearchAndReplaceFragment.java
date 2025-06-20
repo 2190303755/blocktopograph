@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.map.edit;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -29,8 +31,6 @@ import com.tomergoldst.tooltips.ToolTip;
 import com.tomergoldst.tooltips.ToolTipsManager;
 
 import java.io.Serializable;
-
-import static android.app.Activity.RESULT_OK;
 
 public class SearchAndReplaceFragment extends DialogFragment {
 

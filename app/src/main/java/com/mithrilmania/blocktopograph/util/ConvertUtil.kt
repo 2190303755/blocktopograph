@@ -1,10 +1,18 @@
 package com.mithrilmania.blocktopograph.util
 
 import android.content.Context
+import android.os.Build
+import android.os.Bundle
+import android.os.Parcelable
+import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.R
+import com.mithrilmania.blocktopograph.block.Block
+import com.mithrilmania.blocktopograph.nbt.tags.ByteTag
 import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.tags.IntTag
 import com.mithrilmania.blocktopograph.nbt.tags.ListTag
+import com.mithrilmania.blocktopograph.nbt.tags.StringTag
+import com.mithrilmania.blocktopograph.nbt.tags.Tag
 import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_VERSION
 
@@ -36,14 +44,39 @@ val CompoundTag?.lastPlayedVersion: String
         return builder.toString()
     }
 
-/*
-        it == INT_0 -> context.getString(R.string.activity_nbt_editor_game_mode_0)
-        it == INT_1 -> context.getString(R.string.activity_nbt_editor_game_mode_1)
-        it == INT_2 -> context.getString(R.string.activity_nbt_editor_game_mode_2)
-        it == INT_3 && !bedrock -> context.getString(R.string.activity_nbt_editor_game_mode_java_3)
-        it == INT_3 && bedrock -> context.getString(R.string.activity_nbt_editor_game_mode_bedrock_3)
-        it == INT_4 && bedrock -> context.getString(R.string.activity_nbt_editor_game_mode_bedrock_4)
-        it == INT_5 && bedrock -> context.getString(R.string.activity_nbt_editor_game_mode_bedrock_5)
-        it == INT_6 && bedrock -> context.getString(R.string.activity_nbt_editor_game_mode_bedrock_6)
-        else -> context.getString(R.string.activity_nbt_editor_game_mode_unknown, it)
-*/
+private fun Any?.wrap(key: String): Tag<*> = when (this) {
+    is Byte -> ByteTag(key, this)
+    is Int -> IntTag(key, this)
+    is String -> StringTag(key, this)
+    else -> throw RuntimeException("block state with unsupported type")
+}
+
+fun Block.serializeState(): ArrayList<Tag<*>> {
+    val props = this.type.knownProperties
+    val values = this.knownProperties
+    val custom = this.customProperties
+    val size = minOf(props.size, values.size)
+    val list = ArrayList<Tag<*>>(size + custom.size)
+    for (i in 0 until size) {
+        list.add(values[i].wrap(props[i].name))
+    }
+    custom.forEach { (key, value) ->
+        list.add(value.wrap(key))
+    }
+    return list
+}
+
+fun Block.isDifferentState(other: Block): Boolean {
+    val pattern = this.knownProperties ?: return false
+    val values = other.knownProperties ?: arrayOf()
+    val size = minOf(pattern.size, values.size)
+    for (i in 0 until size) {
+        val value = pattern[i] ?: continue
+        if (value != values[i]) return true
+    }
+    return false
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+inline fun <reified T : Parcelable> Bundle.getSafely(key: String): T? =
+    this.getParcelable(key, T::class.java)

@@ -2,10 +2,11 @@ package com.mithrilmania.blocktopograph.editor.nbt
 
 import android.util.SparseArray
 import android.view.ViewGroup
+import androidx.core.util.size
 import androidx.core.view.updatePadding
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.editor.nbt.holder.ByteHolder
 import com.mithrilmania.blocktopograph.editor.nbt.holder.CompoundHolder
@@ -19,34 +20,32 @@ import com.mithrilmania.blocktopograph.editor.nbt.holder.RootHolder
 import com.mithrilmania.blocktopograph.editor.nbt.holder.ShortHolder
 import com.mithrilmania.blocktopograph.editor.nbt.holder.StringHolder
 import com.mithrilmania.blocktopograph.editor.nbt.holder.UnknownHolder
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_BYTE
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_BYTE_ARRAY
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_COMPOUND
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_DOUBLE
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_FLOAT
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_INT
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_INT_ARRAY
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_LIST
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_LONG
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_LONG_ARRAY
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_ROOT
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_SHORT
-import com.mithrilmania.blocktopograph.editor.nbt.node.LAYOUT_STRING
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.NodeRegistry
 import com.mithrilmania.blocktopograph.editor.nbt.node.collect
 import com.mithrilmania.blocktopograph.editor.nbt.node.registerTo
 import com.mithrilmania.blocktopograph.editor.nbt.node.visit
-import kotlinx.coroutines.CoroutineScope
+import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
+import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
+import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.TAG_DOUBLE
+import com.mithrilmania.blocktopograph.nbt.TAG_FLOAT
+import com.mithrilmania.blocktopograph.nbt.TAG_INT
+import com.mithrilmania.blocktopograph.nbt.TAG_INT_ARRAY
+import com.mithrilmania.blocktopograph.nbt.TAG_LIST
+import com.mithrilmania.blocktopograph.nbt.TAG_LONG
+import com.mithrilmania.blocktopograph.nbt.TAG_LONG_ARRAY
+import com.mithrilmania.blocktopograph.nbt.TAG_ROOT
+import com.mithrilmania.blocktopograph.nbt.TAG_SHORT
+import com.mithrilmania.blocktopograph.nbt.TAG_STRING
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.benwoodworth.knbt.NbtCompound
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicInteger
 
-class NBTAdapter(
+class NBTTree(
     val model: NBTEditorModel,
     data: NbtCompound
 ) : ListAdapter<NBTNode, NodeHolder<*, *>>(object : DiffUtil.ItemCallback<NBTNode>() {
@@ -56,45 +55,56 @@ class NBTAdapter(
     override fun areContentsTheSame(old: NBTNode, neo: NBTNode) =
         old == neo
 }), MapNode {
-    val data by lazy {
-        data.registerTo(this@NBTAdapter, object : NodeRegistry {
-            private val generator = AtomicInteger()
-            override fun <T : NBTNode> register(key: String, factory: (Int, String) -> T): T {
-                val uid = this.generator.incrementAndGet()
-                val value = factory(uid, key)
-                this@NBTAdapter.nodes[uid] = value
-                return value
-            }
-        })
-    }
     override val uid get() = 0
     override val depth get() = 0
     override val parent get() = null
     override val expanded get() = true
+    override val tree get() = this
     override var name by model::name
-    override fun getLayout() = LAYOUT_ROOT
+    override var holder by model::holder
+    override val type get() = TAG_ROOT
     private val nodes = SparseArray<NBTNode>()
-    val lifecycleScope = CoroutineScope(Dispatchers.Main)
+    private val nodeId = AtomicInteger()
+    private val taskId = AtomicInteger()
+    val data by lazy { data.registerTo(this) }
 
     init {
         this.nodes[0] = this
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, type: Int) = when (type) {
-        LAYOUT_BYTE -> ByteHolder(this, parent)
-        LAYOUT_SHORT -> ShortHolder(this, parent)
-        LAYOUT_INT -> IntHolder(this, parent)
-        LAYOUT_LONG -> LongHolder(this, parent)
-        LAYOUT_FLOAT -> FloatHolder(this, parent)
-        LAYOUT_DOUBLE -> DoubleHolder(this, parent)
-        LAYOUT_STRING -> StringHolder(this, parent)
-        LAYOUT_COMPOUND -> CompoundHolder(this, parent)
-        LAYOUT_LIST,
-        LAYOUT_BYTE_ARRAY,
-        LAYOUT_INT_ARRAY,
-        LAYOUT_LONG_ARRAY -> ListHolder(this, parent)
+    override fun getChildren() = this.data.values
+    override fun asTag() = this.data.collect()
+    override fun remove(key: String) = this.data.remove(key)
+    override fun containsKey(key: String) = this.data.containsKey(key)
+    override fun put(key: String, node: NBTNode) = this.data.put(key, node)
+    override fun insert(key: String, node: NBTNode): Boolean {
+        if (this.data.containsKey(key)) return false
+        this.data.put(key, node)
+        return true
+    }
 
-        LAYOUT_ROOT -> RootHolder(parent)
+    fun <T : NBTNode> register(key: String, factory: (Int, String) -> T): T {
+        val uid = this.nodeId.incrementAndGet()
+        val value = factory(uid, key)
+        this.nodes[uid] = value
+        return value
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, type: Int) = when (type) {
+        TAG_BYTE -> ByteHolder(this, parent)
+        TAG_SHORT -> ShortHolder(this, parent)
+        TAG_INT -> IntHolder(this, parent)
+        TAG_LONG -> LongHolder(this, parent)
+        TAG_FLOAT -> FloatHolder(this, parent)
+        TAG_DOUBLE -> DoubleHolder(this, parent)
+        TAG_STRING -> StringHolder(this, parent)
+        TAG_COMPOUND -> CompoundHolder(this, parent)
+        TAG_LIST,
+        TAG_BYTE_ARRAY,
+        TAG_INT_ARRAY,
+        TAG_LONG_ARRAY -> ListHolder(this, parent)
+
+        TAG_ROOT -> RootHolder(parent)
         else -> UnknownHolder(parent)
     }
 
@@ -111,49 +121,41 @@ class NBTAdapter(
                 )
                 isLongClickable = true
             }
+            it.holder = WeakReference(holder)
             holder.bind(it)
         }
     }
 
     override fun getItemViewType(position: Int) =
-        this.getItem(position).getLayout()
+        this.getItem(position).type
 
     override fun getItemId(position: Int) =
         this.getItem(position).uid.toLong()
 
-    override suspend fun getChildren() = this.data.values
-    override fun asTag() = this.data.collect()
-    override fun remove(key: String) = this.data.remove(key)
-    override fun put(key: String, node: NBTNode) = this.data.put(key, node)
-
-    override fun onCurrentListChanged(previousList: List<NBTNode?>, currentList: List<NBTNode?>) {
-        super.onCurrentListChanged(previousList, currentList)
-    }
-
     suspend fun reload(full: Boolean = false) {
-        this.model.loading.value = true
-        val list = ArrayList<NBTNode>()
+        val model = this.model
+        model.loading.value = true
+        val list = ArrayList<NBTNode>(this.nodes.size + 16)
+        val uid = this.taskId.incrementAndGet()
         withContext(Dispatchers.Default) {
-            this@NBTAdapter.visit(full, list::add)
+            this@NBTTree.visit(full, list::add)
         }
-        this.submitList(list)
-        this.model.loading.value = false
+        if (this.taskId.get() == uid) {
+            this.submitList(list)
+        }
+        model.loading.value = false
     }
 
     fun reloadAsync(full: Boolean = false) {
-        this.lifecycleScope.launch {
-            this@NBTAdapter.reload(full)
+        this.model.viewModelScope.launch {
+            this@NBTTree.reload(full)
         }
     }
 
-    override fun onAttachedToRecyclerView(view: RecyclerView) {
-        super.onAttachedToRecyclerView(view)
-        this.reloadAsync()
-    }
-
-    override fun onDetachedFromRecyclerView(view: RecyclerView) {
-        super.onDetachedFromRecyclerView(view)
-        this.lifecycleScope.cancel()
+    fun notifyNodeChanged(node: NBTNode?) {
+        val index = this.currentList.indexOf(node ?: return)
+        if (index < 0) return
+        this.notifyItemChanged(index)
     }
 
     override fun equals(other: Any?) = this === other

@@ -9,13 +9,10 @@ import android.text.method.LinkMovementMethod
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
 import androidx.core.graphics.Insets
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.window.layout.WindowMetricsCalculator
@@ -45,8 +42,8 @@ class WorldListActivity : BaseActivity() {
     private lateinit var binding: ActivityWorldListBinding
     private lateinit var details: WorldDetailsDialog
     private val model by viewModels<WorldListModel>()
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
         val model = this.model
         this.binding = ActivityWorldListBinding.inflate(this.layoutInflater)
         this.setContentView(this.binding.root)
@@ -169,24 +166,16 @@ class WorldListActivity : BaseActivity() {
         )
     }
 
-    override fun updateDecorViewPadding(decorView: View, systemBars: Insets, ime: Insets) {
-        super.updateDecorViewPadding(decorView, systemBars, ime)
-        val bottom = systemBars.bottom
-        binding.worldList.apply {
-            if (isIndicatorEnabled) {
-                updatePadding(bottom = bottom + resources.getDimensionPixelSize(R.dimen.large_content_padding))
-                updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    bottomMargin = 0
-                }
-            } else {
-                updatePadding(bottom = resources.getDimensionPixelSize(R.dimen.large_content_padding))
-                updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    bottomMargin = bottom
-                }
-            }
+    override fun applyContentInsets(window: View, insets: Insets) {
+        val res = this.resources
+        this.binding.fabLoadWorlds.applyFloatingInsets(insets) {
+            res.getDimensionPixelSize(R.dimen.large_floating_margin)
         }
-        binding.fabLoadWorlds.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            bottomMargin = bottom + resources.getDimensionPixelSize(R.dimen.medium_floating_margin)
-        }
+        this.binding.worldList.applyListInsets(
+            this.isIndicatorEnabled,
+            insets,
+            res.getDimensionPixelSize(R.dimen.large_content_padding),
+            res.getDimensionPixelSize(R.dimen.small_content_padding)
+        )
     }
 }

@@ -14,8 +14,8 @@ import com.mithrilmania.blocktopograph.databinding.TagIntLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagLongLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagShortLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagStringLayoutBinding
-import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.editor.nbt.NBTTree
 import com.mithrilmania.blocktopograph.editor.nbt.node.ByteNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.DoubleNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.FloatNode
@@ -26,13 +26,13 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.ShortNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.StringNode
 
 sealed class ValueHolder<V : ViewBinding, T : NBTNode>(
-    adapter: NBTAdapter,
+    tree: NBTTree,
     parent: ViewGroup,
     binding: (LayoutInflater, ViewGroup, Boolean) -> V
 ) : NodeHolder<V, T>(
     binding(LayoutInflater.from(parent.context), parent, false)
 ), TextWatcher {
-    protected val model: NBTEditorModel = adapter.model
+    protected val model: NBTEditorModel = tree.model
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
     fun markAsInvalid(box: EditText, value: Any) {
@@ -41,7 +41,7 @@ sealed class ValueHolder<V : ViewBinding, T : NBTNode>(
 }
 
 class ByteHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagByteLayoutBinding, ByteNode>(adapter, parent, TagByteLayoutBinding::inflate) {
     init {
@@ -56,9 +56,8 @@ class ByteHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -67,7 +66,7 @@ class ByteHolder(
         try {
             val value = raw.toByte()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.byteField, raw)
@@ -76,7 +75,7 @@ class ByteHolder(
 }
 
 class ShortHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagShortLayoutBinding, ShortNode>(adapter, parent, TagShortLayoutBinding::inflate) {
     init {
@@ -91,9 +90,8 @@ class ShortHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -102,7 +100,7 @@ class ShortHolder(
         try {
             val value = raw.toShort()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.shortField, raw)
@@ -111,7 +109,7 @@ class ShortHolder(
 }
 
 class IntHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagIntLayoutBinding, IntNode>(adapter, parent, TagIntLayoutBinding::inflate) {
     init {
@@ -126,9 +124,8 @@ class IntHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -137,7 +134,7 @@ class IntHolder(
         try {
             val value = raw.toInt()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.intField, raw)
@@ -146,7 +143,7 @@ class IntHolder(
 }
 
 class LongHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagLongLayoutBinding, LongNode>(adapter, parent, TagLongLayoutBinding::inflate) {
     init {
@@ -161,9 +158,8 @@ class LongHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -172,7 +168,7 @@ class LongHolder(
         try {
             val value = raw.toLong()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.longField, raw)
@@ -181,7 +177,7 @@ class LongHolder(
 }
 
 class FloatHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagFloatLayoutBinding, FloatNode>(adapter, parent, TagFloatLayoutBinding::inflate) {
     init {
@@ -196,9 +192,8 @@ class FloatHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -207,7 +202,7 @@ class FloatHolder(
         try {
             val value = raw.toFloat()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.floatField, raw)
@@ -216,7 +211,7 @@ class FloatHolder(
 }
 
 class DoubleHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagDoubleLayoutBinding, DoubleNode>(
     adapter,
@@ -235,9 +230,8 @@ class DoubleHolder(
         }
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 
     override fun afterTextChanged(input: Editable) {
@@ -246,7 +240,7 @@ class DoubleHolder(
         try {
             val value = raw.toDouble()
             if (value == node.value) return
-            this.model.modified.value = true
+            this.model.markDirty()
             node.value = value
         } catch (_: NumberFormatException) {
             this.markAsInvalid(this.binding.doubleField, raw)
@@ -255,7 +249,7 @@ class DoubleHolder(
 }
 
 class StringHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : ValueHolder<TagStringLayoutBinding, StringNode>(
     adapter,
@@ -266,17 +260,16 @@ class StringHolder(
         this.binding.stringField.addTextChangedListener(this)
     }
 
-    override fun rename(name: String) {
-        this.binding.tagName.text = name
-        this.node?.name = name
-    }
-
     override fun bind(node: NBTNode) {
         this.node = node as? StringNode ?: return
         this.binding.apply {
             tagName.text = node.name
             stringField.setText(node.value.toString())
         }
+    }
+
+    override fun onRename(name: String) {
+        this.binding.tagName.text = name
     }
 
     override fun afterTextChanged(input: Editable) {

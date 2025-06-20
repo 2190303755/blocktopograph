@@ -8,14 +8,16 @@
     android:paddingEnd="?attr/dialogPreferredPadding">
 
     <com.google.android.material.textfield.TextInputLayout
+        style="?attr/textInputOutlinedExposedDropdownMenuStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/box"
-        app:errorEnabled="true">
+        android:hint="@string/option_tag_type">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/text"
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/tag_type"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            app:simpleItems="@array/tag_types" />
     </com.google.android.material.textfield.TextInputLayout>
 </FrameLayout>

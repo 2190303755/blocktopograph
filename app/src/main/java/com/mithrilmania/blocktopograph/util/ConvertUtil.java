@@ -22,54 +22,25 @@ public class ConvertUtil {
     }
 
     private static int hexCharToByte(char ch) {
-        switch (ch) {
-            case '0':
-                return 0;
-            case '1':
-                return 1;
-            case '2':
-                return 2;
-            case '3':
-                return 3;
-            case '4':
-                return 4;
-            case '5':
-                return 5;
-            case '6':
-                return 6;
-            case '7':
-                return 7;
-            case '8':
-                return 8;
-            case '9':
-                return 9;
-            case 'a':
-                return 10;
-            case 'b':
-                return 11;
-            case 'c':
-                return 12;
-            case 'd':
-                return 13;
-            case 'e':
-                return 14;
-            case 'f':
-                return 15;
-            case 'A':
-                return 10;
-            case 'B':
-                return 11;
-            case 'C':
-                return 12;
-            case 'D':
-                return 13;
-            case 'E':
-                return 14;
-            case 'F':
-                return 15;
-            default:
-                return -1;
-        }
+        return switch (ch) {
+            case '0' -> 0;
+            case '1' -> 1;
+            case '2' -> 2;
+            case '3' -> 3;
+            case '4' -> 4;
+            case '5' -> 5;
+            case '6' -> 6;
+            case '7' -> 7;
+            case '8' -> 8;
+            case '9' -> 9;
+            case 'a', 'A' -> 10;
+            case 'b', 'B' -> 11;
+            case 'c', 'C' -> 12;
+            case 'd', 'D' -> 13;
+            case 'e', 'E' -> 14;
+            case 'f', 'F' -> 15;
+            default -> -1;
+        };
     }
 
     @Nullable
@@ -107,17 +78,11 @@ public class ConvertUtil {
         // assert extension.length()>0;
         if (extension.charAt(0) == '.') extension = extension.substring(1);
         if (!inLower) extension = extension.toLowerCase();
-        String MIME_PNG = "image/png";
-        String MIME_JPG = "image/jpg";
-        switch (extension) {
-            case "png":
-                return MIME_PNG;
-            case "jpg":
-            case "jpeg":
-                return MIME_JPG;
-            default:
-                return null;
-        }
+        return switch (extension) {
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpg";
+            default -> null;
+        };
     }
 
     public static float distance(float x1, float y1, float x2, float y2) {

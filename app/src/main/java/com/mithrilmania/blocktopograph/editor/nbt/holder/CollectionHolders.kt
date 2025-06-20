@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import androidx.viewbinding.ViewBinding
 import com.mithrilmania.blocktopograph.databinding.TagCompoundLayoutBinding
 import com.mithrilmania.blocktopograph.databinding.TagListLayoutBinding
-import com.mithrilmania.blocktopograph.editor.nbt.NBTAdapter
+import com.mithrilmania.blocktopograph.editor.nbt.NBTTree
 import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.CompoundNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
@@ -14,7 +14,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 
 abstract class CollectionHolder<V : ViewBinding, T : RootNode<*>>(
-    val adapter: NBTAdapter,
+    val tree: NBTTree,
     parent: ViewGroup,
     binding: (LayoutInflater, ViewGroup, Boolean) -> V,
 ) : NodeHolder<V, T>(
@@ -27,12 +27,14 @@ abstract class CollectionHolder<V : ViewBinding, T : RootNode<*>>(
     override fun onClick(v: View?) {
         val node = this.node as? CollectionNode<*, *> ?: return
         node.expanded = !node.expanded
-        this.adapter.reloadAsync()
+        if (node.parent.expanded) {
+            this.tree.reloadAsync()
+        }
     }
 }
 
 class CompoundHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : CollectionHolder<TagCompoundLayoutBinding, CompoundNode>(
     adapter,
@@ -44,14 +46,13 @@ class CompoundHolder(
         this.binding.root.text = node.name
     }
 
-    override fun rename(name: String) {
-        this.binding.tagName.text = name
-        this.node?.name = name
+    override fun onRename(name: String) {
+        this.binding.root.text = name
     }
 }
 
 class ListHolder(
-    adapter: NBTAdapter,
+    adapter: NBTTree,
     parent: ViewGroup
 ) : CollectionHolder<TagListLayoutBinding, ListNode>(
     adapter,
@@ -63,8 +64,7 @@ class ListHolder(
         this.binding.tagName.text = node.name
     }
 
-    override fun rename(name: String) {
+    override fun onRename(name: String) {
         this.binding.tagName.text = name
-        this.node?.name = name
     }
 }

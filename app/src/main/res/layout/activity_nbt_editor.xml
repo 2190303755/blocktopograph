@@ -5,14 +5,13 @@
     android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/toolbar_layout"
         android:fitsSystemWindows="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:liftOnScroll="true">
 
         <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+            android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -25,16 +24,53 @@
         android:clipToPadding="false"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        style="@style/Widget.Material3.FloatingActionButton.Surface"
-        android:id="@+id/fab_save"
-        android:src="@drawable/ic_save"
+    <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
+        style="?floatingToolbarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/medium_floating_margin"
+        android:layout_margin="@dimen/small_floating_margin"
+        android:id="@+id/toolbar"
         app:layout_anchor="@id/editor"
-        app:layout_anchorGravity="bottom|end"
-        android:contentDescription="@string/open" />
+        app:layout_anchorGravity="bottom|center"
+        app:marginTopSystemWindowInsets="false"
+        app:marginBottomSystemWindowInsets="false"
+        app:marginLeftSystemWindowInsets="false"
+        app:marginRightSystemWindowInsets="false">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                style="?attr/materialIconButtonStyle"
+                android:id="@+id/undo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_undo" />
+
+            <com.google.android.material.button.MaterialButton
+                style="?attr/materialIconButtonStyle"
+                android:id="@+id/redo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_redo" />
+
+            <com.google.android.material.button.MaterialButton
+                style="?attr/materialIconButtonStyle"
+                android:id="@+id/search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_search" />
+
+            <com.google.android.material.button.MaterialButton
+                style="?attr/materialIconButtonOutlinedStyle"
+                android:id="@+id/save"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_save" />
+        </LinearLayout>
+    </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:layout_width="match_parent"
