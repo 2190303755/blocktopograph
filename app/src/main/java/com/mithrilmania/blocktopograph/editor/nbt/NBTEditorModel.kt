@@ -1,18 +1,23 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
 import com.mithrilmania.blocktopograph.nbt.EMPTY_COMPOUND
-import com.mithrilmania.blocktopograph.nbt.NBTInput
+import com.mithrilmania.blocktopograph.nbt.readUnknownNBT
 import com.mithrilmania.blocktopograph.storage.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.benwoodworth.knbt.NbtCompression
 import net.benwoodworth.knbt.NbtVariant
+import java.io.InputStream
 import java.lang.ref.WeakReference
 
-class NBTEditorModel : ViewModel() {
+class NBTEditorModel : ViewModel(), ExporterFactory {
     val modified: MutableLiveData<Boolean> = MutableLiveData(false)
     val loading: MutableLiveData<Boolean> = MutableLiveData(false)
     val stringify: MutableLiveData<Boolean> = MutableLiveData(false)
@@ -21,7 +26,7 @@ class NBTEditorModel : ViewModel() {
     val variant: MutableLiveData<NbtVariant> = MutableLiveData(NbtVariant.Bedrock)
     val compression: MutableLiveData<NbtCompression> = MutableLiveData(NbtCompression.None)
     val source: MutableLiveData<File?> = MutableLiveData()
-    val tree: MutableLiveData<NBTTree> = MutableLiveData()
+    val tree: MutableLiveData<NBTTree> = MutableLiveData(null)
     val history: MutableLiveData<HistoryState> = MutableLiveData(HistoryState(false, false))
     private val undo: ArrayDeque<Operation<*>> = ArrayDeque()
     private val redo: ArrayDeque<Operation<*>> = ArrayDeque()
@@ -32,17 +37,40 @@ class NBTEditorModel : ViewModel() {
             this.holder?.get()?.onRename(value)
         }
 
-    suspend fun accept(input: NBTInput) {
-        name = input.name
-        withContext(Dispatchers.Main) {
-            undo.clear()
-            redo.clear()
-            loading.value = false
-            stringify.value = input.string
-            variant.value = input.variant
-            compression.value = input.compression
-            version.value = input.version
-            tree.value = NBTTree(this@NBTEditorModel, input.data)
+    fun readFileAsync(file: File, context: Context) {
+        loading.value = true
+        source.value = file
+        val app = context.applicationContext
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = file.read(app, InputStream::readUnknownNBT) ?: return@launch
+            name = input.name
+            withContext(Dispatchers.Main) {
+                undo.clear()
+                redo.clear()
+                loading.value = false
+                stringify.value = input.string
+                variant.value = input.variant
+                compression.value = input.compression
+                version.value = input.version
+                tree.value = NBTTree(this@NBTEditorModel, input.data)
+            }
+        }
+    }
+
+    fun saveFileAsync(file: File, context: Context, factory: ExporterFactory = this) {
+        source.value = file
+        val app = context.applicationContext
+        viewModelScope.launch(Dispatchers.Default) {
+            val data = tree.value?.asTag() ?: return@launch
+            withContext(Dispatchers.IO) {
+                source.value?.save(app) { stream ->
+                    factory.createExporter().write(stream, data, name)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(app, "Done", Toast.LENGTH_SHORT).show()
+                modified.value = false
+            }
         }
     }
 
@@ -88,10 +116,16 @@ class NBTEditorModel : ViewModel() {
         this.modified.value = true
     }
 
-    data class HistoryState(val undo: Boolean, val redo: Boolean)
-
     fun updateHistory() {
         this.history.value = HistoryState(this.undo.isNotEmpty(), this.redo.isNotEmpty())
         this.markDirty()
     }
+
+    override fun createExporter() = if (this.stringify.value == false) NBTOptions(
+        this.variant.value ?: NbtVariant.Bedrock,
+        this.compression.value ?: NbtCompression.None,
+        this.version.value
+    ) else SNBTOptions(this.prettify.value == false)
+
+    data class HistoryState(val undo: Boolean, val redo: Boolean)
 }

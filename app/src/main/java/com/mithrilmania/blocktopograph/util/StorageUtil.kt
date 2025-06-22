@@ -13,10 +13,18 @@ import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
+import android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID
+import android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
+import android.provider.DocumentsContract.Document.COLUMN_SIZE
+import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
 import android.provider.DocumentsContract.EXTRA_ORIENTATION
+import android.util.Log
 import android.util.Size
 import androidx.annotation.RequiresApi
-import com.mithrilmania.blocktopograph.Log
+import com.mithrilmania.blocktopograph.nbt.EditableNBT
+import com.mithrilmania.blocktopograph.nbt.LevelDBNBT
+import com.mithrilmania.blocktopograph.util.ConvertUtil.bytesToHexStr
+import org.iq80.leveldb.DB
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -28,8 +36,8 @@ fun Uri.findChild(resolver: ContentResolver, name: String): Uri? {
         DocumentsContract.buildChildDocumentsUriUsingTree(
             this, DocumentsContract.getDocumentId(this)
         ), arrayOf(
-            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID
+            COLUMN_DISPLAY_NAME,
+            COLUMN_DOCUMENT_ID
         ), null, null, null
     )?.use {
         while (it.moveToNext()) {
@@ -46,7 +54,7 @@ inline fun Uri.forChild(resolver: ContentResolver, action: (Uri) -> Unit) {
         DocumentsContract.buildChildDocumentsUriUsingTree(
             this, DocumentsContract.getDocumentId(this)
         ), arrayOf(
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID
+            COLUMN_DOCUMENT_ID
         ), null, null, null
     )?.use {
         while (it.moveToNext()) {
@@ -60,12 +68,12 @@ inline fun Uri.forSubFolder(resolver: ContentResolver, action: (Uri) -> Unit) {
         DocumentsContract.buildChildDocumentsUriUsingTree(
             this, DocumentsContract.getDocumentId(this)
         ), arrayOf(
-            DocumentsContract.Document.COLUMN_MIME_TYPE,
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID
+            COLUMN_MIME_TYPE,
+            COLUMN_DOCUMENT_ID
         ), null, null, null
     )?.use {
         while (it.moveToNext()) {
-            if (!it.isNull(0) && DocumentsContract.Document.MIME_TYPE_DIR == it.getString(0)) {
+            if (!it.isNull(0) && MIME_TYPE_DIR == it.getString(0)) {
                 action(DocumentsContract.buildDocumentUriUsingTree(this, it.getString(1)))
             }
         }
@@ -75,12 +83,12 @@ inline fun Uri.forSubFolder(resolver: ContentResolver, action: (Uri) -> Unit) {
 fun Uri.getSize(resolver: ContentResolver): Long {
     resolver.query(
         this, arrayOf(
-            DocumentsContract.Document.COLUMN_MIME_TYPE,
-            DocumentsContract.Document.COLUMN_SIZE
+            COLUMN_MIME_TYPE,
+            COLUMN_SIZE
         ), null, null, null
     )?.use {
         if (it.moveToFirst() && !it.isNull(0)) {
-            if (DocumentsContract.Document.MIME_TYPE_DIR == it.getString(0)) {
+            if (MIME_TYPE_DIR == it.getString(0)) {
                 var size = 0L
                 this.forChild(resolver) { child ->
                     size += child.getSize(resolver)
@@ -118,15 +126,15 @@ fun Uri.copyFolderTo(resolver: ContentResolver, folder: File) {
             DocumentsContract.buildChildDocumentsUriUsingTree(
                 this, DocumentsContract.getDocumentId(this)
             ), arrayOf(
-                DocumentsContract.Document.COLUMN_MIME_TYPE,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID
+                COLUMN_MIME_TYPE,
+                COLUMN_DISPLAY_NAME,
+                COLUMN_DOCUMENT_ID
             ), null, null, null
         )?.use {
             while (it.moveToNext()) {
                 if (it.isNull(0) || it.isNull(1)) continue
                 val target = File(folder, it.getString(1))
-                if (DocumentsContract.Document.MIME_TYPE_DIR == it.getString(0)) {
+                if (MIME_TYPE_DIR == it.getString(0)) {
                     DocumentsContract.buildDocumentUriUsingTree(this, it.getString(2))
                         .copyFolderTo(resolver, target)
                 } else {
@@ -136,7 +144,7 @@ fun Uri.copyFolderTo(resolver: ContentResolver, folder: File) {
             }
         }
     } else {
-        Log.e(IoUtil::class, "Failed to copy folder: " + folder.path)
+        Log.e("StorageUtil", "Failed to copy folder: " + folder.path)
     }
 }
 
@@ -246,4 +254,26 @@ fun formatSize(size: Long): String {
             else -> "B"
         }
     )
+}
+
+fun String.toLDBKey() = this.toByteArray(Charsets.UTF_8)
+
+inline fun DB.getAsEditableNBT(
+    entry: SpecialDBEntryType,
+    handler: (String) -> Unit = {}
+) = this.getAsEditableNBT(entry.keyName, entry.keyBytes, handler)
+
+inline fun DB.getAsEditableNBT(
+    display: String,
+    key: ByteArray = display.toLDBKey(),
+    handler: (String) -> Unit = {}
+): EditableNBT? {
+    try {
+        return LevelDBNBT.open(this, display, key)
+    } catch (e: Exception) {
+        val hex = bytesToHexStr(key)
+        Log.e("LevelDB", "Failed to open data with key: $hex", e)
+        handler(hex)
+    }
+    return null
 }

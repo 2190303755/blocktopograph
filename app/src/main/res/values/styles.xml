@@ -9,10 +9,8 @@
         <item name="enableEdgeToEdge">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">?attr/isLightTheme</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.App.BottomSheetDialog</item>
         <!-- Customize your theme here. -->
-        <item name="android:buttonStyle">@style/AppButtonStyle</item>
-        <item name="imageButtonStyle">@style/AppImageButtonStyle</item>
-        <item name="buttonBarButtonStyle">@style/AppBarButtonStyle</item>
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
         <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
@@ -59,6 +57,19 @@
         <item name="colorSurfaceContainer">@color/md_theme_surfaceContainer</item>
         <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
+    </style>
+
+    <style name="ThemeOverlay.App.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+        <item name="android:backgroundDimAmount" tools:targetApi="31">0.24</item>
+        <item name="android:windowBlurBehindEnabled" tools:targetApi="31">true</item>
+        <item name="android:windowBlurBehindRadius" tools:targetApi="31" tools:ignore="PxUsage">
+            20px
+        </item>
     </style>
 
     <style name="AppTheme.Floating" parent="AppTheme">

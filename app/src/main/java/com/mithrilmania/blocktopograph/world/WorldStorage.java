@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.world;
 
+import static com.mithrilmania.blocktopograph.util.StorageUtilKt.toLDBKey;
+
 import android.util.LruCache;
 
 import androidx.annotation.NonNull;
@@ -23,6 +25,7 @@ import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
+import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.env.Env;
 import org.iq80.leveldb.fileenv.EnvImpl;
 import org.iq80.leveldb.impl.DbImpl;
@@ -32,7 +35,6 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 import kotlin.io.FilesKt;
@@ -45,7 +47,7 @@ public class WorldStorage {
 
     //another method for debugging, makes it easy to print a readable byte array
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    private LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
+    private final LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
     public final OldBlockRegistry mOldBlockRegistry;
     public final DB db;
     public final String path;
@@ -56,43 +58,30 @@ public class WorldStorage {
         this.path = path;
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);
     }
-
-    static String bytesToHex(byte[] bytes, int start, int end) {
-        char[] hexChars = new char[(end - start) * 2];
-        for (int j = start; j < end; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[(j - start) * 2] = hexArray[v >>> 4];
-            hexChars[(j - start) * 2 + 1] = hexArray[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
-
     private static byte[] getChunkDataKey(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) {
         if (dimension == Dimension.OVERWORLD) {
             byte[] key = new byte[asSubChunk ? 10 : 9];
-            System.arraycopy(getReversedBytes(x), 0, key, 0, 4);
-            System.arraycopy(getReversedBytes(z), 0, key, 4, 4);
+            fillReversedBytes(key, 0, x);
+            fillReversedBytes(key, 4, z);
             key[8] = type.dataID;
             if (asSubChunk) key[9] = subChunk;
             return key;
         } else {
             byte[] key = new byte[asSubChunk ? 14 : 13];
-            System.arraycopy(getReversedBytes(x), 0, key, 0, 4);
-            System.arraycopy(getReversedBytes(z), 0, key, 4, 4);
-            System.arraycopy(getReversedBytes(dimension.id), 0, key, 8, 4);
+            fillReversedBytes(key, 0, x);
+            fillReversedBytes(key, 4, z);
+            fillReversedBytes(key, 8, dimension.id);
             key[12] = type.dataID;
             if (asSubChunk) key[13] = subChunk;
             return key;
         }
     }
 
-    private static byte[] getReversedBytes(int i) {
-        return new byte[]{
-                (byte) i,
-                (byte) (i >> 8),
-                (byte) (i >> 16),
-                (byte) (i >> 24)
-        };
+    private static void fillReversedBytes(byte[] array, int pos, int num) {
+        array[pos] = (byte) num;
+        array[pos + 1] = (byte) (num >> 8);
+        array[pos + 2] = (byte) (num >> 16);
+        array[pos + 3] = (byte) (num >> 24);
     }
 
     public byte[] getChunkData(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) throws DBException {
@@ -149,19 +138,20 @@ public class WorldStorage {
         this.chunks.evictAll();
     }
 
-    public String[] getNetworkPlayerNames() {
-        List<String> players = getDBKeysStartingWith("player_");
-        return players.toArray(new String[0]);
+    public List<String> getNetworkPlayerNameList() {
+        return this.getDBKeysStartingWith("player_");
     }
 
     public List<String> getDBKeysStartingWith(String startWith) {
-        DBIterator it = db.iterator();
+        DBIterator it = this.db.iterator(new ReadOptions().fillCache(false));
+        it.seek(toLDBKey(startWith));
         ArrayList<String> items = new ArrayList<>();
-        for (it.seekToFirst(); it.hasNext(); it.next()) {
+        while (it.hasNext()) {
             byte[] key = it.next().getKey();
             if (key == null) continue;
             String keyStr = new String(key);
-            if (keyStr.startsWith(startWith)) items.add(keyStr);
+            if (!keyStr.startsWith(startWith)) break;
+            items.add(keyStr);
         }
         it.close();
         return items;
@@ -216,18 +206,6 @@ public class WorldStorage {
             return obj instanceof Key another && ((x == another.x) && (z == another.z) && (dim != null)
                     && (another.dim != null) && (dim.id == another.dim.id));
         }
-    }
-
-    //function meant for debugging, not used in production
-    public void logDBKeys() {
-        DBIterator it = this.db.iterator();
-        it.seekToFirst();
-        while (it.hasNext()) {
-            Map.Entry<byte[], byte[]> entry = it.next();
-            byte[] key = entry.getKey();
-            Log.d(this, "key: " + new String(key) + " key in Hex: " + WorldStorage.bytesToHex(key, 0, key.length) + " size: " + entry.getValue().length);
-        }
-        it.close();
     }
 
     @Nullable

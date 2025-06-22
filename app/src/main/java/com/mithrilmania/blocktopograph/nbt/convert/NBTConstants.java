@@ -1,8 +1,22 @@
 package com.mithrilmania.blocktopograph.nbt.convert;
 
-import com.mithrilmania.blocktopograph.nbt.tags.*;
+import com.mithrilmania.blocktopograph.nbt.tags.ByteArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ByteTag;
+import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.tags.DoubleTag;
+import com.mithrilmania.blocktopograph.nbt.tags.EndTag;
+import com.mithrilmania.blocktopograph.nbt.tags.FloatTag;
+import com.mithrilmania.blocktopograph.nbt.tags.IntArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ListTag;
+import com.mithrilmania.blocktopograph.nbt.tags.LongTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ShortArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
+import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
+import com.mithrilmania.blocktopograph.nbt.tags.Tag;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,6 +107,6 @@ public class NBTConstants {
 
     }
 
-    public static final Charset CHARSET = Charset.forName("UTF-8");
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
 
 }

@@ -225,7 +225,7 @@ public class MapFragment extends Fragment {
 
             if (playerPos.dimension != this.model.getDimension()) {
                 this.model.setDimension(playerPos.dimension);
-                this.model.getWorldType().postValue(playerPos.dimension.defaultMapType);
+                this.model.getMapType().postValue(playerPos.dimension.defaultMapType);
             }
             Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.GPS_LOCATE);
 
@@ -263,7 +263,7 @@ public class MapFragment extends Fragment {
                     .setAction("Action", null).show();
             if (spawnPos.dimension != this.model.getDimension()) {
                 this.model.setDimension(spawnPos.dimension);
-                this.model.getWorldType().setValue(spawnPos.dimension.defaultMapType);
+                this.model.getMapType().setValue(spawnPos.dimension.defaultMapType);
             }
             Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.GPS_LOCATE);
 
@@ -466,7 +466,7 @@ public class MapFragment extends Fragment {
 
         //set the map-type
         MapTileView tileView = mBinding.tileView;
-        tileView.getDetailLevelManager().setLevelType(model.getWorldType().getValue());
+        tileView.getDetailLevelManager().setLevelType(model.getMapType().getValue());
 
         tileView.setOnLongPressListener(this::onLongPressed);
 
@@ -644,7 +644,7 @@ public class MapFragment extends Fragment {
         LifecycleOwner owner = this.getViewLifecycleOwner();
         Observer<Object> refresh = visible -> resetTileView();
         model.getShowGrid().observe(owner, refresh);
-        model.getWorldType().observe(owner, refresh);
+        model.getMapType().observe(owner, refresh);
         model.getShowMarkers().observe(owner, visible -> {
             if (visible) {
                 resetTileView();
@@ -669,7 +669,7 @@ public class MapFragment extends Fragment {
                     addMarker(localPlayerMarker);
                     if (localPlayerMarker.dimension != model.getDimension()) {
                         model.setDimension(localPlayerMarker.dimension);
-                        model.getWorldType().setValue(localPlayerMarker.dimension.defaultMapType);
+                        model.getMapType().setValue(localPlayerMarker.dimension.defaultMapType);
                     }
                     frameTo(x, z);
                     framedToPlayer = true;
@@ -690,7 +690,7 @@ public class MapFragment extends Fragment {
                 if (!framedToPlayer) {
                     if (spawnMarker.dimension != model.getDimension()) {
                         model.setDimension(spawnMarker.dimension);
-                        model.getWorldType().postValue(spawnMarker.dimension.defaultMapType);
+                        model.getMapType().postValue(spawnMarker.dimension.defaultMapType);
                     }
                     frameTo((double) spawnPos.x, (double) spawnPos.z);
                 }
@@ -1275,7 +1275,7 @@ public class MapFragment extends Fragment {
 
     public void resetTileView() {
         updateMarkerFilter();
-        mBinding.tileView.getDetailLevelManager().setLevelType(this.model.getWorldType().getValue());
+        mBinding.tileView.getDetailLevelManager().setLevelType(this.model.getMapType().getValue());
         //invalidateTileView();
     }
 
@@ -1446,7 +1446,7 @@ public class MapFragment extends Fragment {
 
     }
 
-    private static class GetPlayerTask extends AsyncTask<Void, Void, String[]> {
+    private static class GetPlayerTask extends AsyncTask<Void, Void, List<String>> {
 
         private final WeakReference<MapFragment> owner;
         private final WeakReference<View> view;
@@ -1459,17 +1459,17 @@ public class MapFragment extends Fragment {
         }
 
         @Override
-        protected String[] doInBackground(Void... arg0) {
+        protected List<String> doInBackground(Void... arg0) {
             WorldStorage storage = owner.get().model.getHandler().getStorage();
             if (storage == null) return null;
             try {
-                return storage.getNetworkPlayerNames();
+                return storage.getNetworkPlayerNameList();
             } catch (Exception e) {
                 return null;
             }
         }
 
-        protected void onPostExecute(final String[] players) {
+        protected void onPostExecute(final List<String> players) {
             owner.get().getActivity().runOnUiThread(() -> {
 
                 if (players == null) {
@@ -1478,7 +1478,7 @@ public class MapFragment extends Fragment {
                     return;
                 }
 
-                if (players.length == 0) {
+                if (players.isEmpty()) {
                     Snackbar.make(view.get(), R.string.no_multiplayer_data_found, Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                     return;
@@ -1502,7 +1502,7 @@ public class MapFragment extends Fragment {
 
                             //new tag type
                             int spinnerIndex = spinner.getSelectedItemPosition();
-                            String playerKey = players[spinnerIndex];
+                            String playerKey = players.get(spinnerIndex);
 
                             try {
                                 MapFragment fragment = this.owner.get();
@@ -1521,7 +1521,7 @@ public class MapFragment extends Fragment {
 
                                 if (playerPos.dimension != fragment.model.getDimension()) {
                                     fragment.model.setDimension(playerPos.dimension);
-                                    fragment.model.getWorldType().setValue(playerPos.dimension.defaultMapType);
+                                    fragment.model.getMapType().setValue(playerPos.dimension.defaultMapType);
                                 }
 
                                 fragment.frameTo((double) playerPos.x, (double) playerPos.z);

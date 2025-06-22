@@ -67,11 +67,6 @@ class WorldItemAdapter : RecyclerView.Adapter<WorldItemAdapter.WorldItemHolder>(
         val index = worlds.indexOf(world)
         if (index == -1) return
         this.notifyItemChanged(index)
-        this.selected.let {
-            if (world == it.value) {
-                it.value = world // notify
-            }
-        }
     }
 
     class WorldItemHolder(

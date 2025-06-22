@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.ViewGroup
@@ -19,6 +20,8 @@ class DynamicColumnLayout @JvmOverloads constructor(
 
     init {
         val resources = context.resources
+
+        @SuppressLint("UseKtx")
         val array = context.obtainStyledAttributes(attrs, R.styleable.DynamicColumnLayout)
         this.threshold = array.getDimension(
             R.styleable.DynamicColumnLayout_threshold,

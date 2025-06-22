@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph.test
 
 import android.content.DialogInterface
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -19,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.BaseActivity
+import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldTestBinding
 import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants
@@ -38,7 +38,7 @@ import kotlinx.coroutines.withContext
 
 class WorldTestActivity : BaseActivity(), TextWatcher {
     private lateinit var binding: ActivityWorldTestBinding
-    private lateinit var selectOutput: ActivityResultLauncher<Uri?>
+    private lateinit var selectOutput: ActivityResultLauncher<FileCreator.Options?>
     private val model by viewModels<WorldTestModel>()
     override fun onCreate(bundle: Bundle?) {
         super.onCreate(bundle)
@@ -175,7 +175,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                             Intent()
                                 .setAction(Intent.ACTION_VIEW)
                                 .setFlags(VIEW_DOCUMENT_FLAG)
-                                .setDataAndType(uri, "application/octet-stream")
+                                .setDataAndType(uri, MIME_TYPE_DEFAULT)
                         )
                     }.apply {
                         ViewCompat.setOnApplyWindowInsetsListener(view.apply {

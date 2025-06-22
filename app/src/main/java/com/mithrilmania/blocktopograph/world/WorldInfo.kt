@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.world
 
 import android.content.Intent
+import android.content.Intent.EXTRA_TITLE
 import android.graphics.Bitmap
 import com.mithrilmania.blocktopograph.storage.Location
 
@@ -21,5 +22,5 @@ class WorldInfo(
     var size: String? = null
 
     fun applyTo(intent: Intent) = this.location.applyTo(intent)
-        .putExtra(BUNDLE_ENTRY_NAME, this.name)
+        .putExtra(EXTRA_TITLE, this.name)
 }

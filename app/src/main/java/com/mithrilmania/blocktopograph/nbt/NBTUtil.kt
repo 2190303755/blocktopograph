@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.nbt
 
 import com.mithrilmania.blocktopograph.util.BYTE_0
-import kotlinx.serialization.encodeToByteArray
 import net.benwoodworth.knbt.Nbt
 import net.benwoodworth.knbt.NbtByte
 import net.benwoodworth.knbt.NbtCompound
@@ -17,9 +16,7 @@ import net.benwoodworth.knbt.NbtVariant
 import net.benwoodworth.knbt.StringifiedNbt
 import net.benwoodworth.knbt.decodeFromStream
 import net.benwoodworth.knbt.detect
-import net.benwoodworth.knbt.encodeToStream
 import java.io.InputStream
-import java.io.OutputStream
 import java.nio.charset.Charset
 
 const val TAG_END = 0
@@ -128,42 +125,6 @@ fun InputStream.readCompound(
     this.variant = variant
     this.compression = compression
 }.decodeFromStream<NbtCompound>(this)
-
-fun OutputStream.writeCompound(
-    version: Byte,
-    data: NbtCompound,
-    name: String = "",
-    compression: NbtCompression = NbtCompression.None
-) {
-    this.write(Nbt {
-        this.variant = NbtVariant.Bedrock
-        this.compression = compression
-    }.encodeToByteArray(data.wrap(name)).let { nbt ->
-        byteArrayOf(
-            version,
-            BYTE_0,
-            BYTE_0,
-            BYTE_0,
-            (nbt.size and 255).toByte(),
-            (nbt.size ushr 8 and 255).toByte(),
-            (nbt.size ushr 16 and 255).toByte(),
-            (nbt.size ushr 24 and 255).toByte()
-        ).plus(nbt)
-    })
-}
-
-fun OutputStream.writeCompound(
-    data: NbtCompound,
-    name: String = "",
-    variant: NbtVariant = NbtVariant.Bedrock,
-    compression: NbtCompression = NbtCompression.None
-) {
-    Nbt {
-        this.variant = variant
-        this.compression = compression
-    }.encodeToStream(data.wrap(name), this)
-}
-
 
 fun Char.isSafe(): Boolean = when (this) {
     '-', '_', in 'a'..'z', in 'A'..'Z', in '0'..'9' -> true

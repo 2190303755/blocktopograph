@@ -510,6 +510,7 @@
     <string name="action_insert">Insert</string>
     <string name="action_rename">Rename</string>
     <string name="action_delete">Delete</string>
+    <string name="action_export">Export</string>
     <string name="activity_nbt_editor">NBT Editor</string>
     <string name="activity_nbt_editor_subtitle">Storage Version: %d</string>
     <string name="action_file">File</string>
@@ -530,7 +531,7 @@
     <string name="dialog_storage_option_compression_gzip" translatable="false">G-Zip</string>
     <string name="dialog_storage_option_compression_zlib" translatable="false">ZLib</string>
     <string name="dialog_storage_option_header">Header</string>
-    <string name="dialog_storage_option_format">Format</string>
+    <string name="dialog_storage_option_prettify">Prettify</string>
     <string name="option_on">On</string>
     <string name="option_off">Off</string>
     <string name="option_none">None</string>
@@ -541,6 +542,7 @@
     <string name="toast_copy_success">Copied to clipboard</string>
     <string name="toast_empty_clipboard">Clipboard is empty</string>
     <string name="error_duplicate_key">Duplicate key: %s</string>
+    <string name="missing_local_player">Failed to find local player in level db and level.dat</string>
     <string-array name="tag_types">
         <item>Byte Tag</item>
         <item>Short Tag</item>

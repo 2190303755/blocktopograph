@@ -1,97 +1,123 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
-import android.net.Uri
+import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.mithrilmania.blocktopograph.EXTRA_INVALIDATED
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.DialogNbtExportBinding
-import com.mithrilmania.blocktopograph.nbt.NBTConfig
+import com.mithrilmania.blocktopograph.storage.SAFFile
+import com.mithrilmania.blocktopograph.util.FileCreator
+import com.mithrilmania.blocktopograph.util.makeCommonDialog
 import net.benwoodworth.knbt.NbtCompression
-import net.benwoodworth.knbt.NbtVariant
 
+class NBTExportDialog : BottomSheetDialogFragment() {
+    private lateinit var picker: ActivityResultLauncher<FileCreator.Options?>
+    private var binding: DialogNbtExportBinding? = null
+    val editor by activityViewModels<NBTEditorModel>()
+    val exporter by viewModels<NBTExportModel>()
 
-internal class NBTExportDialog(
-    activity: NBTEditorActivity,
-    title: String,
-    config: NBTConfig?,
-    action: (Uri?) -> Unit
-) : BottomSheetDialog(activity) {
-    private val binding = DialogNbtExportBinding.inflate(activity.layoutInflater)
+    override fun onCreateDialog(savedInstanceState: Bundle?) = this.makeCommonDialog()
 
-    init {
-        behavior.skipCollapsed = true
-        behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        window?.let {
-            it.decorView.setOnApplyWindowInsetsListener { view, insets ->
-                /*insets.also {
-                    val base = activity.systemBarsInsets.value!!.bottom
-                    binding.root.updatePadding(bottom = base)
-                    view.updatePadding(bottom = -base)
-                }*/
-                insets
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val binding = this.binding ?: return
+        val activity = this.requireActivity()
+        val exporter = this.exporter
+        when (exporter.stringify.value) {
+            true -> binding.type.check(R.id.type_snbt)
+            else -> {
+                binding.header.isChecked = exporter.header == true
+                binding.type.check(R.id.type_nbt)
+                if (exporter.littleEndian) {
+                    binding.endian.check(R.id.endian_little)
+                } else {
+                    binding.endian.check(R.id.endian_big)
+                }
+                binding.compression.check(
+                    when (exporter.compression) {
+                        NbtCompression.Gzip -> R.id.compression_gzip
+                        NbtCompression.Zlib -> R.id.compression_zlib
+                        else -> R.id.compression_none
+                    }
+                )
             }
         }
-        binding.title.text = title
-        if (config == null) {
-            binding.options.visibility = View.GONE
-        } else {
-            fun isCompleted() {
-                config.isCompleted().let {
-                    binding.buttonPositive.isEnabled = it
-                    binding.header.isEnabled = it && config.mayHasHeader()
-                }
-            }
-            config.stringify.observe(activity) {
-                val temp = it == true
-                binding.endianLittle.isEnabled = !temp
-                binding.endianBig.isEnabled = !temp
-                binding.compressionNone.isEnabled = !temp
-                binding.compressionGzip.isEnabled = !temp
-                binding.compressionZlib.isEnabled = !temp
-                binding.format.isEnabled = temp
-                isCompleted()
-            }
-            config.variant.observe(activity) { isCompleted() }
-            config.compression.observe(activity) { isCompleted() }
-            binding.type.addOnButtonCheckedListener { group, _, _ ->
-                when (group.checkedButtonId) {
-                    R.id.type_nbt -> config.stringify.value = false
-                    R.id.type_snbt -> config.stringify.value = true
-                }
-            }
-            binding.endian.addOnButtonCheckedListener { group, _, _ ->
-                when (group.checkedButtonId) {
-                    R.id.endian_little -> config.variant.value = NbtVariant.Bedrock
-                    R.id.endian_big -> config.variant.value = NbtVariant.Java
-                }
-            }
-            binding.compression.addOnButtonCheckedListener { group, _, _ ->
-                when (group.checkedButtonId) {
-                    R.id.compression_none -> config.compression.value = NbtCompression.None
-                    R.id.compression_gzip -> config.compression.value = NbtCompression.Gzip
-                    R.id.compression_zlib -> config.compression.value = NbtCompression.Zlib
-                }
-            }
-            binding.header.setOnCheckedChangeListener { _, value -> config.header = value }
-            binding.format.setOnCheckedChangeListener { _, value -> config.format = value }
-            when (config.stringify.value) {
-                true -> binding.type.check(R.id.type_snbt)
-                else -> {
-                    binding.type.check(R.id.type_nbt)
-                    when (config.variant.value) {
-                        NbtVariant.Bedrock -> binding.endian.check(R.id.endian_little)
-                        NbtVariant.Java -> binding.endian.check(R.id.endian_big)
-                    }
-                    when (config.compression.value) {
-                        NbtCompression.None -> binding.compression.check(R.id.compression_none)
-                        NbtCompression.Gzip -> binding.compression.check(R.id.compression_gzip)
-                        NbtCompression.Zlib -> binding.compression.check(R.id.compression_zlib)
-                    }
-                    binding.header.isChecked = config.header == true
-                }
+        binding.export.setOnClickListener {
+            val exporter = this.exporter
+            val output = exporter.output
+            if (output === null) {
+                this.picker.launch(exporter.buildOptions())
+            } else {
+                exporter.saveTo(output, it.context, this.editor)
+                this.dismiss()
             }
         }
-        setContentView(binding.root)
+        exporter.stringify.observe(activity) {
+            val binding = this.binding ?: return@observe
+            val flag = it == false
+            binding.endian.isEnabled = flag
+            binding.compression.isEnabled = flag
+            binding.prettify.isEnabled = !flag
+            binding.export.isEnabled = it !== null
+            binding.header.isEnabled = this.exporter.isHeaderAvailable()
+        }
+        binding.type.addOnButtonCheckedListener { group, _, _ ->
+            exporter.stringify.value = group.checkedButtonId != R.id.type_nbt
+        }
+        binding.endian.addOnButtonCheckedListener click@{ group, _, _ ->
+            this.exporter.littleEndian = group.checkedButtonId != R.id.endian_big
+            (this.binding ?: return@click).header.isEnabled = this.exporter.isHeaderAvailable()
+        }
+        binding.compression.addOnButtonCheckedListener click@{ group, _, _ ->
+            this.exporter.compression = when (group.checkedButtonId) {
+                R.id.compression_none -> NbtCompression.None
+                R.id.compression_gzip -> NbtCompression.Gzip
+                R.id.compression_zlib -> NbtCompression.Zlib
+                else -> return@click
+            }
+            (this.binding ?: return@click).header.isEnabled = this.exporter.isHeaderAvailable()
+        }
+        binding.header.apply {
+            isEnabled = exporter.isHeaderAvailable()
+            setOnCheckedChangeListener { _, value -> exporter.header = value }
+        }
+        binding.prettify.apply {
+            isChecked = exporter.prettify
+            setOnCheckedChangeListener { _, value -> exporter.prettify = value }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        this.picker = registerForActivityResult(FileCreator) registry@{
+            this.exporter.saveTo(SAFFile(it ?: return@registry), this.requireContext(), this.editor)
+            this.dismiss()
+        }
+        this.exporter.accept(this.editor, this.requireContext())
+        if ((this.arguments ?: return).getBoolean(EXTRA_INVALIDATED)) {
+            this.exporter.output = null
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ) = DialogNbtExportBinding.inflate(inflater, container, false).also {
+        this.binding = it
+    }.root
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        this.binding = null
+    }
+
+    companion object {
+        const val TAG = "NBTExportDialog"
     }
 }

@@ -1,6 +1,18 @@
 package com.mithrilmania.blocktopograph.nbt.convert;
 
-import com.mithrilmania.blocktopograph.nbt.tags.*;
+import com.mithrilmania.blocktopograph.nbt.tags.ByteArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ByteTag;
+import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.tags.DoubleTag;
+import com.mithrilmania.blocktopograph.nbt.tags.FloatTag;
+import com.mithrilmania.blocktopograph.nbt.tags.IntArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ListTag;
+import com.mithrilmania.blocktopograph.nbt.tags.LongTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ShortArrayTag;
+import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
+import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
+import com.mithrilmania.blocktopograph.nbt.tags.Tag;
 
 import java.io.Closeable;
 import java.io.DataOutputStream;
@@ -35,7 +47,7 @@ public class NBTOutputStream
 
         int type = tag.getType().id;
         String name = tag.getName();
-        byte[] nameBytes = name.getBytes(NBTConstants.CHARSET.name());
+        byte[] nameBytes = name.getBytes(NBTConstants.CHARSET);
 
         this.os.writeByte(type);
         this.os.writeShort(this.littleEndian ? Short.reverseBytes((short) nameBytes.length) : nameBytes.length);
@@ -157,7 +169,7 @@ public class NBTOutputStream
 
     private void writeStringTagPayload(StringTag tag)
             throws IOException {
-        byte[] bytes = tag.getValue().getBytes(NBTConstants.CHARSET.name());
+        byte[] bytes = tag.getValue().getBytes(NBTConstants.CHARSET);
         this.os.writeShort(this.littleEndian ? Short.reverseBytes((short) bytes.length) : bytes.length);
         this.os.write(bytes);
     }

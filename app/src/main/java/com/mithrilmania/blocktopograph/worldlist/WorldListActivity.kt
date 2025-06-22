@@ -28,6 +28,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.util.WorldCreator
 import com.mithrilmania.blocktopograph.util.asFolder
+import com.mithrilmania.blocktopograph.util.showIfAbsent
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.impl.loadSAFWorlds
 import com.mithrilmania.blocktopograph.world.impl.loadShizukuWorlds
@@ -40,7 +41,6 @@ class WorldListActivity : BaseActivity() {
     private lateinit var selectMultipleWorlds: ActivityResultLauncher<Uri?>
     private lateinit var createWorld: ActivityResultLauncher<Unit>
     private lateinit var binding: ActivityWorldListBinding
-    private lateinit var details: WorldDetailsDialog
     private val model by viewModels<WorldListModel>()
     override fun onCreate(bundle: Bundle?) {
         super.onCreate(bundle)
@@ -62,7 +62,10 @@ class WorldListActivity : BaseActivity() {
         this.binding.fabLoadWorlds.setOnClickListener {
             this.selectMultipleWorlds.launch(null)
         }
-        this.details = WorldDetailsDialog(this, model)
+        model.adapter.selected.observe(this) {
+            if (it === null) return@observe
+            this.showIfAbsent(WorldDetailDialog.TAG, ::WorldDetailDialog)
+        }
     }
 
     fun loadWorlds(location: Uri, tag: String = "") {

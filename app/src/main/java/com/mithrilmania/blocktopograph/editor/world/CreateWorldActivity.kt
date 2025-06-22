@@ -11,8 +11,10 @@ import androidx.core.graphics.Insets
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.BaseActivity
+import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.ActivityCreateWorldBinding
+import com.mithrilmania.blocktopograph.editor.nbt.NBTOptions
 import com.mithrilmania.blocktopograph.flat.EditFlatFragment
 import com.mithrilmania.blocktopograph.flat.FlatLayers
 import com.mithrilmania.blocktopograph.flat.Layer
@@ -22,7 +24,6 @@ import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter.skip
 import com.mithrilmania.blocktopograph.nbt.modifyAsCompound
 import com.mithrilmania.blocktopograph.nbt.readCompound
 import com.mithrilmania.blocktopograph.nbt.unwrap
-import com.mithrilmania.blocktopograph.nbt.writeCompound
 import com.mithrilmania.blocktopograph.util.BiomePicker
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
@@ -62,13 +63,14 @@ class CreateWorldActivity : BaseActivity() {
         this.selectOutput = this.registerForActivityResult(FolderPicker) registry@{ path ->
             if (path == null) return@registry
             val activity = this
-            val folder = DocumentFile.fromTreeUri(activity, path) ?: return@registry
-            val config =
-                folder.createFile("application/octet-stream", FILE_LEVEL_DAT) ?: return@registry
             this.model.apply {
                 layers = activity.binding.fragLayers
                     .getFragment<EditFlatFragment>().resultLayers
                 viewModelScope.launch(Dispatchers.IO) {
+                    val folder = DocumentFile.fromTreeUri(activity, path) ?: return@launch
+                    val config =
+                        folder.createFile(MIME_TYPE_DEFAULT, FILE_LEVEL_DAT)
+                            ?: return@launch
                     val assets = activity.assets
                     val model = this@apply
                     val data = try {
@@ -99,7 +101,7 @@ class CreateWorldActivity : BaseActivity() {
                         }
                     }
                     activity.contentResolver.openOutputStream(config.uri)?.use {
-                        it.writeCompound(4, data, "blocktopograph")
+                        NBTOptions(version = 4).write(it, data, "Blocktopograph")
                     }
                     withContext(Dispatchers.Main) {
                         Toast.makeText(activity, "Done!", Toast.LENGTH_SHORT).show()

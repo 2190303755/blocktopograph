@@ -12,11 +12,16 @@ class WorldMapModel : WorldModel() {
 
     var dimension: Dimension = Dimension.OVERWORLD
 
-    val worldType: MutableLiveData<MapType> =
+    val mapType: MutableLiveData<MapType> =
         MutableLiveData<MapType>(Dimension.OVERWORLD.defaultMapType)
 
     val showActionBar: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
     val showDrawer: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+
+    fun navigateTo(dimension: Dimension, type: MapType) {
+        this.dimension = dimension
+        this.mapType.value = type
+    }
 }

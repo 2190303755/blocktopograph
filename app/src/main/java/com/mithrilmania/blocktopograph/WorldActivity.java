@@ -3,13 +3,9 @@ package com.mithrilmania.blocktopograph;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.text.Editable;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,29 +30,21 @@ import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.map.TileEntity;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.nbt.EditableNBT;
-import com.mithrilmania.blocktopograph.nbt.EditorFragment;
-import com.mithrilmania.blocktopograph.nbt.convert.DataConverter;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
 import com.mithrilmania.blocktopograph.nbt.tags.Tag;
-import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.LoggerKt;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.WorldHandler;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorldActivity extends AppCompatActivity
+public abstract class WorldActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
 
     public static final String PREF_KEY_SHOW_MARKERS = "showMarkers";
-    private ActivityWorldBinding mBinding;
-    private WorldMapModel model;
-
-    private MapFragment mapFragment;
+    protected ActivityWorldBinding mBinding;
+    protected WorldMapModel model;
+    protected MapFragment mapFragment;
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
@@ -223,470 +211,104 @@ public class WorldActivity extends AppCompatActivity
 
 
         switch (id) {
-            case (R.id.nav_world_show_map):
-                changeContentFragment(this::openWorldMap);
-                break;
-            case (R.id.nav_world_select):
-                //close activity; back to world selection screen
-                closeWorldActivity();
-                break;
-            case (R.id.nav_singleplayer_nbt):
-                openPlayerEditor();
-                break;
-            case (R.id.nav_multiplayer_nbt):
-                openMultiplayerEditor();
-                break;
+            case (R.id.nav_world_show_map) -> changeContentFragment(this::openWorldMap);
+            case (R.id.nav_world_select) ->
+                    closeWorldActivity(); //close activity; back to world selection screen
+            case (R.id.nav_singleplayer_nbt) -> openLocalPlayer();
+            case (R.id.nav_multiplayer_nbt) -> openMultiplayerEditor();
             /*case(R.id.nav_inventory):
                 //TODO go to inventory editor
                 //This feature is planned, but not yet implemented,
                 // use the generic NBT editor for now...
                 break;*/
-            case (R.id.nav_world_nbt):
-                openLevelEditor();
-                break;
+            case (R.id.nav_world_nbt) -> openLevelEditor();
             /*case(R.id.nav_tools):
                 //TODO open tools menu (world downloader/importer/exporter maybe?)
                 break;*/
-            case (R.id.nav_overworld_satellite):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_SATELLITE);
-                break;
-            case (R.id.nav_overworld_cave):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_CAVE);
-                break;
-            case (R.id.nav_overworld_slime_chunk):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_SLIME_CHUNK);
-                break;
+            case (R.id.nav_overworld_satellite) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_SATELLITE);
+            case (R.id.nav_overworld_cave) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_CAVE);
+            case (R.id.nav_overworld_slime_chunk) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_SLIME_CHUNK);
             /*case(R.id.nav_overworld_debug):
                 changeMapType(MapType.DEBUG); //for debugging tiles positions, rendering, etc.
                 break;*/
-            case (R.id.nav_overworld_heightmap):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_HEIGHTMAP);
-                break;
-            case (R.id.nav_overworld_biome):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_BIOME);
-                break;
-            case (R.id.nav_overworld_grass):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_GRASS);
-                break;
-            case (R.id.nav_overworld_xray):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_XRAY);
-                break;
-            case (R.id.nav_overworld_block_light):
-                this.model.setDimension(Dimension.OVERWORLD);
-                this.model.getWorldType().setValue(MapType.OVERWORLD_BLOCK_LIGHT);
-                break;
-            case (R.id.nav_nether_map):
-                this.model.setDimension(Dimension.NETHER);
-                this.model.getWorldType().setValue(MapType.NETHER);
-                break;
-            case (R.id.nav_nether_xray):
-                this.model.setDimension(Dimension.NETHER);
-                this.model.getWorldType().setValue(MapType.NETHER_XRAY);
-                break;
-            case (R.id.nav_nether_block_light):
-                this.model.setDimension(Dimension.NETHER);
-                this.model.getWorldType().setValue(MapType.NETHER_BLOCK_LIGHT);
-                break;
-            case (R.id.nav_nether_biome):
-                this.model.setDimension(Dimension.NETHER);
-                this.model.getWorldType().setValue(MapType.NETHER_BIOME);
-                break;
-            case (R.id.nav_end_satellite):
-                this.model.setDimension(Dimension.END);
-                this.model.getWorldType().setValue(MapType.END_SATELLITE);
-                break;
-            case (R.id.nav_end_heightmap):
-                this.model.setDimension(Dimension.END);
-                this.model.getWorldType().setValue(MapType.END_HEIGHTMAP);
-                break;
-            case (R.id.nav_end_block_light):
-                this.model.setDimension(Dimension.END);
-                this.model.getWorldType().setValue(MapType.END_BLOCK_LIGHT);
-                break;
-            case (R.id.nav_map_opt_toggle_grid):
+            case (R.id.nav_overworld_heightmap) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_HEIGHTMAP);
+            case (R.id.nav_overworld_biome) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_BIOME);
+            case (R.id.nav_overworld_grass) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_GRASS);
+            case (R.id.nav_overworld_xray) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_XRAY);
+            case (R.id.nav_overworld_block_light) ->
+                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_BLOCK_LIGHT);
+            case (R.id.nav_nether_map) -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER);
+            case (R.id.nav_nether_xray) ->
+                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_XRAY);
+            case (R.id.nav_nether_block_light) ->
+                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BLOCK_LIGHT);
+            case (R.id.nav_nether_biome) ->
+                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BIOME);
+            case (R.id.nav_end_satellite) ->
+                    this.model.navigateTo(Dimension.END, MapType.END_SATELLITE);
+            case (R.id.nav_end_heightmap) ->
+                    this.model.navigateTo(Dimension.END, MapType.END_HEIGHTMAP);
+            case (R.id.nav_end_block_light) ->
+                    this.model.navigateTo(Dimension.END, MapType.END_BLOCK_LIGHT);
+            case (R.id.nav_map_opt_toggle_grid) ->
                 //toggle the grid
-                this.model.getShowGrid().setValue(Boolean.FALSE.equals(this.model.getShowGrid().getValue()));
-                break;
-            case (R.id.nav_map_opt_filter_markers):
+                    this.model.getShowGrid().setValue(Boolean.FALSE.equals(this.model.getShowGrid().getValue()));
+            case (R.id.nav_map_opt_filter_markers) -> {
                 //toggle the grid
                 TileEntity.loadIcons(getAssets());
                 this.mapFragment.openMarkerFilter();
-                break;
-            case (R.id.nav_map_opt_toggle_markers):
+            }
+            case (R.id.nav_map_opt_toggle_markers) -> {
                 //toggle markers
                 boolean visible = Boolean.FALSE.equals(this.model.getShowMarkers().getValue());
                 this.model.getShowMarkers().setValue(visible);
                 this.getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_KEY_SHOW_MARKERS, visible).apply();
-                break;
-            case (R.id.nav_biomedata_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA));
-                break;
-            case (R.id.nav_overworld_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD));
-                break;
-            case (R.id.nav_villages_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES));
-                break;
-            case (R.id.nav_portals_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.PORTALS));
-                break;
-            case (R.id.nav_dimension0_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0));
-                break;
-            case (R.id.nav_dimension1_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1));
-                break;
-            case (R.id.nav_dimension2_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2));
-                break;
-            case (R.id.nav_autonomous_entities_nbt):
-                changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES));
-                break;
-            case (R.id.nav_open_nbt_by_name): {
-
-                //TODO put this bit in its own method
-
-                final EditText keyEditText = new EditText(WorldActivity.this);
-                keyEditText.setEms(16);
-                keyEditText.setMaxEms(32);
-                keyEditText.setHint(R.string.leveldb_key_here);
-
-                new AlertDialog.Builder(WorldActivity.this)
-                        .setTitle(R.string.open_nbt_from_db)
-                        .setView(keyEditText)
-                        .setPositiveButton(R.string.open, (dialog, which) -> changeContentFragment(() -> {
-                            Editable keyNameEditable = keyEditText.getText();
-                            String keyName = keyNameEditable == null
-                                    ? null : keyNameEditable.toString();
-                            if (keyName == null || keyName.equals("")) {
-                                Snackbar.make(drawer,
-                                        R.string.invalid_keyname,
-                                        Snackbar.LENGTH_LONG)
-                                        .setAction("Action", null).show();
-                            } else {
-                                try {
-                                    EditableNBT dbEntry = openEditableNbtDbEntry(keyName);
-                                    if (dbEntry == null) Snackbar.make(drawer,
-                                            R.string.cannot_find_db_entry_with_name,
-                                            Snackbar.LENGTH_LONG)
-                                            .setAction("Action", null).show();//TODO maybe add option to create it?
-                                    else openNBTEditor(dbEntry);
-                                } catch (Exception e) {
-                                    Snackbar.make(drawer,
-                                            R.string.invalid_keyname,
-                                            Snackbar.LENGTH_LONG)
-                                            .setAction("Action", null).show();
-                                }
-                            }
-                        }))
-                        .setCancelable(true)
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
-
-                break;
             }
-            default:
+            case (R.id.nav_biomedata_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA));
+            case (R.id.nav_overworld_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD));
+            case (R.id.nav_villages_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES));
+            case (R.id.nav_portals_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.PORTALS));
+            case (R.id.nav_dimension0_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0));
+            case (R.id.nav_dimension1_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1));
+            case (R.id.nav_dimension2_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2));
+            case (R.id.nav_autonomous_entities_nbt) ->
+                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES));
+            case (R.id.nav_open_nbt_by_name) -> this.openCustomEntry();
+            default ->
                 //Warning, we might have messed with the menu XML!
-                Log.d(this, "pressed unknown navigation-item in world-activity-drawer");
-                break;
+                    Log.d(this, "pressed unknown navigation-item in world-activity-drawer");
         }
 
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
 
-    /**
-     * Short-hand for opening special entries with openEditableNbtDbEntry(keyName)
-     */
-    public EditableNBT openSpecialEditableNbtDbEntry(final SpecialDBEntryType entryType)
-            throws IOException {
-        return openEditableNbtDbEntry(entryType.keyName);
-    }
-
-    /**
-     * Load NBT data of this key from the database, converting it into structured Java Objects.
-     * These objects are wrapped in a nice EditableNBT, ready for viewing and editing.
-     *
-     * @param keyName Key corresponding with NBT data in the database.
-     * @return EditableNBT, NBT wrapper of NBT objects to view or to edit.
-     * @throws IOException when database fails.
-     */
-    public EditableNBT openEditableNbtDbEntry(final String keyName) throws IOException {
-        final byte[] keyBytes = keyName.getBytes(NBTConstants.CHARSET);
-        WorldStorage storage = model.getHandler().getStorage();
-        if (storage == null) return null;
-        byte[] entryData = storage.db.get(keyBytes);
-        if (entryData == null) return null;
-
-        final ArrayList<Tag> workCopy = DataConverter.read(entryData);
-
-        return new EditableNBT() {
-
-            @Override
-            public Iterable<Tag> getTags() {
-                return workCopy;
-            }
-
-            @Override
-            public boolean save() {
-                try {
-                    storage.db.put(keyBytes, DataConverter.write(workCopy));
-                    return true;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return false;
-            }
-
-            @Override
-            public String getRootTitle() {
-                return keyName;
-            }
-
-            @Override
-            public void addRootTag(Tag tag) {
-                workCopy.add(tag);
-            }
-
-            @Override
-            public void removeRootTag(Tag tag) {
-                workCopy.remove(tag);
-            }
-        };
-
-
-    }
-
-    //returns an editableNBT, where getTags() provides a compound tag as item with player-data
-
-    /**
-     * Loads local player data "~local-player" or level.dat>"Player" into an EditableNBT.
-     *
-     * @return EditableNBT, local player NBT data wrapped in a handle to use for saving + metadata
-     * @throws Exception wtf
-     */
-    public EditableNBT getEditablePlayer() throws Exception {
-
-        /*
-                Logic path:
-                1. try to find the player-data in the db:
-                        if found -> return that
-                        else -> go to 2
-                2. try to find the player-data in the level.dat:
-                        if found -> return that
-                        else -> go to 3
-                3. no player-data available: warn the user
-         */
-
-        EditableNBT editableNBT;
-        try {
-            editableNBT = openSpecialEditableNbtDbEntry(SpecialDBEntryType.LOCAL_PLAYER);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new Exception("Failed to read \"~local_player\" from the database.");
-        }
-
-        //check if it is not found in the DB
-        if (editableNBT == null) editableNBT = openEditableNbtLevel("Player");
-
-        //check if it is not found in level.dat as well
-        if (editableNBT == null)
-            throw new Exception("Failed to find \"~local_player\" in DB and \"Player\" in level.dat!");
-
-
-        return editableNBT;
-
-    }
+    public abstract void openCustomEntry();
 
     /**
      * Open NBT editor fragment for special database entry
      */
-    public void openSpecialDBEntry(final SpecialDBEntryType entryType) {
-        try {
-            EditableNBT editableEntry = openSpecialEditableNbtDbEntry(entryType);
-            if (editableEntry == null) {
-                this.openWorldMap();
-                //TODO better handling of db problems
-                //throw new Exception("\"" + entryType.keyName + "\" not found in DB.");
-            }
+    public abstract void openSpecialDBEntry(final SpecialDBEntryType entryType);
 
-            Log.d(this, "Opening NBT editor for \"" + entryType.keyName + "\" from world database.");
+    public abstract void openMultiplayerEditor();
 
-            openNBTEditor(editableEntry);
+    public abstract void openLocalPlayer();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            String msg = e.getMessage();
-            if (e instanceof IOException)
-                Log.d(this, String.format(getString(R.string.failed_to_read_x_from_db), entryType.keyName));
-            else Log.d(this, e);
-
-            new AlertDialog.Builder(WorldActivity.this)
-                    .setMessage(msg == null ? "" : msg)
-                    .setCancelable(false)
-                    .setNeutralButton(android.R.string.ok, (dialog, id) -> changeContentFragment(() -> openWorldMap())).show();
-        }
-    }
-
-
-    public void openMultiplayerEditor() {
-        WorldStorage storage = this.model.getHandler().getStorage();
-        if (storage == null) return;
-
-        //takes some time to find all players...
-        // TODO make more responsive
-        // TODO maybe cache player keys for responsiveness?
-        //   Or messes this too much with the first perception of present players?
-        final String[] players = storage.getNetworkPlayerNames();
-
-        final View content = mBinding.getRoot();
-        if (players.length == 0) {
-            Snackbar.make(content,
-                    R.string.no_multiplayer_data_found,
-                    Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-            return;
-        }
-
-        //spinner (drop-out list) of players;
-        // just the database keys (loading each name from NBT could take an even longer time!)
-        final Spinner spinner = new Spinner(this);
-        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, players);
-
-        spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(spinnerArrayAdapter);
-
-
-        //wrap layout in alert
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.select_player)
-                .setView(spinner)
-                .setPositiveButton(R.string.open_nbt, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-
-                        //new tag type
-                        int spinnerIndex = spinner.getSelectedItemPosition();
-                        String playerKey = players[spinnerIndex];
-
-                        try {
-                            final EditableNBT editableNBT = WorldActivity.this
-                                    .openEditableNbtDbEntry(playerKey);
-
-                            changeContentFragment(() -> {
-                                try {
-                                    openNBTEditor(editableNBT);
-                                } catch (Exception e) {
-                                    new AlertDialog.Builder(WorldActivity.this)
-                                            .setMessage(e.getMessage())
-                                            .setCancelable(false)
-                                            .setNeutralButton(android.R.string.ok,
-                                                    (dialog1, id) -> changeContentFragment(
-                                                            () -> openWorldMap())).show();
-                                }
-
-                            });
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Log.d(this, "Failed to open player entry in DB. key: " + playerKey);
-                            if (content != null) Snackbar.make(content,
-                                    String.format(getString(R.string.failed_read_player_from_db_with_key_x), playerKey),
-                                    Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
-                        }
-                    }
-                })
-                //or alert is cancelled
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    public void openPlayerEditor() {
-        changeContentFragment(() -> {
-            try {
-                openNBTEditor(getEditablePlayer());
-            } catch (Exception e) {
-                new AlertDialog.Builder(WorldActivity.this)
-                        .setMessage(e.getMessage())
-                        .setCancelable(false)
-                        .setNeutralButton(android.R.string.ok,
-                                (dialog, id) -> changeContentFragment(this::openWorldMap)).show();
-            }
-
-        });
-    }
-
-    /**
-     * Opens an editableNBT for just the subTag if it is not null.
-     * Opens the whole level.dat if subTag is null.
-     **/
-    public EditableNBT openEditableNbtLevel(String subTagName) {
-
-        //make a copy first, the user might not want to save changed tags.
-        final CompoundTag workCopy = model.getHandler().getDataCompat(this).getDeepCopy();
-        final ArrayList<Tag> workCopyContents;
-        final String contentTitle;
-        if (subTagName == null) {
-            workCopyContents = workCopy.getValue();
-            contentTitle = "level.dat";
-        } else {
-            workCopyContents = new ArrayList<>();
-            Tag subTag = workCopy.getChildTagByKey(subTagName);
-            if (subTag == null) return null;
-            workCopyContents.add(subTag);
-            contentTitle = "level.dat>" + subTagName;
-        }
-
-        EditableNBT editableNBT = new EditableNBT() {
-
-            @Override
-            public Iterable<Tag> getTags() {
-                return workCopyContents;
-            }
-
-            @Override
-            public boolean save() {
-                //write a copy of the workCopy, the workCopy may be edited after saving
-                AsyncKt.run(() -> model.getHandler().save(WorldActivity.this, workCopy.getDeepCopy()));
-                return true;
-            }
-
-            @Override
-            public String getRootTitle() {
-                return contentTitle;
-            }
-
-            @Override
-            public void addRootTag(Tag tag) {
-                workCopy.getValue().add(tag);
-                workCopyContents.add(tag);
-            }
-
-            @Override
-            public void removeRootTag(Tag tag) {
-                workCopy.getValue().remove(tag);
-                workCopyContents.remove(tag);
-            }
-        };
-
-        //if this editable nbt is only a view of a sub-tag, not the actual root
-        editableNBT.enableRootModifications = (subTagName != null);
-
-        return editableNBT;
-    }
-
-    public void openLevelEditor() {
-        changeContentFragment(() -> openNBTEditor(openEditableNbtLevel(null)));
-    }
+    public abstract void openLevelEditor();
 
     //TODO the dimension should be derived from mapTypes.
     // E.g. split xray into xray-overworld and xray-nether, but still use the same [MapRenderer],
@@ -767,30 +389,6 @@ public class WorldActivity extends AppCompatActivity
             manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
             callback.run();
         }
-
-    }
-
-    /**
-     * Open NBT editor fragment for the given editableNBT
-     */
-    public void openNBTEditor(EditableNBT editableNBT) {
-
-        if (editableNBT == null) {
-            Toast.makeText(this, "Empty data.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // see changeContentFragment(callback)
-        this.confirmContentClose = getString(R.string.confirm_close_nbt_editor);
-
-        EditorFragment editorFragment = new EditorFragment();
-        editorFragment.setNbt(editableNBT);
-
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.world_content, editorFragment);
-        transaction.addToBackStack(null);
-
-        transaction.commit();
 
     }
 
@@ -914,7 +512,7 @@ public class WorldActivity extends AppCompatActivity
                 }
             };
 
-            openNBTEditor(editableChunkData);
+            //openNBTEditor(editableChunkData);
         });
     }
 }

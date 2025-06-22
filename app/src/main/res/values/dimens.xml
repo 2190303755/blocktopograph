@@ -26,6 +26,5 @@
     <dimen name="large_content_padding">12dp</dimen>
     <dimen name="medium_content_padding">8dp</dimen>
     <dimen name="small_content_padding">6dp</dimen>
-    <dimen name="bottom_sheet_button_padding">24dp</dimen>
     <dimen name="bottom_sheet_threshold">450dp</dimen>
 </resources>

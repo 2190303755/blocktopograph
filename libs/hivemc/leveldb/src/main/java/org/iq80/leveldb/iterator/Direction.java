@@ -25,7 +25,7 @@ enum Direction
     REVERSE(true),
     FORWARD(true);
 
-    private boolean valid;
+    private final boolean valid;
 
     Direction(boolean valid)
     {

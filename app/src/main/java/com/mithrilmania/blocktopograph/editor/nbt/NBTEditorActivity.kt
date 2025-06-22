@@ -10,16 +10,16 @@ import android.view.ContextMenu.ContextMenuInfo
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
 import androidx.core.graphics.Insets
 import androidx.lifecycle.Observer
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mithrilmania.blocktopograph.BaseActivity
+import com.mithrilmania.blocktopograph.EXTRA_INVALIDATED
+import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.ActivityNbtEditorBinding
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
@@ -28,28 +28,21 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
-import com.mithrilmania.blocktopograph.nbt.readUnknownNBT
-import com.mithrilmania.blocktopograph.nbt.writeCompound
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.storage.ShizukuFile
-import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.FilePicker
 import com.mithrilmania.blocktopograph.util.clipboard
+import com.mithrilmania.blocktopograph.util.showIfAbsent
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
-import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_PATH
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.InputStream
 
 class NBTEditorActivity : BaseActivity() {
     private lateinit var binding: ActivityNbtEditorBinding
     private lateinit var open: ActivityResultLauncher<Uri?>
-    private lateinit var saveAs: ActivityResultLauncher<Uri?>
     private val model by viewModels<NBTEditorModel>()
     private val requiringConfirmation = object : OnBackPressedCallback(false), Observer<Boolean> {
         override fun handleOnBackPressed() {
+            // TODO i18n
             MaterialAlertDialogBuilder(this@NBTEditorActivity)
                 .setTitle("更改未保存")
                 .setMessage("如果不保存，您的更改将丢失。")
@@ -83,7 +76,17 @@ class NBTEditorActivity : BaseActivity() {
             this.registerForContextMenu(it)
         }
         model.tree.observe(this) {
-            this.binding.editor.adapter = it ?: return@observe
+            this.invalidateOptionsMenu()
+            this.binding.apply {
+                if (it === null) {
+                    save.isEnabled = false
+                    search.isEnabled = false
+                    return@observe
+                }
+                save.isEnabled = true
+                search.isEnabled = true
+                editor.adapter = it
+            }
             it.reloadAsync()
         }
         model.version.observe(this) {
@@ -119,53 +122,21 @@ class NBTEditorActivity : BaseActivity() {
         binding.save.setOnClickListener {
             this.saveFile()
         }
-        this.saveAs = registerForActivityResult(FileCreator) registry@{
-            this.model.source.value = SAFFile(it ?: return@registry)
-            this.saveFile()
-        }
         this.open = registerForActivityResult(FilePicker) registry@{
-            this.model.source.value = SAFFile(it ?: return@registry)
-            this.readFileAsync()
+            this.model.readFileAsync(SAFFile(it ?: return@registry), this)
         }
-        if (model.source.value == null) {
-            this.onNewIntent(this.intent)
-        }
-    }
-
-    fun readFileAsync() {
-        this.model.loading.value = true
-        this.invalidateOptionsMenu()
-        val activity = this
-        this.lifecycleScope.launch(Dispatchers.IO) {
-            activity.model.apply {
-                accept(source.value?.read(activity, InputStream::readUnknownNBT) ?: return@launch)
-            }
-        }
-    }
-
-    fun saveFileAsync() {
-        val activity = this // to avoid label
-        this.lifecycleScope.launch(Dispatchers.Default) {
-            val data = activity.model.tree.value?.asTag() ?: return@launch
-            withContext(Dispatchers.IO) {
-                activity.model.apply {
-                    source.value?.save(activity) { stream ->
-                        version.value?.let {
-                            stream.writeCompound(it, data, name)
-                        } ?: stream.writeCompound(data, name)
-                    }
-                }
-            }
-            withContext(Dispatchers.Main) {
-                Toast.makeText(activity, "Done", Toast.LENGTH_SHORT).show()
-                activity.model.modified.value = false
-            }
-        }
+        if (model.source.isInitialized) return
+        this.onNewIntent(this.intent)
     }
 
     fun saveFile() {
-        if (this.model.source.value != null) return this.saveFileAsync()
-        this.upcoming()
+        val model = this.model
+        val source = model.source.value
+        if (source === null) {
+            this.showIfAbsent(NBTExportDialog.TAG, ::NBTExportDialog)
+        } else {
+            model.saveFileAsync(source, this)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -173,12 +144,14 @@ class NBTEditorActivity : BaseActivity() {
         when (intent.action) {
             Intent.ACTION_VIEW -> {
                 val uri = intent.data
-                this.model.source.value = if (uri == null) {
-                    ShizukuFile(intent.getStringExtra(BUNDLE_ENTRY_PATH) ?: return)
-                } else {
-                    SAFFile(uri)
-                }
-                this.readFileAsync()
+                this.model.readFileAsync(
+                    if (uri == null) {
+                        ShizukuFile(intent.getStringExtra(EXTRA_PATH) ?: return)
+                    } else {
+                        SAFFile(uri)
+                    },
+                    this
+                )
             }
         }
     }
@@ -304,13 +277,16 @@ class NBTEditorActivity : BaseActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_file_create -> {
-                this.model.reset()
-                invalidateOptionsMenu()
-            }
+            R.id.action_file_create -> this.model.reset()
             R.id.action_file_open -> this.open.launch(null)
             R.id.action_file_save -> this.saveFile()
-            R.id.action_file_save_as -> this.saveAs.launch(null)
+            R.id.action_file_save_as -> this.showIfAbsent(NBTExportDialog.TAG) {
+                NBTExportDialog().apply {
+                    arguments = Bundle().apply {
+                        putBoolean(EXTRA_INVALIDATED, true)
+                    }
+                }
+            }
             R.id.action_file_reload, R.id.action_info -> this.upcoming()
             R.id.action_quit -> this.onBackPressedDispatcher.onBackPressed()
         }
@@ -318,12 +294,15 @@ class NBTEditorActivity : BaseActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        val hasFile = model.source.value != null
-        menu.apply {
-            findItem(R.id.action_file_save).isEnabled = hasFile
-            findItem(R.id.action_file_save_as).isEnabled = hasFile
-            findItem(R.id.action_file_reload).isEnabled = hasFile
-            findItem(R.id.action_info).isEnabled = hasFile
+        this.model.apply {
+            val hasFile = source.value !== null
+            val notEmpty = tree.value !== null
+            menu.apply {
+                findItem(R.id.action_file_save).isEnabled = notEmpty
+                findItem(R.id.action_file_save_as).isEnabled = notEmpty
+                findItem(R.id.action_file_reload).isEnabled = hasFile
+                findItem(R.id.action_info).isEnabled = hasFile
+            }
         }
         return super.onPrepareOptionsMenu(menu)
     }

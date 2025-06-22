@@ -2,7 +2,7 @@ package com.mithrilmania.blocktopograph.storage
 
 import android.content.Intent
 import android.net.Uri
-import com.mithrilmania.blocktopograph.world.BUNDLE_ENTRY_PATH
+import com.mithrilmania.blocktopograph.EXTRA_PATH
 
 interface Location {
     val location: String
@@ -22,7 +22,7 @@ data class SAFLocation(val uri: Uri) : Location {
 
 data class ShizukuLocation(override val location: String) : Location {
     override fun applyTo(intent: Intent) =
-        intent.putExtra(BUNDLE_ENTRY_PATH, this.location)
+        intent.putExtra(EXTRA_PATH, this.location)
 
     override fun equals(other: Any?) =
         this === other || (other is ShizukuLocation && this.location == other.location)
