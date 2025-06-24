@@ -270,7 +270,7 @@ inline fun <reified T : NBTNode> CollectionNode<Int, MutableList<T>>.append(
 ) {
     val pos = this.data.size
     val node = factory(pos)
-    this.data.add(node)
+    this.data += node
     this.tree.model += Insert<Int>(node, this, pos)
     if (this.expanded) {
         this.tree.reloadAsync()

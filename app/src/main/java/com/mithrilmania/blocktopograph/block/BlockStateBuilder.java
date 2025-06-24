@@ -2,13 +2,13 @@ package com.mithrilmania.blocktopograph.block;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
-import com.mithrilmania.blocktopograph.nbt.tags.ByteTag;
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
-import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
-import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants;
+import com.mithrilmania.blocktopograph.nbt.old.tags.ByteTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.ShortTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 
 import java.util.ArrayList;
 

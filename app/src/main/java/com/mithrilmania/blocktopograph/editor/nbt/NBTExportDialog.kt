@@ -28,25 +28,16 @@ class NBTExportDialog : BottomSheetDialogFragment() {
         val binding = this.binding ?: return
         val activity = this.requireActivity()
         val exporter = this.exporter
-        when (exporter.stringify.value) {
-            true -> binding.type.check(R.id.type_snbt)
-            else -> {
-                binding.header.isChecked = exporter.header == true
-                binding.type.check(R.id.type_nbt)
-                if (exporter.littleEndian) {
-                    binding.endian.check(R.id.endian_little)
-                } else {
-                    binding.endian.check(R.id.endian_big)
-                }
-                binding.compression.check(
-                    when (exporter.compression) {
-                        NbtCompression.Gzip -> R.id.compression_gzip
-                        NbtCompression.Zlib -> R.id.compression_zlib
-                        else -> R.id.compression_none
-                    }
-                )
+        binding.type.check(if (exporter.stringify.value == false) R.id.type_nbt else R.id.type_snbt)
+        binding.header.isChecked = exporter.header == true
+        binding.endian.check(if (exporter.littleEndian) R.id.endian_little else R.id.endian_big)
+        binding.compression.check(
+            when (exporter.compression) {
+                NbtCompression.Gzip -> R.id.compression_gzip
+                NbtCompression.Zlib -> R.id.compression_zlib
+                else -> R.id.compression_none
             }
-        }
+        )
         binding.export.setOnClickListener {
             val exporter = this.exporter
             val output = exporter.output
@@ -63,7 +54,6 @@ class NBTExportDialog : BottomSheetDialogFragment() {
             binding.endian.isEnabled = flag
             binding.compression.isEnabled = flag
             binding.prettify.isEnabled = !flag
-            binding.export.isEnabled = it !== null
             binding.header.isEnabled = this.exporter.isHeaderAvailable()
         }
         binding.type.addOnButtonCheckedListener { group, _, _ ->

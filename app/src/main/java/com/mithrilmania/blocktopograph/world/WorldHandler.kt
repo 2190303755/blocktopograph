@@ -2,8 +2,8 @@ package com.mithrilmania.blocktopograph.world
 
 import android.content.Context
 import android.text.format.DateFormat
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.tags.LongTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.LongTag
 import com.mithrilmania.blocktopograph.util.getGameMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred

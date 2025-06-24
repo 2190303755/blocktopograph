@@ -16,11 +16,11 @@ import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.block.BlockType;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.map.Dimension;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTInputStream;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTOutputStream;
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTInputStream;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTOutputStream;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
 import com.mithrilmania.blocktopograph.util.LittleEndianOutputStream;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 

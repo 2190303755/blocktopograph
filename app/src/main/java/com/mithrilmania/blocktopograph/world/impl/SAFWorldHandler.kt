@@ -3,8 +3,8 @@ package com.mithrilmania.blocktopograph.world.impl
 import android.content.Context
 import android.net.Uri
 import com.mithrilmania.blocktopograph.Log
-import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.old.convert.LevelDataConverter
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
 import com.mithrilmania.blocktopograph.util.copyFolderTo
 import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.world.WorldHandler

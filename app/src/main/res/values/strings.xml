@@ -542,7 +542,7 @@
     <string name="toast_copy_success">Copied to clipboard</string>
     <string name="toast_empty_clipboard">Clipboard is empty</string>
     <string name="error_duplicate_key">Duplicate key: %s</string>
-    <string name="missing_local_player">Failed to find local player in level db and level.dat</string>
+    <string name="generic_unknown">Unknown</string>
     <string-array name="tag_types">
         <item>Byte Tag</item>
         <item>Short Tag</item>

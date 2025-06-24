@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.block.blockproperty.BlockProperty;
-import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 
 import java.io.Serializable;
 import java.util.HashMap;

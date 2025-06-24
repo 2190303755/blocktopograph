@@ -5,8 +5,8 @@ import android.util.Pair;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 
 import java.util.ArrayList;
 import java.util.Arrays;

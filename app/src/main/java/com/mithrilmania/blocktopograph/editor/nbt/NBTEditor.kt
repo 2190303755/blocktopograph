@@ -35,7 +35,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.ShortNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.StringNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.TagListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.registerTo
-import com.mithrilmania.blocktopograph.nbt.EMPTY_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.util.EMPTY_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND

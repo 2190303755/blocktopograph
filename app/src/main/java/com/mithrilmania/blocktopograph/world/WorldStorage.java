@@ -13,11 +13,11 @@ import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.chunk.Version;
 import com.mithrilmania.blocktopograph.map.Dimension;
-import com.mithrilmania.blocktopograph.nbt.convert.DataConverter;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.tags.ListTag;
+import com.mithrilmania.blocktopograph.nbt.old.convert.DataConverter;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.ListTag;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
 

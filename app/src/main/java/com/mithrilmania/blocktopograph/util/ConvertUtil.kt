@@ -7,12 +7,12 @@ import android.os.Parcelable
 import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.Block
-import com.mithrilmania.blocktopograph.nbt.tags.ByteTag
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.tags.IntTag
-import com.mithrilmania.blocktopograph.nbt.tags.ListTag
-import com.mithrilmania.blocktopograph.nbt.tags.StringTag
-import com.mithrilmania.blocktopograph.nbt.tags.Tag
+import com.mithrilmania.blocktopograph.nbt.old.tags.ByteTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.ListTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag
+import com.mithrilmania.blocktopograph.nbt.old.tags.Tag
 import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_VERSION
 
@@ -58,10 +58,10 @@ fun Block.serializeState(): ArrayList<Tag<*>> {
     val size = minOf(props.size, values.size)
     val list = ArrayList<Tag<*>>(size + custom.size)
     for (i in 0 until size) {
-        list.add(values[i].wrap(props[i].name))
+        list += values[i].wrap(props[i].name)
     }
     custom.forEach { (key, value) ->
-        list.add(value.wrap(key))
+        list += value.wrap(key)
     }
     return list
 }

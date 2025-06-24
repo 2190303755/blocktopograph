@@ -10,11 +10,11 @@ const val KEY_LEVEL_NAME = "LevelName"
 const val KEY_RANDOM_SEED = "RandomSeed"
 const val KEY_LAST_PLAYED_TIME = "LastPlayed"
 const val KEY_LAST_PLAYED_VERSION = "lastOpenedWithVersion"
+const val KEY_FLAT_WORLD_LAYERS = "FlatWorldLayers"
 
 /*
     public static final String ARG_WORLD_SERIALIZED = "world_ser";
     public static final String KEY_HAS_ERROR = "hasError";
-    public static final String KEY_FLAT_WORLD_LAYERS = "FlatWorldLayers";
     public static final String KEY_GENERATOR = "Generator";
     public static final String KEY_INVENTORY_VERSION = "InventoryVersion";
     public static final String KEY_MINIMUM_VERSION = "MinimumCompatibleClientVersion";

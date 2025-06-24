@@ -453,14 +453,10 @@
     <string name="action_file_info">属性</string>
     <string name="action_quit">退出</string>
     <string name="dialog_storage_option_type">类型</string>
-    <string name="dialog_storage_option_type_nbt" translatable="false">NBT</string>
-    <string name="dialog_storage_option_type_snbt" translatable="false">SNBT</string>
     <string name="dialog_storage_option_endian">端序</string>
     <string name="dialog_storage_option_endian_little">小端序</string>
     <string name="dialog_storage_option_endian_big">大端序</string>
     <string name="dialog_storage_option_compression">压缩</string>
-    <string name="dialog_storage_option_compression_gzip" translatable="false">G-Zip</string>
-    <string name="dialog_storage_option_compression_zlib" translatable="false">ZLib</string>
     <string name="dialog_storage_option_header">标头</string>
     <string name="dialog_storage_option_prettify">格式化</string>
     <string name="option_on">开启</string>
@@ -473,4 +469,5 @@
     <string name="toast_copy_success">已复制到剪贴板</string>
     <string name="toast_empty_clipboard">剪贴板为空</string>
     <string name="error_duplicate_key">重复的键名：%s</string>
+    <string name="generic_unknown">未知</string>
 </resources>

@@ -2,7 +2,7 @@ package com.mithrilmania.blocktopograph.block;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
 
 import java.util.ArrayList;
 import java.util.Hashtable;

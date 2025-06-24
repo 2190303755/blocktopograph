@@ -6,8 +6,8 @@ import com.mithrilmania.blocktopograph.editor.nbt.Insert
 import com.mithrilmania.blocktopograph.editor.nbt.NBTTree
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
 import com.mithrilmania.blocktopograph.editor.nbt.insertNode
-import com.mithrilmania.blocktopograph.nbt.EMPTY_COMPOUND
-import com.mithrilmania.blocktopograph.nbt.appendSafeLiteral
+import com.mithrilmania.blocktopograph.nbt.util.EMPTY_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import kotlinx.serialization.encodeToString
 import net.benwoodworth.knbt.NbtByte
 import net.benwoodworth.knbt.NbtByteArray
@@ -126,9 +126,9 @@ fun NBTNode.stringify(): String {
     }.encodeToString(this.asTag())
     if (this.parent is ListNode) return value
     val name = this.name
-    return StringBuilder(16 + value.length + name.length)
-        .appendSafeLiteral(name)
-        .append(": ")
+    return StringBuilder(16 + value.length + name.length).apply {
+        appendSafeLiteral(name)
+    }.append(": ")
         .append(value)
         .toString()
 }

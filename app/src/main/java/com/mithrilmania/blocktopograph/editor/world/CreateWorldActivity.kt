@@ -10,6 +10,7 @@ import androidx.activity.viewModels
 import androidx.core.graphics.Insets
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
+import com.google.common.io.ByteStreams.skipFully
 import com.mithrilmania.blocktopograph.BaseActivity
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
@@ -18,15 +19,14 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTOptions
 import com.mithrilmania.blocktopograph.flat.EditFlatFragment
 import com.mithrilmania.blocktopograph.flat.FlatLayers
 import com.mithrilmania.blocktopograph.flat.Layer
-import com.mithrilmania.blocktopograph.nbt.Keys.FLAT_WORLD_LAYERS
-import com.mithrilmania.blocktopograph.nbt.asTag
-import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter.skip
-import com.mithrilmania.blocktopograph.nbt.modifyAsCompound
-import com.mithrilmania.blocktopograph.nbt.readCompound
-import com.mithrilmania.blocktopograph.nbt.unwrap
+import com.mithrilmania.blocktopograph.nbt.util.asTag
+import com.mithrilmania.blocktopograph.nbt.util.modifyAsCompound
+import com.mithrilmania.blocktopograph.nbt.util.readCompound
+import com.mithrilmania.blocktopograph.nbt.util.unwrap
 import com.mithrilmania.blocktopograph.util.BiomePicker
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
+import com.mithrilmania.blocktopograph.world.KEY_FLAT_WORLD_LAYERS
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
 import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +75,7 @@ class CreateWorldActivity : BaseActivity() {
                     val model = this@apply
                     val data = try {
                         assets.open("dats/1_2_13.dat").use {
-                            skip(it, 8)
+                            skipFully(it, 8)
                             it.readCompound(NbtCompression.None)
                         }
                     } catch (_: Exception) {
@@ -97,7 +97,7 @@ class CreateWorldActivity : BaseActivity() {
                             biome.value?.id ?: 21,
                             layers
                         ).write()?.let {
-                            this[FLAT_WORLD_LAYERS] = it.asTag()
+                            this[KEY_FLAT_WORLD_LAYERS] = it.asTag()
                         }
                     }
                     activity.contentResolver.openOutputStream(config.uri)?.use {

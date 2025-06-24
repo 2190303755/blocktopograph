@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.util;
 
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants;
 
 public enum SpecialDBEntryType {
 

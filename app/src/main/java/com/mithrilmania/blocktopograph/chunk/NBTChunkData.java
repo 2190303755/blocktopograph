@@ -1,8 +1,8 @@
 package com.mithrilmania.blocktopograph.chunk;
 
-import com.mithrilmania.blocktopograph.nbt.convert.DataConverter;
-import com.mithrilmania.blocktopograph.nbt.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.tags.Tag;
+import com.mithrilmania.blocktopograph.nbt.old.convert.DataConverter;
+import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 
 import org.iq80.leveldb.DBException;
 

@@ -5,9 +5,9 @@ import androidx.core.util.Consumer
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import com.mithrilmania.blocktopograph.nbt.EditableNBT
-import com.mithrilmania.blocktopograph.nbt.EditorFragment
-import com.mithrilmania.blocktopograph.nbt.EditorFragment.ChainTag
+import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
+import com.mithrilmania.blocktopograph.nbt.old.EditorFragment
+import com.mithrilmania.blocktopograph.nbt.old.EditorFragment.ChainTag
 import com.mithrilmania.blocktopograph.world.WorldHandler
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.unnamed.b.atv.model.TreeNode

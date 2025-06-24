@@ -82,7 +82,7 @@ class FileServiceServer() : IFileService.Stub() {
                         }
                     }
                 })
-                jobs.add(launch(Dispatchers.IO) {
+                jobs += launch(Dispatchers.IO) {
                     val behavior = async(Dispatchers.IO) {
                         val file = File(it, FILE_BEHAVIOR_PACKS)
                         if (file.isFile) {
@@ -111,7 +111,7 @@ class FileServiceServer() : IFileService.Stub() {
                             putLong("Size", size.await())
                         }
                     })
-                })
+                }
             }
             jobs.joinAll()
             messenger.send(Message.obtain().apply { what = CODE_RELEASE })

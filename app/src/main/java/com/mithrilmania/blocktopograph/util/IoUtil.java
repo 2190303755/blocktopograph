@@ -21,6 +21,24 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class IoUtil {
+    /**
+     * Skips n bytes. {@link InputStream#skipNBytes(long)} is only available since Android 14.
+     *
+     * @noinspection ConstantValue
+     * @see <a href="https://stackoverflow.com/questions/14057720/robust-skipping-of-data-in-a-java-io-inputstream-and-its-subtypes"/> source
+     */
+    public static void skipCompat(InputStream stream, long bytes) throws IOException {
+        while (bytes > 0) {
+            long skipped = stream.skip(bytes);
+            if (skipped > 0) {
+                bytes -= skipped;
+            } else if (skipped == 0) { // should we retry? lets read one byte
+                if (stream.read() == -1) break; // EOF
+                else --bytes;
+            } else // negative? this should never happen but...
+                throw new IOException("skip() returned a negative value - this should never happen");
+        }
+    }
 
     /**
      * Extract file from app asset to file system.

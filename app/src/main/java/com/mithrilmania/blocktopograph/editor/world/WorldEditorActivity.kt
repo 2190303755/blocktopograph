@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
-import com.mithrilmania.blocktopograph.nbt.EditableNBT
-import com.mithrilmania.blocktopograph.nbt.EditorFragment
-import com.mithrilmania.blocktopograph.nbt.LevelDat
+import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
+import com.mithrilmania.blocktopograph.nbt.old.EditorFragment
+import com.mithrilmania.blocktopograph.nbt.old.LevelDat
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.getAsEditableNBT
 import com.mithrilmania.blocktopograph.util.popAndTransit
@@ -52,7 +52,7 @@ class WorldEditorActivity : WorldActivity() {
                 ?: activity.prepareLevelDat("Player")
             withContext(Dispatchers.Main) {
                 if (nbt === null) {
-                    this@WorldEditorActivity.toast(R.string.missing_local_player)
+                    this@WorldEditorActivity.toast(R.string.failed_to_find_or_edit_local_player_data)
                     return@withContext
                 }
                 this@WorldEditorActivity.checkAndOpenNBTEditor(nbt)

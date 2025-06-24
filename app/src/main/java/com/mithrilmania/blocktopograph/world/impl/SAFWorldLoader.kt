@@ -6,27 +6,17 @@ import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
 import android.util.Size
-import androidx.core.database.getLongOrNull
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.nbt.convert.LevelDataConverter
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.tags.LongTag
-import com.mithrilmania.blocktopograph.nbt.tags.StringTag
 import com.mithrilmania.blocktopograph.storage.SAFLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.findChild
-import com.mithrilmania.blocktopograph.util.getGameMode
 import com.mithrilmania.blocktopograph.util.getSize
-import com.mithrilmania.blocktopograph.util.lastPlayedVersion
-import com.mithrilmania.blocktopograph.util.queryName
 import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
-import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
-import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
-import com.mithrilmania.blocktopograph.world.KEY_RANDOM_SEED
 import com.mithrilmania.blocktopograph.world.WorldInfo
+import com.mithrilmania.blocktopograph.world.WorldInfo.Companion.extractInfo
 import com.mithrilmania.blocktopograph.worldlist.WorldItemAdapter
 import com.mithrilmania.blocktopograph.worldlist.WorldListModel
 import kotlinx.coroutines.Dispatchers
@@ -118,25 +108,13 @@ suspend fun loadSAFWorlds(
             val candidate =
                 DocumentsContract.buildDocumentUriUsingTree(location, it.getString(2))
             val config = candidate.findChild(resolver, FILE_LEVEL_DAT) ?: continue
-            val compound: CompoundTag? = LevelDataConverter.read(
-                resolver.openInputStream(config)
-            )
-            candidate.populate(
-                WorldInfo(
-                    SAFLocation(candidate),
-                    SAFLocation(config),
-                    (compound?.getChildTagByKey(KEY_LEVEL_NAME) as? StringTag)?.value
-                        ?: location.queryName(context)
-                        ?: context.getString(R.string.world_default_name),
-                    compound.getGameMode(context),
-                    (compound?.getChildTagByKey(KEY_LAST_PLAYED_TIME) as? LongTag)?.value?.let {
-                        it * 1000L
-                    } ?: it.getLongOrNull(1) ?: 0L,
-                    (compound?.getChildTagByKey(KEY_RANDOM_SEED) as? LongTag)?.value?.toString()
-                        ?: "",
-                    compound.lastPlayedVersion,
-                    tag
-                ), adapter, context)
+            val world = resolver.openInputStream(config)?.extractInfo(
+                SAFLocation(candidate),
+                SAFLocation(config),
+                context,
+                tag
+            ) ?: continue
+            candidate.populate(world, adapter, context)
         } while (it.moveToPrevious())
     }
     model.loading.postValue(false)

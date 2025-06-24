@@ -1,7 +1,7 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
-import com.mithrilmania.blocktopograph.nbt.appendSafeLiteral
-import com.mithrilmania.blocktopograph.nbt.wrap
+import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
+import com.mithrilmania.blocktopograph.nbt.util.wrap
 import com.mithrilmania.blocktopograph.util.BYTE_0
 import kotlinx.serialization.encodeToByteArray
 import kotlinx.serialization.encodeToString
@@ -59,9 +59,9 @@ class SNBTOptions(prettify: Boolean) : Exporter {
     override fun write(stream: OutputStream, data: NbtCompound, label: String) {
         val value = this.encoder.encodeToString(data)
         stream.write(
-            StringBuilder(16 + value.length + label.length)
-                .appendSafeLiteral(label)
-                .append(": ")
+            StringBuilder(16 + value.length + label.length).apply {
+                appendSafeLiteral(label)
+            }.append(": ")
                 .append(value)
                 .toString()
                 .toByteArray()

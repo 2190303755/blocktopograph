@@ -6,12 +6,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
-import com.mithrilmania.blocktopograph.nbt.EMPTY_COMPOUND
-import com.mithrilmania.blocktopograph.nbt.readUnknownNBT
+import com.mithrilmania.blocktopograph.nbt.util.EMPTY_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.util.readUnknownNBT
 import com.mithrilmania.blocktopograph.storage.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.benwoodworth.knbt.NbtCompound
 import net.benwoodworth.knbt.NbtCompression
 import net.benwoodworth.knbt.NbtVariant
 import java.io.InputStream
@@ -64,7 +65,7 @@ class NBTEditorModel : ViewModel(), ExporterFactory {
             val data = tree.value?.asTag() ?: return@launch
             withContext(Dispatchers.IO) {
                 source.value?.save(app) { stream ->
-                    factory.createExporter().write(stream, data, name)
+                    factory.createExporter().write(stream, NbtCompound(data), name)
                 }
             }
             withContext(Dispatchers.Main) {
@@ -127,5 +128,6 @@ class NBTEditorModel : ViewModel(), ExporterFactory {
         this.version.value
     ) else SNBTOptions(this.prettify.value == false)
 
+    @JvmRecord
     data class HistoryState(val undo: Boolean, val redo: Boolean)
 }

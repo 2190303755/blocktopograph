@@ -21,7 +21,7 @@ import com.mithrilmania.blocktopograph.BaseActivity
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldTestBinding
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants
 import com.mithrilmania.blocktopograph.util.ByteArrayMatcher
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.FileCreator
@@ -93,11 +93,11 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                             val entry = iterator.next()
                             val key = entry.key
                             if (ByteArrayMatcher.contains(key, pattern, failure)) {
-                                values.add(ConvertUtil.bytesToHexStr(entry.value))
-                                if (isPlainText) {
-                                    display.add(String(key, NBTConstants.CHARSET))
+                                values += ConvertUtil.bytesToHexStr(entry.value)
+                                display += if (isPlainText) {
+                                    String(key, NBTConstants.CHARSET)
                                 } else {
-                                    display.add(ConvertUtil.bytesToHexStr(key))
+                                    ConvertUtil.bytesToHexStr(key)
                                 }
                             }
                         }

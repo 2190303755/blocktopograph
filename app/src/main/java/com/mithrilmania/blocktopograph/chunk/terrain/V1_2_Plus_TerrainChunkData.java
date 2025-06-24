@@ -6,10 +6,10 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.map.Biome;
-import com.mithrilmania.blocktopograph.nbt.convert.NBTInputStream;
-import com.mithrilmania.blocktopograph.nbt.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.tags.ShortTag;
-import com.mithrilmania.blocktopograph.nbt.tags.StringTag;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTInputStream;
+import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.ShortTag;
+import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

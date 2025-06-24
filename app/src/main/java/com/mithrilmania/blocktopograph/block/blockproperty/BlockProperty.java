@@ -2,7 +2,7 @@ package com.mithrilmania.blocktopograph.block.blockproperty;
 
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.nbt.convert.NBTConstants;
+import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants;
 
 import java.util.HashMap;
 import java.util.Map;

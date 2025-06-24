@@ -21,8 +21,8 @@ import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Log
 import android.util.Size
 import androidx.annotation.RequiresApi
-import com.mithrilmania.blocktopograph.nbt.EditableNBT
-import com.mithrilmania.blocktopograph.nbt.LevelDBNBT
+import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
+import com.mithrilmania.blocktopograph.nbt.old.LevelDBNBT
 import com.mithrilmania.blocktopograph.util.ConvertUtil.bytesToHexStr
 import org.iq80.leveldb.DB
 import java.io.BufferedReader
