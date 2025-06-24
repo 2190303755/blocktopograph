@@ -72,7 +72,7 @@ class WorldInfo(
                     this[TAG_LIST] = HashMap<String, TagReader<*>>().apply {
                         this[KEY_LAST_PLAYED_VERSION] = ListTag.Type
                     }
-                }).read(buffer, 0)
+                }).read(buffer)
                 (compound[KEY_LEVEL_NAME] as? StringTag)?.let {
                     name = it.value
                 }
@@ -96,7 +96,7 @@ class WorldInfo(
                     if (iterator.hasNext()) {
                         val builder = StringBuilder().append(iterator.next().value)
                         while (iterator.hasNext()) {
-                            builder.append('.').append(builder)
+                            builder.append('.').append(iterator.next().value)
                         }
                         version = builder.toString()
                     }

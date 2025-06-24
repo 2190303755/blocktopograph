@@ -26,7 +26,7 @@ class FilteredReader(
                     compound[key] = reader.read(input, child)
                     candidates.remove(key)
                     if (candidates.isEmpty()) {
-                        readers.removeAt(type)
+                        readers.delete(type)
                         if (readers.isEmpty()) {
                             input.skipNamedTags(child)
                             return@loop false

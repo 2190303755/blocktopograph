@@ -16,7 +16,7 @@ class NBTInputBuffer(
     val stream: InputStream,
     order: ByteOrder
 ) : DataInput, AutoCloseable {
-    private val buffer = ByteBuffer.allocate(BUFFER_SIZE).order(order)
+    private val buffer = ByteBuffer.allocate(BUFFER_SIZE).order(order).apply { limit(0) }
 
     fun requires(@IntRange(from = 1, to = BUFFER_SIZE.toLong()) bytes: Int): ByteBuffer {
         val buffer = this.buffer
