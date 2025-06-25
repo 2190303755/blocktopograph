@@ -5,7 +5,7 @@ import java.io.DataInput
 import java.io.DataOutput
 
 @JvmInline
-value class ByteTag(override val value: Byte) : NumericTag<Byte> {
+value class ByteTag internal constructor(override val value: Byte) : NumericTag<Byte> {
     override val type get() = Type
     override fun accept(visitor: TagVisitor) = visitor.visit(this)
     override fun copy() = this

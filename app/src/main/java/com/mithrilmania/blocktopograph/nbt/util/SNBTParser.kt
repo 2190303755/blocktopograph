@@ -1,8 +1,9 @@
 package com.mithrilmania.blocktopograph.nbt.util
 
+import com.mithrilmania.blocktopograph.nbt.BYTE_TAG_ONE
+import com.mithrilmania.blocktopograph.nbt.BYTE_TAG_ZERO
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
-import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
@@ -14,12 +15,11 @@ import com.mithrilmania.blocktopograph.nbt.LongArrayTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
-import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TagType
+import com.mithrilmania.blocktopograph.nbt.toBinaryTag
 import java.util.regex.Pattern
 
-
-class SNBTParser private constructor(
+class SNBTParser internal constructor(
     val snbt: String
 ) {
     private val length = snbt.length
@@ -182,8 +182,8 @@ class SNBTParser private constructor(
         this.skipWhitespace()
         if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
         return when (this.snbt[this.cursor]) {
-            DOUBLE_QUOTE -> StringTag.of(this.readStringUntil(DOUBLE_QUOTE))
-            SINGLE_QUOTE -> StringTag.of(this.readStringUntil(SINGLE_QUOTE))
+            DOUBLE_QUOTE -> this.readStringUntil(DOUBLE_QUOTE).toBinaryTag()
+            SINGLE_QUOTE -> this.readStringUntil(SINGLE_QUOTE).toBinaryTag()
             '{' -> {
                 ++this.cursor
                 this.readCompound()
@@ -196,11 +196,11 @@ class SNBTParser private constructor(
 
             else -> {
                 val value = this.readUnquotedString()
-                if ("true".equals(value, true)) return ByteTag(1)
-                if ("false".equals(value, true)) return ByteTag(0)
+                if ("true".equals(value, true)) return BYTE_TAG_ONE
+                if ("false".equals(value, true)) return BYTE_TAG_ZERO
                 try {
                     if (INTEGER_LIKE_PATTERN.matcher(value).matches()) return when (value.last()) {
-                        'b', 'B' -> ByteTag(value.substring(0, value.length - 1).toByte())
+                        'b', 'B' -> value.substring(0, value.length - 1).toByte().toBinaryTag()
                         's', 'S' -> ShortTag(value.substring(0, value.length - 1).toShort())
                         'l', 'L' -> LongTag(value.substring(0, value.length - 1).toLong())
                         else -> IntTag(value.toInt())
@@ -212,7 +212,7 @@ class SNBTParser private constructor(
                     }
                 } catch (_: NumberFormatException) {
                 }
-                return StringTag.of(value)
+                return value.toBinaryTag()
             }
         }
     }
@@ -225,26 +225,5 @@ class SNBTParser private constructor(
             Pattern.compile("^[-+]?(?:0|[1-9][0-9]*)[bBlLsS]?$")
         val FLOAT_LIKE_PATTERN: Pattern =
             Pattern.compile("^[-+]?(?:[0-9]+[.]?|[0-9]*[.][0-9]+)(?:e[-+]?[0-9]+)?[dDfF]?$")
-
-        @JvmStatic
-        fun String.toBinaryTag() = SNBTParser(this).readValue()
-
-        @JvmStatic
-        fun String.toCompound() = SNBTParser(this).apply {
-            expect('{')
-        }.readCompound()
-
-        @JvmStatic
-        fun String.toNamedTag(): Pair<String, BinaryTag<*>> {
-            val parser = SNBTParser(this)
-            try {
-                val key = parser.readString()
-                parser.expect(':')
-                return Pair(key, parser.readValue())
-            } catch (_: Exception) {
-            }
-            parser.reset()
-            return Pair("", parser.readValue())
-        }
     }
 }

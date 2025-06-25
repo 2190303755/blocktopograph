@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.google.android.material.color.DynamicColors
 import com.mithrilmania.blocktopograph.storage.FileServiceClient
 import com.mithrilmania.blocktopograph.storage.FileServiceServer
 import rikka.shizuku.Shizuku
@@ -76,6 +77,10 @@ class Blocktopograph : Application(),
         Shizuku.addRequestPermissionResultListener(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         FileServiceClient.start()
+    }
+
+    override fun onCreate(owner: LifecycleOwner) {
+        DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
     override fun onDestroy(owner: LifecycleOwner) {

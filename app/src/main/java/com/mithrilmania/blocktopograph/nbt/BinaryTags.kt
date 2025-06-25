@@ -1,6 +1,9 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import com.mithrilmania.blocktopograph.BYTE_0
+import com.mithrilmania.blocktopograph.BYTE_1
 import com.mithrilmania.blocktopograph.nbt.util.NBTStackOverflowException
+import com.mithrilmania.blocktopograph.nbt.util.SNBTParser
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
 import java.io.DataOutput
 
@@ -12,7 +15,37 @@ fun Int.increaseDepthOrThrow(): Int {
     throw NBTStackOverflowException("Tried to read NBT tag with too high complexity, depth > $MAX_STACK_DEPTH")
 }
 
-interface BinaryTag<T> {
+fun String.parseSNBT() = SNBTParser(this).readValue()
+
+fun String.parseCompound() = SNBTParser(this).apply {
+    expect('{')
+}.readCompound()
+
+fun String.parseNamedTag(): Pair<String, BinaryTag<*>> {
+    val parser = SNBTParser(this)
+    try {
+        val key = parser.readString()
+        parser.expect(':')
+        return Pair(key, parser.readValue())
+    } catch (_: Exception) {
+    }
+    parser.reset()
+    return Pair("", parser.readValue())
+}
+
+fun String.toBinaryTag() = if (this.isEmpty()) STRING_TAG_EMPTY else StringTag(this)
+fun Boolean.toBinaryTag() = if (this) BYTE_TAG_ONE else BYTE_TAG_ZERO
+fun Byte.toBinaryTag() = when (this) {
+    BYTE_0 -> BYTE_TAG_ZERO
+    BYTE_1 -> BYTE_TAG_ONE
+    else -> ByteTag(this)
+}
+
+val STRING_TAG_EMPTY = StringTag("")
+val BYTE_TAG_ZERO = ByteTag(0)
+val BYTE_TAG_ONE = ByteTag(1)
+
+sealed interface BinaryTag<T> {
     val type: TagType<*>
     val value: T
     fun copy(): BinaryTag<T>

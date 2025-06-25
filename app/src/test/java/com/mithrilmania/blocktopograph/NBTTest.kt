@@ -10,28 +10,23 @@ import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.ListTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
-import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockOutputBuffer
 import com.mithrilmania.blocktopograph.nbt.io.NBTOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.io.writeEntry
+import com.mithrilmania.blocktopograph.nbt.parseNamedTag
+import com.mithrilmania.blocktopograph.nbt.parseSNBT
+import com.mithrilmania.blocktopograph.nbt.toBinaryTag
 import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
-import com.mithrilmania.blocktopograph.nbt.util.SNBTParser.Companion.toBinaryTag
-import com.mithrilmania.blocktopograph.nbt.util.SNBTParser.Companion.toNamedTag
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import org.junit.Test
 import java.io.File
 import java.nio.ByteOrder
 
-
 class NBTTest {
     @Test
     fun testOutput() {
-        NBTOutputBuffer(File("./test.nbt").outputStream(), ByteOrder.LITTLE_ENDIAN).use {
-            it.writeEntry("", makeBigCompound())
-        }
-        BedrockOutputBuffer(File("./level.dat").outputStream(), 9U).use {
-            it.writeEntry("", makeBigCompound())
-        }
+        val tag = makeBigCompound()
+        NBTOutputBuffer(File("./test.nbt").outputStream(), ByteOrder.LITTLE_ENDIAN).save("", tag)
+        BedrockOutputBuffer(File("./level.dat").outputStream(), 9U).save("", tag)
     }
 
     @Test
@@ -60,7 +55,7 @@ class NBTTest {
             "[i;1b,2d,3f]",
             ":value",
         ).forEach {
-            it.toBinaryTag().let {
+            it.parseSNBT().let {
                 print(it::class.simpleName)
                 print('\t')
                 it.print()
@@ -79,7 +74,7 @@ class NBTTest {
             "{tag:[]}",
             "123:-456",
         ).forEach {
-            it.toNamedTag().let {
+            it.parseNamedTag().let {
                 println(
                     NBTStringifier(
                         builder = StringBuilder()
@@ -97,7 +92,7 @@ class NBTTest {
 }
 
 fun BinaryTag<*>.print(indent: String = "    ") {
-    println(NBTStringifier(indent).also { this.accept(it) })
+    println(NBTStringifier(indent = indent).also { this.accept(it) })
 }
 
 inline fun buildCompound(
@@ -125,7 +120,7 @@ operator fun CompoundTag.set(key: String, value: Byte) {
 }
 
 operator fun CompoundTag.set(key: String, value: String) {
-    this[key] = StringTag.of(value)
+    this[key] = value.toBinaryTag()
 }
 
 operator fun CompoundTag.set(key: String, value: Float) {

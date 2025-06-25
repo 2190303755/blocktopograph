@@ -25,6 +25,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.collect
 import com.mithrilmania.blocktopograph.editor.nbt.node.registerTo
 import com.mithrilmania.blocktopograph.editor.nbt.node.visit
+import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
@@ -41,13 +42,12 @@ import com.mithrilmania.blocktopograph.nbt.TAG_STRING
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.benwoodworth.knbt.NbtCompound
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicInteger
 
 class NBTTree(
     val model: NBTEditorModel,
-    data: NbtCompound
+    data: CompoundTag?
 ) : ListAdapter<NBTNode, NodeHolder<*, *>>(object : DiffUtil.ItemCallback<NBTNode>() {
     override fun areItemsTheSame(old: NBTNode, neo: NBTNode) =
         old.uid == neo.uid

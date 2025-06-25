@@ -1,7 +1,10 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
+import com.google.common.io.LineReader
+import com.mithrilmania.blocktopograph.GZIP_HEADER
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
+import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
 import com.mithrilmania.blocktopograph.nbt.EndTag
 import com.mithrilmania.blocktopograph.nbt.FloatTag
@@ -23,10 +26,24 @@ import com.mithrilmania.blocktopograph.nbt.TAG_SHORT
 import com.mithrilmania.blocktopograph.nbt.TAG_STRING
 import com.mithrilmania.blocktopograph.nbt.asTagType
 import com.mithrilmania.blocktopograph.nbt.increaseDepthOrThrow
+import com.mithrilmania.blocktopograph.nbt.parseSNBT
 import com.mithrilmania.blocktopograph.nbt.util.NBTFormatException
+import java.io.ByteArrayInputStream
 import java.io.DataInput
 import java.io.DataOutput
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.nio.ByteOrder
+import java.util.zip.GZIPInputStream
 
+fun interface NBTOutput {
+    fun save(name: String, tag: BinaryTag<*>)
+}
+
+interface NBTOutputFactory {
+    fun createOutput(stream: OutputStream): NBTOutput
+}
 
 inline fun DataInput.readBinaryTags(action: (Int) -> Boolean) {
     while (action(this.readByte().toInt())) continue
@@ -111,4 +128,74 @@ inline fun <reified T : BinaryTag<*>> DataOutput.writeEntry(name: String, tag: T
     if (id == 0) return
     this.writeUTF(name)
     tag.write(this)
+}
+
+inline fun runSilent(action: () -> Unit) {
+    try {
+        action()
+    } catch (_: Exception) {
+    }
+}
+
+fun InputStream.readUnknownNBT(): NBTResult {
+    runSilent {
+        val bytes = this.readBytes()
+        // let's check if it starts with '{'
+        val reader = LineReader(InputStreamReader(ByteArrayInputStream(bytes), Charsets.UTF_8))
+        var flag = false
+        var line: String?
+        do {
+            line = reader.readLine()
+            if (line === null) break
+            val content = line.trimStart()
+            if (content.startsWith('{')) {
+                // it is probably SNBT
+                flag = true
+                break
+            }
+            if (content.isNotBlank()) break
+        } while (true)
+        if (flag) runSilent {
+            val tag = String(bytes, Charsets.UTF_8).parseSNBT()
+            if (tag is CompoundTag) return SNBTResult(tag)
+        }
+        // let's check if contains something like header
+        if (bytes.size > 8 && bytes.size == 8 + ((bytes[4].toInt() and 0xFF)
+                    or (bytes[5].toInt() shl 8)
+                    or (bytes[6].toInt() shl 16)
+                    or (bytes[7].toInt() shl 24))
+        ) runSilent {
+            val pair = NBTInputBuffer(
+                ByteArrayInputStream(bytes, 8, bytes.size - 8),
+                ByteOrder.LITTLE_ENDIAN
+            ).use {
+                it.readNamedTag()
+            }
+            return NamedResult(
+                pair.first,
+                pair.second,
+                false,
+                (bytes[0].toUInt()
+                        or (bytes[1].toUInt() shl 8)
+                        or (bytes[2].toUInt() shl 16)
+                        or (bytes[3].toUInt() shl 24))
+            )
+        }
+        val compressed = GZIP_HEADER == bytes[0]
+        runSilent { return bytes.readNamedTag(true, compressed) }
+        runSilent { return bytes.readNamedTag(false, compressed) }
+    }
+    return NamedResult("", CompoundTag())
+}
+
+fun ByteArray.readNamedTag(
+    littleEndian: Boolean,
+    compressed: Boolean
+): NamedResult {
+    val stream = ByteArrayInputStream(this)
+    val pair = NBTInputBuffer(
+        if (compressed) GZIPInputStream(stream) else stream,
+        if (littleEndian) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
+    ).use { it.readNamedTag() }
+    return NamedResult(pair.first, pair.second, compressed, null, littleEndian)
 }

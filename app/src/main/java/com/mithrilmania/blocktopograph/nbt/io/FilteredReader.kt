@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.nbt.io
 import android.util.SparseArray
 import androidx.core.util.isEmpty
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.TagType
 import com.mithrilmania.blocktopograph.nbt.increaseDepthOrThrow
 import java.io.DataInput
 
@@ -43,4 +44,12 @@ class FilteredReader(
         }
         return compound
     }
+}
+
+fun <T : TagType<*>> SparseArray<EntryReaders>.putSimpleFilter(type: T, vararg keys: String) {
+    val filters = HashMap<String, TagReader<*>>()
+    for (key in keys) {
+        filters[key] = type
+    }
+    this[type.id] = filters
 }

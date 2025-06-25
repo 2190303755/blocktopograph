@@ -14,8 +14,8 @@ import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 
 class NBTStringifier(
-    val indent: String = "    ",
-    val builder: StringBuilder = StringBuilder()
+    val builder: StringBuilder = StringBuilder(),
+    val indent: String = "    "
 ) : TagVisitor {
     private var depth = 0
     override fun visit(tag: StringTag) {

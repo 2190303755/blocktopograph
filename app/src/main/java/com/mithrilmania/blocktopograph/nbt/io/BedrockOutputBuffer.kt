@@ -1,7 +1,8 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
 import com.mithrilmania.blocktopograph.BUFFER_SIZE
-import com.mithrilmania.blocktopograph.util.BYTE_0
+import com.mithrilmania.blocktopograph.BYTE_0
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import java.io.DataOutput
 import java.io.OutputStream
 import java.lang.AutoCloseable
@@ -11,7 +12,7 @@ import java.nio.ByteOrder
 class BedrockOutputBuffer(
     val stream: OutputStream,
     val version: UInt
-) : DataOutput, AutoCloseable {
+) : NBTOutput, DataOutput, AutoCloseable {
     private val buffers = ArrayList<ByteBuffer>()
     private var buffer = expand()
     private var length: UInt = 0U
@@ -44,6 +45,7 @@ class BedrockOutputBuffer(
         this.length += length.toUInt()
     }
 
+    override fun writeByte(v: Int) = this.write(v)
     override fun write(b: Int) {
         this.requires(1)
         this.buffer.put((b and 0xFF).toByte())
@@ -56,12 +58,6 @@ class BedrockOutputBuffer(
         this.length += 1U
     }
 
-    override fun writeByte(v: Int) {
-        this.requires(1)
-        this.buffer.putShort((v and 0xFF).toShort())
-        this.length += 1U
-    }
-
     override fun writeShort(v: Int) {
         this.requires(2)
         this.buffer.putShort((v and 0xFFFF).toShort())
@@ -70,7 +66,6 @@ class BedrockOutputBuffer(
 
     override fun writeChar(v: Int) {
         this.writeShort(v)
-        this.length += 2U
     }
 
     override fun writeInt(v: Int) {
@@ -113,6 +108,11 @@ class BedrockOutputBuffer(
         val bytes = s.toByteArray(Charsets.UTF_8)
         this.writeShort(bytes.size) // unsigned
         this.write(bytes)
+    }
+
+    override fun save(name: String, tag: BinaryTag<*>) {
+        this.writeEntry(name, tag)
+        this.close()
     }
 
     override fun close() {

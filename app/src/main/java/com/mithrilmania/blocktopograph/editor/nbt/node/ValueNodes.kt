@@ -1,6 +1,11 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
+import com.mithrilmania.blocktopograph.nbt.DoubleTag
+import com.mithrilmania.blocktopograph.nbt.FloatTag
+import com.mithrilmania.blocktopograph.nbt.IntTag
+import com.mithrilmania.blocktopograph.nbt.LongTag
+import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
 import com.mithrilmania.blocktopograph.nbt.TAG_DOUBLE
 import com.mithrilmania.blocktopograph.nbt.TAG_FLOAT
@@ -8,13 +13,7 @@ import com.mithrilmania.blocktopograph.nbt.TAG_INT
 import com.mithrilmania.blocktopograph.nbt.TAG_LONG
 import com.mithrilmania.blocktopograph.nbt.TAG_SHORT
 import com.mithrilmania.blocktopograph.nbt.TAG_STRING
-import net.benwoodworth.knbt.NbtByte
-import net.benwoodworth.knbt.NbtDouble
-import net.benwoodworth.knbt.NbtFloat
-import net.benwoodworth.knbt.NbtInt
-import net.benwoodworth.knbt.NbtLong
-import net.benwoodworth.knbt.NbtShort
-import net.benwoodworth.knbt.NbtString
+import com.mithrilmania.blocktopograph.nbt.toBinaryTag
 import java.lang.ref.WeakReference
 
 sealed class ValueNode<T>(
@@ -46,7 +45,7 @@ class ByteNode(
     data: Byte
 ) : ValueNode<Byte>(parent, uid, name, data) {
     override val type get() = TAG_BYTE
-    override fun asTag() = NbtByte(this.value)
+    override fun asTag() = this.value.toBinaryTag()
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -60,7 +59,7 @@ class ShortNode(
     data: Short
 ) : ValueNode<Short>(parent, uid, name, data) {
     override val type get() = TAG_SHORT
-    override fun asTag() = NbtShort(this.value)
+    override fun asTag() = ShortTag(this.value)
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -74,7 +73,7 @@ class IntNode(
     data: Int
 ) : ValueNode<Int>(parent, uid, name, data) {
     override val type get() = TAG_INT
-    override fun asTag() = NbtInt(this.value)
+    override fun asTag() = IntTag(this.value)
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -88,7 +87,7 @@ class LongNode(
     data: Long
 ) : ValueNode<Long>(parent, uid, name, data) {
     override val type get() = TAG_LONG
-    override fun asTag() = NbtLong(this.value)
+    override fun asTag() = LongTag(this.value)
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -102,7 +101,7 @@ class FloatNode(
     data: Float
 ) : ValueNode<Float>(parent, uid, name, data) {
     override val type get() = TAG_FLOAT
-    override fun asTag() = NbtFloat(this.value)
+    override fun asTag() = FloatTag(this.value)
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -116,7 +115,7 @@ class DoubleNode(
     data: Double
 ) : ValueNode<Double>(parent, uid, name, data) {
     override val type get() = TAG_DOUBLE
-    override fun asTag() = NbtDouble(this.value)
+    override fun asTag() = DoubleTag(this.value)
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -130,7 +129,7 @@ class StringNode(
     data: String
 ) : ValueNode<String>(parent, uid, name, data) {
     override val type get() = TAG_STRING
-    override fun asTag() = NbtString(this.value)
+    override fun asTag() = this.value.toBinaryTag()
     override fun registerAs(
         parent: RootNode<*>,
         key: String

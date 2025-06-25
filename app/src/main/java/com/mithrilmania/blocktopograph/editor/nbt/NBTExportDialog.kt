@@ -14,7 +14,6 @@ import com.mithrilmania.blocktopograph.databinding.DialogNbtExportBinding
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.makeCommonDialog
-import net.benwoodworth.knbt.NbtCompression
 
 class NBTExportDialog : BottomSheetDialogFragment() {
     private lateinit var picker: ActivityResultLauncher<FileCreator.Options?>
@@ -31,13 +30,7 @@ class NBTExportDialog : BottomSheetDialogFragment() {
         binding.type.check(if (exporter.stringify.value == false) R.id.type_nbt else R.id.type_snbt)
         binding.header.isChecked = exporter.header == true
         binding.endian.check(if (exporter.littleEndian) R.id.endian_little else R.id.endian_big)
-        binding.compression.check(
-            when (exporter.compression) {
-                NbtCompression.Gzip -> R.id.compression_gzip
-                NbtCompression.Zlib -> R.id.compression_zlib
-                else -> R.id.compression_none
-            }
-        )
+        binding.compression.check(if (exporter.compressed) R.id.compression_gzip else R.id.compression_none)
         binding.export.setOnClickListener {
             val exporter = this.exporter
             val output = exporter.output
@@ -64,10 +57,10 @@ class NBTExportDialog : BottomSheetDialogFragment() {
             (this.binding ?: return@click).header.isEnabled = this.exporter.isHeaderAvailable()
         }
         binding.compression.addOnButtonCheckedListener click@{ group, _, _ ->
-            this.exporter.compression = when (group.checkedButtonId) {
-                R.id.compression_none -> NbtCompression.None
-                R.id.compression_gzip -> NbtCompression.Gzip
-                R.id.compression_zlib -> NbtCompression.Zlib
+            this.exporter.compressed = when (group.checkedButtonId) {
+                R.id.compression_none -> false
+                R.id.compression_gzip -> true
+                R.id.compression_zlib -> true
                 else -> return@click
             }
             (this.binding ?: return@click).header.isEnabled = this.exporter.isHeaderAvailable()

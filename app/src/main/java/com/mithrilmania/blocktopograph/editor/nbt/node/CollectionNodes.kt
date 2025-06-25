@@ -5,18 +5,21 @@ import android.view.MenuItem
 import com.mithrilmania.blocktopograph.editor.nbt.Insert
 import com.mithrilmania.blocktopograph.editor.nbt.appendNode
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
+import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
+import com.mithrilmania.blocktopograph.nbt.ByteTag
+import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.EndTag
+import com.mithrilmania.blocktopograph.nbt.IntArrayTag
+import com.mithrilmania.blocktopograph.nbt.IntTag
+import com.mithrilmania.blocktopograph.nbt.ListTag
+import com.mithrilmania.blocktopograph.nbt.LongArrayTag
+import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.TAG_INT_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_LIST
 import com.mithrilmania.blocktopograph.nbt.TAG_LONG_ARRAY
-import com.mithrilmania.blocktopograph.util.Unchecked
-import net.benwoodworth.knbt.NbtByteArray
-import net.benwoodworth.knbt.NbtCompound
-import net.benwoodworth.knbt.NbtIntArray
-import net.benwoodworth.knbt.NbtList
-import net.benwoodworth.knbt.NbtLongArray
-import net.benwoodworth.knbt.NbtTag
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.CopyOnWriteArrayList
@@ -47,7 +50,7 @@ class CompoundNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
-    data: NbtCompound
+    data: CompoundTag?
 ) : CollectionNode<String, ConcurrentSkipListMap<String, NBTNode>>(
     parent,
     uid,
@@ -71,14 +74,14 @@ class TagListNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
-    data: List<NbtTag>,
+    data: ListTag?,
 ) : CollectionNode<Int, MutableList<NBTNode>>(parent, uid, name, { self ->
-    data.toNodes { tag, key -> tag.registerTo(self, key) }
+    data.toNodes { tag, key -> if (tag === EndTag) null else tag.registerTo(self, key) }
 }), ListNode {
     override val size by this.data::size
     override val type get() = TAG_LIST
     override fun getChildren() = this.data
-    override fun asTag(): NbtList<NbtTag> = Unchecked.collect<NbtTag>(this.data)
+    override fun asTag() = this.data.mapTo(ListTag(), NBTNode::asTag)
     override fun remove(key: Int) = this.data.removeAt(key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
@@ -115,26 +118,26 @@ class TagListNode(
     override fun registerAs(
         parent: RootNode<*>,
         key: String
-    ) = parent.tree.register(key) { uid, name -> TagListNode(parent, uid, name, emptyList()) }
+    ) = parent.tree.register(key) { uid, name -> TagListNode(parent, uid, name, null) }
 }
 
 class ByteArrayNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
-    data: List<Byte>
+    data: List<ByteTag>?
 ) : CollectionNode<Int, MutableList<ByteNode>>(parent, uid, name, { self ->
     val tree = self.tree
-    data.toNodes { value, key ->
+    data.toNodes { tag, key ->
         tree.register(key) { uid, name ->
-            ByteNode(self, uid, name, value)
+            ByteNode(self, uid, name, tag.value)
         }
     }
 }), ListNode {
     override val size by this.data::size
     override val type get() = TAG_BYTE_ARRAY
     override fun getChildren() = this.data
-    override fun asTag() = NbtByteArray(this.data.collect(::ByteArray))
+    override fun asTag() = ByteArrayTag(this.data.collect(::ByteArray))
     override fun remove(key: Int) = this.data.removeAt(key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
@@ -158,26 +161,26 @@ class ByteArrayNode(
     override fun registerAs(
         parent: RootNode<*>,
         key: String
-    ) = parent.tree.register(key) { uid, name -> ByteArrayNode(parent, uid, name, emptyList()) }
+    ) = parent.tree.register(key) { uid, name -> ByteArrayNode(parent, uid, name, null) }
 }
 
 class IntArrayNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
-    data: List<Int>
+    data: List<IntTag>?
 ) : CollectionNode<Int, MutableList<IntNode>>(parent, uid, name, { self ->
     val tree = self.tree
-    data.toNodes { value, key ->
+    data.toNodes { tag, key ->
         tree.register(key) { uid, name ->
-            IntNode(self, uid, name, value)
+            IntNode(self, uid, name, tag.value)
         }
     }
 }), ListNode {
     override val size by this.data::size
     override val type get() = TAG_INT_ARRAY
     override fun getChildren() = this.data
-    override fun asTag() = NbtIntArray(this.data.collect(::IntArray))
+    override fun asTag() = IntArrayTag(this.data.collect(::IntArray))
     override fun remove(key: Int) = this.data.removeAt(key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
@@ -201,26 +204,26 @@ class IntArrayNode(
     override fun registerAs(
         parent: RootNode<*>,
         key: String
-    ) = parent.tree.register(key) { uid, name -> IntArrayNode(parent, uid, name, emptyList()) }
+    ) = parent.tree.register(key) { uid, name -> IntArrayNode(parent, uid, name, null) }
 }
 
 class LongArrayNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
-    data: List<Long>
+    data: List<LongTag>?
 ) : CollectionNode<Int, MutableList<LongNode>>(parent, uid, name, { self ->
     val tree = self.tree
-    data.toNodes { value, key ->
+    data.toNodes { tag, key ->
         tree.register(key) { uid, name ->
-            LongNode(self, uid, name, value)
+            LongNode(self, uid, name, tag.value)
         }
     }
 }), ListNode {
     override val size by this.data::size
     override val type get() = TAG_LONG_ARRAY
     override fun getChildren() = this.data
-    override fun asTag() = NbtLongArray(this.data.collect(::LongArray))
+    override fun asTag() = LongArrayTag(this.data.collect(::LongArray))
     override fun remove(key: Int) = this.data.removeAt(key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
@@ -244,11 +247,11 @@ class LongArrayNode(
     override fun registerAs(
         parent: RootNode<*>,
         key: String
-    ) = parent.tree.register(key) { uid, name -> LongArrayNode(parent, uid, name, emptyList()) }
+    ) = parent.tree.register(key) { uid, name -> LongArrayNode(parent, uid, name, null) }
 }
 
-fun Map<String, NBTNode>.collect() = NbtCompound(
-    LinkedHashMap<String, NbtTag>().also {
+fun Map<String, NBTNode>.collect() = CompoundTag(
+    LinkedHashMap<String, BinaryTag<*>>().also {
         this.forEach { (name, node) -> it[name] = node.asTag() }
     }
 )
@@ -277,12 +280,13 @@ inline fun <reified T : NBTNode> CollectionNode<Int, MutableList<T>>.append(
     }
 }
 
-inline fun <I, T : NBTNode> List<I>.toNodes(
-    factory: (I, String) -> T
+inline fun <reified I : BinaryTag<*>, T : NBTNode> List<I>?.toNodes(
+    factory: (I, String) -> T?
 ): CopyOnWriteArrayList<T> {
+    if (this === null) return CopyOnWriteArrayList()
     val temp = ArrayList<T>(this.size)
-    this.forEachIndexed { index, value ->
-        temp.add(factory(value, index.toString()))
+    this.forEachIndexed loop@{ index, value ->
+        temp.add(factory(value, index.toString()) ?: return@loop)
     }
     return CopyOnWriteArrayList(temp)
 }

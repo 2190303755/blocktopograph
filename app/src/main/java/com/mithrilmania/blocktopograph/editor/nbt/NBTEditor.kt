@@ -35,7 +35,8 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.ShortNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.StringNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.TagListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.registerTo
-import com.mithrilmania.blocktopograph.nbt.util.EMPTY_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
+import com.mithrilmania.blocktopograph.nbt.EndTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
@@ -51,7 +52,6 @@ import com.mithrilmania.blocktopograph.nbt.TAG_STRING
 import com.mithrilmania.blocktopograph.util.clipboard
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
-import net.benwoodworth.knbt.NbtTag
 
 fun ListNode.notifyMovedChildren() {
     this.getChildren().forEachIndexed { index, node ->
@@ -80,12 +80,12 @@ inline fun Int.registerTo(
     TAG_LONG -> parent.register(key(), 0, ::LongNode)
     TAG_FLOAT -> parent.register(key(), 0.0F, ::FloatNode)
     TAG_DOUBLE -> parent.register(key(), 0.0, ::DoubleNode)
-    TAG_BYTE_ARRAY -> parent.register(key(), emptyList(), ::ByteArrayNode)
+    TAG_BYTE_ARRAY -> parent.register(key(), null, ::ByteArrayNode)
     TAG_STRING -> parent.register(key(), "", ::StringNode)
-    TAG_LIST -> parent.register(key(), emptyList(), ::TagListNode)
-    TAG_COMPOUND -> parent.register(key(), EMPTY_COMPOUND, ::CompoundNode)
-    TAG_INT_ARRAY -> parent.register(key(), emptyList(), ::IntArrayNode)
-    TAG_LONG_ARRAY -> parent.register(key(), emptyList(), ::LongArrayNode)
+    TAG_LIST -> parent.register(key(), null, ::TagListNode)
+    TAG_COMPOUND -> parent.register(key(), null, ::CompoundNode)
+    TAG_INT_ARRAY -> parent.register(key(), null, ::IntArrayNode)
+    TAG_LONG_ARRAY -> parent.register(key(), null, ::LongArrayNode)
     else -> null
 }
 
@@ -174,7 +174,7 @@ inline fun Context.replaceNode(
     val handler = object : AdapterView.OnItemClickListener {
         var selected: Int = node.type
         var positive: Button? = null
-        var parsed: NbtTag? = null
+        var parsed: BinaryTag<*>? = null
         override fun onItemClick(view: AdapterView<*>?, child: View?, position: Int, id: Long) {
             val type = position + 1
             if (this.selected != type) {
@@ -198,7 +198,7 @@ inline fun Context.replaceNode(
         .setNeutralButton(R.string.action_paste, null)
         .setPositiveButton(R.string.option_positive) click@{ dialog, _ ->
             callback(
-                handler.parsed?.registerTo(parent, node.name)
+                handler.parsed?.takeIf { it !== EndTag }?.registerTo(parent, node.name)
                     ?: handler.selected.registerTo(parent) { node.name }
                     ?: return@click
             )
@@ -225,7 +225,7 @@ inline fun Context.insertNode(
     builder.setPositiveButton(R.string.option_positive) click@{ dialog, _ ->
         val name = handler.text.text.toString()
         callback(
-            handler.parsed?.registerTo(handler.parent, name)
+            handler.parsed?.takeIf { it !== EndTag }?.registerTo(handler.parent, name)
                 ?: handler.selected.registerTo(handler.parent) { name }
                 ?: return@click
         )
@@ -250,7 +250,7 @@ class InsertionHandler(
     var selected: Int = -1
     var positive: Button? = null
     var isValidName: Boolean
-    var parsed: NbtTag? = null
+    var parsed: BinaryTag<*>? = null
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 

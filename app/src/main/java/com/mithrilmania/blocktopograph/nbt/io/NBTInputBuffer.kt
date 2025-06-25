@@ -3,7 +3,7 @@ package com.mithrilmania.blocktopograph.nbt.io
 import androidx.annotation.IntRange
 import com.google.common.base.Preconditions.checkPositionIndexes
 import com.mithrilmania.blocktopograph.BUFFER_SIZE
-import com.mithrilmania.blocktopograph.util.BYTE_0
+import com.mithrilmania.blocktopograph.BYTE_0
 import java.io.DataInput
 import java.io.DataInputStream
 import java.io.EOFException
@@ -14,9 +14,12 @@ import java.nio.ByteOrder
 
 class NBTInputBuffer(
     val stream: InputStream,
-    order: ByteOrder
+    val buffer: ByteBuffer
 ) : DataInput, AutoCloseable {
-    private val buffer = ByteBuffer.allocate(BUFFER_SIZE).order(order).apply { limit(0) }
+    constructor(stream: InputStream, order: ByteOrder) : this(
+        stream,
+        ByteBuffer.allocate(BUFFER_SIZE).order(order).apply { limit(0) }
+    )
 
     fun requires(@IntRange(from = 1, to = BUFFER_SIZE.toLong()) bytes: Int): ByteBuffer {
         val buffer = this.buffer

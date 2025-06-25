@@ -31,6 +31,8 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.storage.ShizukuFile
 import com.mithrilmania.blocktopograph.util.FilePicker
+import com.mithrilmania.blocktopograph.util.applyFloatingInsets
+import com.mithrilmania.blocktopograph.util.applyListInsets
 import com.mithrilmania.blocktopograph.util.clipboard
 import com.mithrilmania.blocktopograph.util.showIfAbsent
 import com.mithrilmania.blocktopograph.util.toast
@@ -91,7 +93,7 @@ class NBTEditorActivity : BaseActivity() {
         }
         model.version.observe(this) {
             this.binding.appBar.subtitle = if (it == null) null else
-                this.getString(R.string.activity_nbt_editor_subtitle, it)
+                this.getString(R.string.activity_nbt_editor_subtitle, it.toLong())
         }
         model.loading.observe(this) {
             if (it) this.binding.progress.show() else this.binding.progress.hide()
@@ -310,7 +312,7 @@ class NBTEditorActivity : BaseActivity() {
     override fun applyContentInsets(window: View, insets: Insets) {
         val res = this.resources
         val margin = res.getDimensionPixelSize(R.dimen.small_floating_margin)
-        this.binding.toolbar.applyFloatingInsets(insets) { margin }
+        binding.toolbar.applyFloatingInsets(insets, margin)
         this.binding.editor.applyListInsets(
             this.isIndicatorEnabled,
             insets,

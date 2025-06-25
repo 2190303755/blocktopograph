@@ -6,23 +6,22 @@ import com.mithrilmania.blocktopograph.editor.nbt.Insert
 import com.mithrilmania.blocktopograph.editor.nbt.NBTTree
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
 import com.mithrilmania.blocktopograph.editor.nbt.insertNode
-import com.mithrilmania.blocktopograph.nbt.util.EMPTY_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
+import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
+import com.mithrilmania.blocktopograph.nbt.ByteTag
+import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.DoubleTag
+import com.mithrilmania.blocktopograph.nbt.EndTag
+import com.mithrilmania.blocktopograph.nbt.FloatTag
+import com.mithrilmania.blocktopograph.nbt.IntArrayTag
+import com.mithrilmania.blocktopograph.nbt.IntTag
+import com.mithrilmania.blocktopograph.nbt.ListTag
+import com.mithrilmania.blocktopograph.nbt.LongArrayTag
+import com.mithrilmania.blocktopograph.nbt.LongTag
+import com.mithrilmania.blocktopograph.nbt.ShortTag
+import com.mithrilmania.blocktopograph.nbt.StringTag
+import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
-import kotlinx.serialization.encodeToString
-import net.benwoodworth.knbt.NbtByte
-import net.benwoodworth.knbt.NbtByteArray
-import net.benwoodworth.knbt.NbtCompound
-import net.benwoodworth.knbt.NbtDouble
-import net.benwoodworth.knbt.NbtFloat
-import net.benwoodworth.knbt.NbtInt
-import net.benwoodworth.knbt.NbtIntArray
-import net.benwoodworth.knbt.NbtList
-import net.benwoodworth.knbt.NbtLong
-import net.benwoodworth.knbt.NbtLongArray
-import net.benwoodworth.knbt.NbtShort
-import net.benwoodworth.knbt.NbtString
-import net.benwoodworth.knbt.NbtTag
-import net.benwoodworth.knbt.StringifiedNbt
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentSkipListMap
 
@@ -34,7 +33,7 @@ interface NBTNode {
     val type: Int
     val depth: Int
     val expanded: Boolean
-    fun asTag(): NbtTag
+    fun asTag(): BinaryTag<*>
     fun registerAs(parent: RootNode<*>, key: String): NBTNode
     fun getChildren(): Collection<NBTNode>
     abstract override fun equals(other: Any?): Boolean
@@ -69,7 +68,7 @@ interface MapNode : RootNode<String> {
     override fun registerAs(
         parent: RootNode<*>,
         key: String
-    ) = parent.tree.register(key) { uid, name -> CompoundNode(parent, uid, name, EMPTY_COMPOUND) }
+    ) = parent.tree.register(key) { uid, name -> CompoundNode(parent, uid, name, null) }
 }
 
 interface ListNode : RootNode<Int> {
@@ -92,43 +91,53 @@ fun NBTNode.visit(
     }
 }
 
-fun Map<String, NbtTag>.registerTo(
+fun Map<String, BinaryTag<*>>?.registerTo(
     parent: RootNode<*>
-): ConcurrentSkipListMap<String, NBTNode> = ConcurrentSkipListMap<String, NBTNode>().also {
+): ConcurrentSkipListMap<String, NBTNode> {
+    if (this === null) return ConcurrentSkipListMap()
+    val nodes = ConcurrentSkipListMap<String, NBTNode>()
     this.forEach { (key, tag) ->
-        it[key] = tag.registerTo(parent, key)
+        if (tag !== EndTag) {
+            nodes[key] = tag.registerTo(parent, key)
+        }
     }
+    return nodes
 }
 
-fun NbtTag.registerTo(
+fun BinaryTag<*>.registerTo(
     parent: RootNode<*>,
     key: String
 ): NBTNode = parent.tree.register(key) { uid, name ->
     when (this) {
-        is NbtCompound -> CompoundNode(parent, uid, name, this)
-        is NbtByteArray -> ByteArrayNode(parent, uid, name, this)
-        is NbtIntArray -> IntArrayNode(parent, uid, name, this)
-        is NbtLongArray -> LongArrayNode(parent, uid, name, this)
-        is NbtList<*> -> TagListNode(parent, uid, name, this)
-        is NbtByte -> ByteNode(parent, uid, name, this.value)
-        is NbtShort -> ShortNode(parent, uid, name, this.value)
-        is NbtInt -> IntNode(parent, uid, name, this.value)
-        is NbtLong -> LongNode(parent, uid, name, this.value)
-        is NbtFloat -> FloatNode(parent, uid, name, this.value)
-        is NbtDouble -> DoubleNode(parent, uid, name, this.value)
-        is NbtString -> StringNode(parent, uid, name, this.value)
+        is CompoundTag -> CompoundNode(parent, uid, name, this)
+        is ByteArrayTag -> ByteArrayNode(parent, uid, name, this)
+        is IntArrayTag -> IntArrayNode(parent, uid, name, this)
+        is LongArrayTag -> LongArrayNode(parent, uid, name, this)
+        is ListTag -> TagListNode(parent, uid, name, this)
+        is ByteTag -> ByteNode(parent, uid, name, this.value)
+        is ShortTag -> ShortNode(parent, uid, name, this.value)
+        is IntTag -> IntNode(parent, uid, name, this.value)
+        is LongTag -> LongNode(parent, uid, name, this.value)
+        is FloatTag -> FloatNode(parent, uid, name, this.value)
+        is DoubleTag -> DoubleNode(parent, uid, name, this.value)
+        is StringTag -> StringNode(parent, uid, name, this.value)
+        else -> throw IllegalArgumentException()
     }
 }
 
 fun NBTNode.stringify(): String {
-    val value = StringifiedNbt {
-        prettyPrint = true
-    }.encodeToString(this.asTag())
-    if (this.parent is ListNode) return value
+    if (this.parent is ListNode) {
+        val builder = NBTStringifier()
+        this.asTag().accept(builder)
+        return builder.toString()
+    }
     val name = this.name
-    return StringBuilder(16 + value.length + name.length).apply {
-        appendSafeLiteral(name)
-    }.append(": ")
-        .append(value)
-        .toString()
+    val builder = NBTStringifier(
+        StringBuilder(name.length + 64)
+            .appendSafeLiteral(name)
+            .append(':')
+            .append(' ')
+    )
+    this.asTag().accept(builder)
+    return builder.toString()
 }

@@ -27,9 +27,12 @@ import com.mithrilmania.blocktopograph.databinding.ActivityWorldListBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.util.WorldCreator
+import com.mithrilmania.blocktopograph.util.applyFloatingInsets
+import com.mithrilmania.blocktopograph.util.applyListInsets
 import com.mithrilmania.blocktopograph.util.asFolder
 import com.mithrilmania.blocktopograph.util.showIfAbsent
 import com.mithrilmania.blocktopograph.util.upcoming
+import com.mithrilmania.blocktopograph.world.DEFAULT_WORLD_PATH
 import com.mithrilmania.blocktopograph.world.impl.loadSAFWorlds
 import com.mithrilmania.blocktopograph.world.impl.loadShizukuWorlds
 import kotlinx.coroutines.Dispatchers
@@ -129,7 +132,7 @@ class WorldListActivity : BaseActivity() {
                 }
                 val activity = this
                 val text = TextInputEditText(this)
-                text.setText("/storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/")
+                text.setText(DEFAULT_WORLD_PATH)
                 MaterialAlertDialogBuilder(this)
                     .setTitle("Load Worlds")
                     .setView(text)
@@ -171,9 +174,10 @@ class WorldListActivity : BaseActivity() {
 
     override fun applyContentInsets(window: View, insets: Insets) {
         val res = this.resources
-        this.binding.fabLoadWorlds.applyFloatingInsets(insets) {
+        this.binding.fabLoadWorlds.applyFloatingInsets(
+            insets,
             res.getDimensionPixelSize(R.dimen.large_floating_margin)
-        }
+        )
         this.binding.worldList.applyListInsets(
             this.isIndicatorEnabled,
             insets,

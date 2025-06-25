@@ -1,10 +1,8 @@
 package com.mithrilmania.blocktopograph.worldlist
 
-import android.content.ClipData
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
 import android.view.LayoutInflater
@@ -12,15 +10,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.textview.MaterialTextView
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.DialogWorldDetailBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.WorldEditorActivity
 import com.mithrilmania.blocktopograph.test.WorldTestActivity
-import com.mithrilmania.blocktopograph.util.clipboard
+import com.mithrilmania.blocktopograph.util.copyOnClick
 import com.mithrilmania.blocktopograph.util.makeCommonDialog
-import com.mithrilmania.blocktopograph.util.toast
 import java.util.Date
 
 class WorldDetailDialog : BottomSheetDialogFragment() {
@@ -118,15 +114,5 @@ class WorldDetailDialog : BottomSheetDialogFragment() {
 
     companion object {
         const val TAG = "WorldDetailDialog"
-        fun MaterialTextView.copyOnClick() {
-            (this.parent?.parent?.parent as? View)?.setOnClickListener {
-                if (this.text.isNullOrBlank()) return@setOnClickListener
-                this.context.clipboard?.setPrimaryClip(ClipData.newPlainText("", this.text))
-                    ?: return@setOnClickListener
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    this.context.toast(R.string.toast_copy_success)
-                }
-            }
-        }
     }
 }

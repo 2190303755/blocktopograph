@@ -16,7 +16,7 @@ import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
 import com.mithrilmania.blocktopograph.world.WorldInfo
-import com.mithrilmania.blocktopograph.world.WorldInfo.Companion.extractInfo
+import com.mithrilmania.blocktopograph.world.extractInfo
 import com.mithrilmania.blocktopograph.worldlist.WorldItemAdapter
 import com.mithrilmania.blocktopograph.worldlist.WorldListModel
 import kotlinx.coroutines.Dispatchers

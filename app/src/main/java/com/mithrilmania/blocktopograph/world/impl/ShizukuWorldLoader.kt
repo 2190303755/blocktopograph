@@ -21,7 +21,7 @@ import com.mithrilmania.blocktopograph.util.getSafely
 import com.mithrilmania.blocktopograph.util.loadThumbnail
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.WorldInfo
-import com.mithrilmania.blocktopograph.world.WorldInfo.Companion.extractInfo
+import com.mithrilmania.blocktopograph.world.extractInfo
 import com.mithrilmania.blocktopograph.worldlist.WorldListModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope

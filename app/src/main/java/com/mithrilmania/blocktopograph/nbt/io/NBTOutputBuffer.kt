@@ -1,17 +1,17 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
 import com.mithrilmania.blocktopograph.BUFFER_SIZE
-import com.mithrilmania.blocktopograph.util.BYTE_0
+import com.mithrilmania.blocktopograph.BYTE_0
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import java.io.DataOutput
 import java.io.OutputStream
-import java.lang.AutoCloseable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class NBTOutputBuffer(
     val stream: OutputStream,
     order: ByteOrder
-) : DataOutput, AutoCloseable {
+) : NBTOutput, DataOutput, AutoCloseable {
     private val buffer = ByteBuffer.allocate(BUFFER_SIZE).order(order)
 
     private inline fun withBuffer(bytes: Int, action: ByteBuffer.() -> Unit) {
@@ -34,16 +34,13 @@ class NBTOutputBuffer(
         }
     }
 
+    override fun writeByte(v: Int) = this.write(v)
     override fun write(b: Int) {
         this.withBuffer(1) { put((b and 0xFF).toByte()) }
     }
 
     override fun writeBoolean(v: Boolean) {
         this.withBuffer(1) { put(if (v) 1 else BYTE_0) }
-    }
-
-    override fun writeByte(v: Int) {
-        this.withBuffer(1) { put((v and 0xFF).toByte()) }
     }
 
     override fun writeShort(v: Int) {
@@ -94,6 +91,11 @@ class NBTOutputBuffer(
             this.stream.write(buffer.array(), 0, buffer.position())
             buffer.clear()
         }
+    }
+
+    override fun save(name: String, tag: BinaryTag<*>) {
+        this.writeEntry(name, tag)
+        this.close()
     }
 
     override fun close() {

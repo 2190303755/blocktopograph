@@ -16,8 +16,6 @@ import com.mithrilmania.blocktopograph.nbt.old.tags.Tag
 import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_VERSION
 
-const val BYTE_0 = 0.toByte()
-
 fun CompoundTag?.getGameMode(context: Context) = (this?.getChildTagByKey(
     KEY_GAME_MODE
 ) as? IntTag)?.value.let {
