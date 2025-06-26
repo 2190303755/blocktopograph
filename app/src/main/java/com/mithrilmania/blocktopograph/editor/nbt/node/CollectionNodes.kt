@@ -5,6 +5,7 @@ import android.view.MenuItem
 import com.mithrilmania.blocktopograph.editor.nbt.Insert
 import com.mithrilmania.blocktopograph.editor.nbt.appendNode
 import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
+import com.mithrilmania.blocktopograph.editor.nbt.notifyMovedChildren
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
@@ -40,10 +41,6 @@ sealed class CollectionNode<K, T>(
             field = value
             this.holder?.get()?.onRename(value)
         }
-    override fun hashCode() = this.uid
-    override fun equals(other: Any?): Boolean {
-        return this === other
-    }
 }
 
 class CompoundNode(
@@ -82,16 +79,20 @@ class TagListNode(
     override val type get() = TAG_LIST
     override fun getChildren() = this.data
     override fun asTag() = this.data.mapTo(ListTag(), NBTNode::asTag)
-    override fun remove(key: Int) = this.data.removeAt(key)
+    override fun remove(key: Int) = this.removeAndNotify(this.data, key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
     override fun isValid(node: NBTNode): Boolean {
-        return (this.data.firstOrNull() ?: return false).javaClass.isInstance(node)
+        return (this.data.firstOrNull() ?: return true).javaClass.isInstance(node)
     }
 
     override fun insert(key: Int, node: NBTNode): Boolean {
         if (this.isValid(node)) {
+            val notify = key != this.data.size
             this.data.add(key, node)
+            if (notify) {
+                this.notifyMovedChildren()
+            }
             return true
         }
         return false
@@ -138,12 +139,16 @@ class ByteArrayNode(
     override val type get() = TAG_BYTE_ARRAY
     override fun getChildren() = this.data
     override fun asTag() = ByteArrayTag(this.data.collect(::ByteArray))
-    override fun remove(key: Int) = this.data.removeAt(key)
+    override fun remove(key: Int) = this.removeAndNotify(this.data, key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
     override fun isValid(node: NBTNode) = node is ByteNode
     override fun insert(key: Int, node: NBTNode): Boolean {
+        val notify = key != this.data.size
         this.data.add(key, node as? ByteNode ?: return false)
+        if (notify) {
+            this.notifyMovedChildren()
+        }
         return true
     }
 
@@ -181,12 +186,16 @@ class IntArrayNode(
     override val type get() = TAG_INT_ARRAY
     override fun getChildren() = this.data
     override fun asTag() = IntArrayTag(this.data.collect(::IntArray))
-    override fun remove(key: Int) = this.data.removeAt(key)
+    override fun remove(key: Int) = this.removeAndNotify(this.data, key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
     override fun isValid(node: NBTNode) = node is IntNode
     override fun insert(key: Int, node: NBTNode): Boolean {
+        val notify = key != this.data.size
         this.data.add(key, node as? IntNode ?: return false)
+        if (notify) {
+            this.notifyMovedChildren()
+        }
         return true
     }
 
@@ -224,12 +233,16 @@ class LongArrayNode(
     override val type get() = TAG_LONG_ARRAY
     override fun getChildren() = this.data
     override fun asTag() = LongArrayTag(this.data.collect(::LongArray))
-    override fun remove(key: Int) = this.data.removeAt(key)
+    override fun remove(key: Int) = this.removeAndNotify(this.data, key)
     override fun indexOf(node: NBTNode) = this.data.indexOf(node)
     override fun swap(left: Int, right: Int) = this.data.swap(left, right)
     override fun isValid(node: NBTNode) = node is LongNode
     override fun insert(key: Int, node: NBTNode): Boolean {
+        val notify = key != this.data.size
         this.data.add(key, node as? LongNode ?: return false)
+        if (notify) {
+            this.notifyMovedChildren()
+        }
         return true
     }
 
@@ -289,4 +302,12 @@ inline fun <reified I : BinaryTag<*>, T : NBTNode> List<I>?.toNodes(
         temp.add(factory(value, index.toString()) ?: return@loop)
     }
     return CopyOnWriteArrayList(temp)
+}
+
+inline fun <reified T : NBTNode> ListNode.removeAndNotify(list: MutableList<T>, index: Int): T? {
+    val removed = list.removeAt(index)
+    if (index == list.size) {
+        this.notifyMovedChildren()
+    }
+    return removed
 }

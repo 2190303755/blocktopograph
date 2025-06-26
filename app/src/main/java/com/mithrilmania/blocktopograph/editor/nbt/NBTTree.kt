@@ -53,7 +53,7 @@ class NBTTree(
         old.uid == neo.uid
 
     override fun areContentsTheSame(old: NBTNode, neo: NBTNode) =
-        old == neo
+        old.isSame(neo)
 }), MapNode {
     override val uid get() = 0
     override val depth get() = 0
@@ -157,7 +157,4 @@ class NBTTree(
         if (index < 0) return
         this.notifyItemChanged(index)
     }
-
-    override fun equals(other: Any?) = this === other
-    override fun hashCode() = super.hashCode()
 }

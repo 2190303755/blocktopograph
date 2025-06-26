@@ -33,10 +33,10 @@ interface NBTNode {
     val type: Int
     val depth: Int
     val expanded: Boolean
+    fun isSame(node: NBTNode): Boolean
     fun asTag(): BinaryTag<*>
     fun registerAs(parent: RootNode<*>, key: String): NBTNode
     fun getChildren(): Collection<NBTNode>
-    abstract override fun equals(other: Any?): Boolean
 }
 
 sealed interface RootNode<K> : NBTNode {
@@ -44,11 +44,13 @@ sealed interface RootNode<K> : NBTNode {
     fun remove(key: K): NBTNode?
     fun insert(key: K, node: NBTNode): Boolean
     fun makeInsertOption(item: MenuItem, context: Context)
+    override fun isSame(node: NBTNode) = this === node
 }
 
 interface MapNode : RootNode<String> {
     fun containsKey(key: String): Boolean
     fun put(key: String, node: NBTNode): NBTNode?
+    override fun asTag(): CompoundTag
     override fun makeInsertOption(item: MenuItem, context: Context) {
         item.setOnMenuItemClickListener {
             context.insertNode(this) callback@{ node ->

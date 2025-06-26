@@ -40,6 +40,8 @@ fun Byte.toBinaryTag() = when (this) {
     BYTE_1 -> BYTE_TAG_ONE
     else -> ByteTag(this)
 }
+fun Int.toBinaryTag() = IntTag(this)
+fun Long.toBinaryTag() = LongTag(this)
 
 val STRING_TAG_EMPTY = StringTag("")
 val BYTE_TAG_ZERO = ByteTag(0)

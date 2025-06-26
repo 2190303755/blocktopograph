@@ -16,6 +16,6 @@ value class StringTag internal constructor(override val value: String) : BinaryT
     companion object Type : TagType<StringTag> {
         override val id get() = TAG_STRING
         override fun toString() = "TAG_String"
-        override fun read(input: DataInput, depth: Int) = StringTag(input.readUTF())
+        override fun read(input: DataInput, depth: Int) = input.readUTF().toBinaryTag()
     }
 }

@@ -115,6 +115,5 @@ class ListTag private constructor(
             }
             return ListTag(id, list)
         }
-
     }
 }

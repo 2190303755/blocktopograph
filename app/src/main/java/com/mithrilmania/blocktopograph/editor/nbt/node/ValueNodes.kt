@@ -26,11 +26,6 @@ sealed class ValueNode<T>(
     override val expanded get() = false
     override val depth = parent.depth + 1
     override fun getChildren() = emptySet<NBTNode>()
-    override fun hashCode() = this.uid
-    override fun equals(other: Any?): Boolean {
-        return this === other ||
-                other is ValueNode<*> && this.value == other.value
-    }
     override var name: String = name
         set(value) {
             field = value
@@ -38,14 +33,20 @@ sealed class ValueNode<T>(
         }
 }
 
+sealed interface NumericNode<T : Number> : NBTNode {
+    var value: T
+}
+
 class ByteNode(
     parent: RootNode<*>,
     uid: Int,
     name: String,
     data: Byte
-) : ValueNode<Byte>(parent, uid, name, data) {
+) : ValueNode<Byte>(parent, uid, name, data), NumericNode<Byte> {
     override val type get() = TAG_BYTE
     override fun asTag() = this.value.toBinaryTag()
+    override fun isSame(node: NBTNode) =
+        this === node || node is ByteNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -57,9 +58,11 @@ class ShortNode(
     uid: Int,
     name: String,
     data: Short
-) : ValueNode<Short>(parent, uid, name, data) {
+) : ValueNode<Short>(parent, uid, name, data), NumericNode<Short> {
     override val type get() = TAG_SHORT
     override fun asTag() = ShortTag(this.value)
+    override fun isSame(node: NBTNode) =
+        this === node || node is ShortNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -71,9 +74,11 @@ class IntNode(
     uid: Int,
     name: String,
     data: Int
-) : ValueNode<Int>(parent, uid, name, data) {
+) : ValueNode<Int>(parent, uid, name, data), NumericNode<Int> {
     override val type get() = TAG_INT
     override fun asTag() = IntTag(this.value)
+    override fun isSame(node: NBTNode) =
+        this === node || node is IntNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -85,9 +90,11 @@ class LongNode(
     uid: Int,
     name: String,
     data: Long
-) : ValueNode<Long>(parent, uid, name, data) {
+) : ValueNode<Long>(parent, uid, name, data), NumericNode<Long> {
     override val type get() = TAG_LONG
     override fun asTag() = LongTag(this.value)
+    override fun isSame(node: NBTNode) =
+        this === node || node is LongNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -99,9 +106,11 @@ class FloatNode(
     uid: Int,
     name: String,
     data: Float
-) : ValueNode<Float>(parent, uid, name, data) {
+) : ValueNode<Float>(parent, uid, name, data), NumericNode<Float> {
     override val type get() = TAG_FLOAT
     override fun asTag() = FloatTag(this.value)
+    override fun isSame(node: NBTNode) =
+        this === node || node is FloatNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -113,9 +122,11 @@ class DoubleNode(
     uid: Int,
     name: String,
     data: Double
-) : ValueNode<Double>(parent, uid, name, data) {
+) : ValueNode<Double>(parent, uid, name, data), NumericNode<Double> {
     override val type get() = TAG_DOUBLE
     override fun asTag() = DoubleTag(this.value)
+    override fun isSame(node: NBTNode) =
+        this === node || node is DoubleNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
@@ -130,6 +141,8 @@ class StringNode(
 ) : ValueNode<String>(parent, uid, name, data) {
     override val type get() = TAG_STRING
     override fun asTag() = this.value.toBinaryTag()
+    override fun isSame(node: NBTNode) =
+        this === node || node is StringNode && this.value == node.value
     override fun registerAs(
         parent: RootNode<*>,
         key: String
