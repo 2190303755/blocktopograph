@@ -10,23 +10,37 @@ import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.ListTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
-import com.mithrilmania.blocktopograph.nbt.io.BedrockOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.io.NBTOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.parseNamedTag
-import com.mithrilmania.blocktopograph.nbt.parseSNBT
-import com.mithrilmania.blocktopograph.nbt.toBinaryTag
+import com.mithrilmania.blocktopograph.nbt.StringTag
+import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput
+import com.mithrilmania.blocktopograph.nbt.io.JavaNBTOutput
+import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
+import com.mithrilmania.blocktopograph.nbt.io.SNBTStringReader
+import com.mithrilmania.blocktopograph.nbt.io.writeNBT
+import com.mithrilmania.blocktopograph.nbt.util.Indentation
 import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
+import com.mithrilmania.blocktopograph.nbt.util.SNBTParser
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import org.junit.Test
 import java.io.File
-import java.nio.ByteOrder
 
 class NBTTest {
     @Test
     fun testOutput() {
         val tag = makeBigCompound()
-        NBTOutputBuffer(File("./test.nbt").outputStream(), ByteOrder.LITTLE_ENDIAN).save("", tag)
-        BedrockOutputBuffer(File("./level.dat").outputStream(), 9U).save("", tag)
+        JavaNBTOutput(File("./java.nbt").outputStream().buffered()).use {
+            it.writeNBT("", tag)
+        }
+        BedrockNBTOutput(File("./bedrock.nbt").outputStream().buffered()).use {
+            it.writeNBT("", tag)
+        }
+        File("./level.dat").outputStream().writeNBT("", tag, object : NBTExportConfig {
+            override val stringify: Boolean get() = false
+            override val prettify: Boolean get() = false
+            override val heterogeneous: Boolean get() = false
+            override val storageVersion: UInt get() = 9U
+            override val compressed: Boolean get() = false
+            override val littleEndian: Boolean get() = true
+        })
     }
 
     @Test
@@ -54,12 +68,10 @@ class NBTTest {
             "{test: 1b}",
             "[i;1b,2d,3f]",
             ":value",
-        ).forEach {
-            it.parseSNBT().let {
-                print(it::class.simpleName)
+        ).forEachSNBT { (_, tag) ->
+            print(tag::class.simpleName)
                 print('\t')
-                it.print()
-            }
+            tag.print()
         }
     }
 
@@ -73,26 +85,61 @@ class NBTTest {
             "tag:[]",
             "{tag:[]}",
             "123:-456",
-        ).forEach {
-            it.parseNamedTag().let {
-                println(
-                    NBTStringifier(
+        ).forEachSNBT {
+            println(
+                NBTStringifier(
                         builder = StringBuilder()
                             .appendSafeLiteral(it.first)
                             .append(':')
-                            .append('\t')
                             .append('\t')
                     ).apply {
                         it.second.accept(this)
                     }
                 )
-            }
+        }
+    }
+
+    @Test
+    fun testExtension() {
+        arrayOf(
+            "'': EmptyKey",
+            "tuple: (element)",
+            "uuid: uuid('5deb88cb-3db2-5900-b10a-66e966fa3e2b')",
+            "bool: bool(123456)",
+            "app: blocktopograph()",
+            "ShortArray: [S; 2e100, 1.23456, 1024I, 65537L]",
+            ":''",
+            "{'':''}",
+            "{:''}",
+        ).forEachSNBT {
+            println(
+                NBTStringifier(
+                    builder = StringBuilder()
+                        .appendSafeLiteral(it.first)
+                        .append(':')
+                        .append(' ')
+                ).apply {
+                    it.second.accept(this)
+                }
+            )
         }
     }
 }
 
-fun BinaryTag<*>.print(indent: String = "    ") {
-    println(NBTStringifier(indent = indent).also { this.accept(it) })
+inline fun Array<String>.forEachSNBT(action: (Pair<String, BinaryTag>) -> Unit) {
+    this.forEach {
+        try {
+            action(SNBTParser(SNBTStringReader(it)).parseRoot())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+fun BinaryTag.print(indentation: String = "    ") {
+    println(NBTStringifier(indentation = Indentation(indentation)).also {
+        this.accept(it)
+    })
 }
 
 inline fun buildCompound(
@@ -120,7 +167,7 @@ operator fun CompoundTag.set(key: String, value: Byte) {
 }
 
 operator fun CompoundTag.set(key: String, value: String) {
-    this[key] = value.toBinaryTag()
+    this[key] = StringTag(value)
 }
 
 operator fun CompoundTag.set(key: String, value: Float) {

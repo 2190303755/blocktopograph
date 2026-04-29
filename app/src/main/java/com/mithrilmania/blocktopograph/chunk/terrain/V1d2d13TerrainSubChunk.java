@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 
 import com.google.common.collect.Lists;
 import com.mithrilmania.blocktopograph.BuildConfig;
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
@@ -70,7 +70,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
                     mStorages[0] = BlockStorage.loadAndMoveForward(raw);
                 } catch (IOException e) {
                     if (BuildConfig.DEBUG) {
-                        Log.d(this, e);
+                        LogUtil.d(this, e);
                     }
                     mIsError = true;
                 }
@@ -89,7 +89,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
                     if (count > 1) mStorages[1] = BlockStorage.loadAndMoveForward(raw);
                 } catch (IOException e) {
                     if (BuildConfig.DEBUG) {
-                        Log.d(this, e);
+                        LogUtil.d(this, e);
                     }
                     mIsError = true;
                 }
@@ -409,7 +409,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
             if (version != null) {
                 var value = version.getValue().toString();
                 if (!VERSIONS.contains(value)) {
-                    Log.d(BlockStorage.class, "fuckfuckversion:" + value);
+                    LogUtil.d(BlockStorage.class, "fuckfuckversion:" + value);
                     VERSIONS.add(value);
                 }
             }

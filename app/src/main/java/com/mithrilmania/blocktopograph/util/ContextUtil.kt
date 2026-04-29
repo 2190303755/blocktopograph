@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.core.content.getSystemService
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -27,7 +28,7 @@ fun Context.toast(@StringRes text: Int) =
     Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 
 val Context.clipboard
-    get() = this.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    get() = this.getSystemService<ClipboardManager>()
 
 inline fun FragmentManager.popAndTransit(action: FragmentTransaction.() -> Unit) {
     this.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)

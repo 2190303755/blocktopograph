@@ -12,6 +12,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
 import com.mithrilmania.blocktopograph.storage.FileServiceClient
 import com.mithrilmania.blocktopograph.storage.FileServiceServer
+import com.mithrilmania.blocktopograph.util.error
 import rikka.shizuku.Shizuku
 import rikka.shizuku.Shizuku.OnBinderDeadListener
 import rikka.shizuku.Shizuku.OnBinderReceivedListener
@@ -40,7 +41,7 @@ class Blocktopograph : Application(),
             try {
                 return if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) ShizukuStatus.AVAILABLE else ShizukuStatus.UNAUTHORIZED
             } catch (e: Throwable) {
-                Log.e(this, e)
+                e.error("Failed to query Shizuku status")
             }
             return ShizukuStatus.UNKNOWN
         }

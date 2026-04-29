@@ -4,23 +4,31 @@ import com.mithrilmania.blocktopograph.nbt.io.TagReader
 import com.mithrilmania.blocktopograph.nbt.util.NBTFormatException
 import java.io.DataInput
 
-const val TAG_END = 0
-const val TAG_BYTE = 1
-const val TAG_SHORT = 2
-const val TAG_INT = 3
-const val TAG_LONG = 4
-const val TAG_FLOAT = 5
-const val TAG_DOUBLE = 6
-const val TAG_BYTE_ARRAY = 7
-const val TAG_STRING = 8
-const val TAG_LIST = 9
-const val TAG_COMPOUND = 10
-const val TAG_INT_ARRAY = 11
-const val TAG_LONG_ARRAY = 12
-const val TAG_ROOT = 13 // for layout
+const val TAG_END: Byte = 0x00
+const val TAG_BYTE: Byte = 0x01
+const val TAG_SHORT: Byte = 0x02
+const val TAG_INT: Byte = 0x03
+const val TAG_LONG: Byte = 0x04
+const val TAG_FLOAT: Byte = 0x05
+const val TAG_DOUBLE: Byte = 0x06
+const val TAG_BYTE_ARRAY: Byte = 0x07
+const val TAG_STRING: Byte = 0x08
+const val TAG_LIST: Byte = 0x09
+const val TAG_COMPOUND: Byte = 0x0A
+const val TAG_INT_ARRAY: Byte = 0x0B
+const val TAG_LONG_ARRAY: Byte = 0x0C
+const val KINDS_OF_SELECTABLE_TAGS: Int = TAG_LONG_ARRAY.toInt()
 
-fun Int.asTagType(): TagType<*> = when (this) {
-    TAG_END -> EndTagType
+sealed interface TagType<T : BinaryTag> : TagReader<T> {
+    val typeId: Byte
+    fun transform(tag: BinaryTag): T
+    override fun toString(): String
+}
+
+sealed interface NumericTagType<T : NumericTag> : TagType<T>
+
+fun Byte.toTagType(): TagType<*> = when (this) {
+    TAG_END -> EndTag
     TAG_BYTE -> ByteTag.Type
     TAG_SHORT -> ShortTag.Type
     TAG_INT -> IntTag.Type
@@ -36,25 +44,10 @@ fun Int.asTagType(): TagType<*> = when (this) {
     else -> Invalid(this)
 }
 
-fun Int.isImmutableTagType(): Boolean = when (this) {
-    TAG_END, TAG_BYTE, TAG_SHORT, TAG_INT, TAG_LONG, TAG_FLOAT, TAG_DOUBLE, TAG_STRING -> true
-    else -> false
-}
-
-sealed interface TagType<T : BinaryTag<*>> : TagReader<T> {
-    val id: Int
-    override fun toString(): String
-}
-
-object EndTagType : TagType<EndTag> {
-    override val id get() = TAG_END
-    override fun toString() = "TAG_End"
-    override fun read(input: DataInput, depth: Int) = EndTag
-}
-
 @JvmInline
-private value class Invalid(override val id: Int) : TagType<EndTag> {
-    override fun toString() = "UNKNOWN_$id"
-    override fun read(input: DataInput, depth: Int) =
-        throw NBTFormatException("Invalid tag type: $id")
+private value class Invalid(override val typeId: Byte) : TagType<EndTag> {
+    override fun toString() = "UNKNOWN_$typeId"
+    override fun transform(tag: BinaryTag) = fail()
+    override fun read(input: DataInput, depth: Int) = fail()
+    fun fail(): Nothing = throw NBTFormatException("Invalid tag type: $typeId")
 }

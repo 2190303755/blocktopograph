@@ -2,17 +2,25 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import android.app.AlertDialog
 import android.util.Log
+import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
+import androidx.core.content.edit
+import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
+import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
+import com.mithrilmania.blocktopograph.map.Dimension
+import com.mithrilmania.blocktopograph.map.TileEntity
+import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
 import com.mithrilmania.blocktopograph.nbt.old.EditorFragment
 import com.mithrilmania.blocktopograph.nbt.old.LevelDat
+import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.getAsEditableNBT
 import com.mithrilmania.blocktopograph.util.popAndTransit
@@ -22,6 +30,132 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WorldEditorActivity : WorldActivity() {
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        // Handle navigation view item clicks here.
+        val id = item.itemId
+
+        LogUtil.d(this, "World activity nav-drawer menu item selected: $id")
+        val drawer = mBinding.drawerLayout
+
+        when (id) {
+            R.id.nav_world_show_map -> changeContentFragment(this::openWorldMap)
+            R.id.nav_world_select -> closeWorldActivity()
+            R.id.nav_singleplayer_nbt -> openLocalPlayer()
+            R.id.nav_multiplayer_nbt -> openMultiplayerEditor()
+            R.id.nav_world_nbt -> openLevelEditor()
+            R.id.nav_overworld_satellite -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_SATELLITE
+            )
+
+            R.id.nav_overworld_cave -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_CAVE
+            )
+
+            R.id.nav_overworld_slime_chunk -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_SLIME_CHUNK
+            )
+
+            R.id.nav_overworld_heightmap -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_HEIGHTMAP
+            )
+
+            R.id.nav_overworld_biome -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_BIOME
+            )
+
+            R.id.nav_overworld_grass -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_GRASS
+            )
+
+            R.id.nav_overworld_xray -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_XRAY
+            )
+
+            R.id.nav_overworld_block_light -> this.model.navigateTo(
+                Dimension.OVERWORLD,
+                MapType.OVERWORLD_BLOCK_LIGHT
+            )
+
+            R.id.nav_nether_map -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER)
+            R.id.nav_nether_xray -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER_XRAY)
+            R.id.nav_nether_block_light -> this.model.navigateTo(
+                Dimension.NETHER,
+                MapType.NETHER_BLOCK_LIGHT
+            )
+
+            R.id.nav_nether_biome -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BIOME)
+            R.id.nav_end_satellite -> this.model.navigateTo(Dimension.END, MapType.END_SATELLITE)
+            R.id.nav_end_heightmap -> this.model.navigateTo(Dimension.END, MapType.END_HEIGHTMAP)
+            R.id.nav_end_block_light -> this.model.navigateTo(
+                Dimension.END,
+                MapType.END_BLOCK_LIGHT
+            )
+
+            R.id.nav_map_opt_toggle_grid ->  //toggle the grid
+                this.model.showGrid.value = false == this.model.showGrid.value
+
+            R.id.nav_map_opt_filter_markers -> {
+                //toggle the grid
+                TileEntity.loadIcons(this.assets)
+                this.mapFragment.openMarkerFilter()
+            }
+
+            R.id.nav_map_opt_toggle_markers -> {
+                //toggle markers
+                val visible = false == this.model.showMarkers.getValue()
+                this.model.showMarkers.value = visible
+                this.getPreferences(MODE_PRIVATE).edit {
+                    putBoolean(PREF_KEY_SHOW_MARKERS, visible)
+                }
+            }
+
+            R.id.nav_biomedata_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA)
+            }
+
+            R.id.nav_overworld_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.OVERWORLD)
+            }
+
+            R.id.nav_villages_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES)
+            }
+
+            R.id.nav_portals_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.PORTALS)
+            }
+
+            R.id.nav_dimension0_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0)
+            }
+
+            R.id.nav_dimension1_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1)
+            }
+
+            R.id.nav_dimension2_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2)
+            }
+
+            R.id.nav_autonomous_entities_nbt -> changeContentFragment {
+                openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES)
+            }
+
+            R.id.nav_open_nbt_by_name -> this.openCustomEntry()
+            else ->  //Warning, we might have messed with the menu XML!
+                LogUtil.d(this, "pressed unknown navigation-item in world-activity-drawer")
+        }
+
+        drawer.closeDrawer(GravityCompat.START)
+        return true
+    }
     /**
      * Opens an editableNBT for just the subTag if it is not null.
      * Opens the whole level.dat if subTag is null.
@@ -134,7 +268,7 @@ class WorldEditorActivity : WorldActivity() {
             val players: List<String> = try {
                 storage.networkPlayerNameList
             } catch (e: Exception) {
-                Log.e("LevelDB", "Failed to load player list", e)
+                Log.e(LEVEL_DB_TAG, "Failed to load player list", e)
                 withContext(Dispatchers.Main) {
                     activity.toast(R.string.error_general)
                     dialog.dismiss()

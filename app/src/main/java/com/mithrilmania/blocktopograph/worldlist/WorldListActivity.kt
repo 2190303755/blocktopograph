@@ -33,6 +33,7 @@ import com.mithrilmania.blocktopograph.util.asFolder
 import com.mithrilmania.blocktopograph.util.showIfAbsent
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.DEFAULT_WORLD_PATH
+import com.mithrilmania.blocktopograph.world.impl.loadSAFWorld
 import com.mithrilmania.blocktopograph.world.impl.loadSAFWorlds
 import com.mithrilmania.blocktopograph.world.impl.loadShizukuWorlds
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,13 @@ class WorldListActivity : BaseActivity() {
             this.loadWorlds(it ?: return@registry)
         }
         this.createWorld = registerForActivityResult(WorldCreator) registry@{
-            //this.adapter.addWorld(it ?: return@registry)
+            if (it === null) return@registry
+            lifecycleScope.launch(Dispatchers.IO) {
+                applicationContext.loadSAFWorld(
+                    this@WorldListActivity.model.adapter,
+                    it
+                )
+            }
         }
         model.loading.observe(this) {
             if (it) this.binding.progress.show() else this.binding.progress.hide()

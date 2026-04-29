@@ -1,43 +1,89 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import com.mithrilmania.blocktopograph.nbt.io.increaseDepthOrThrow
 import com.mithrilmania.blocktopograph.nbt.io.readBinaryTags
-import com.mithrilmania.blocktopograph.nbt.io.writeEntry
+import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
+import com.mithrilmania.blocktopograph.nbt.util.boxed
 import java.io.DataInput
 import java.io.DataOutput
 
 
-class CompoundTag(
-    tags: MutableMap<String, BinaryTag<*>>
-) : BinaryTag<CompoundTag>, MutableMap<String, BinaryTag<*>> by tags {
-    constructor() : this(HashMap())
-
-    override val type get() = Type
-    override val value get() = this
-    override fun accept(visitor: TagVisitor) = visitor.visit(this)
-    override fun copy() = CompoundTag(
-        this.mapValuesTo(
-            HashMap(((this.size / 0.75F) + 1.0F).toInt())
-        ) { (_, tag) -> tag.copy() }
+@JvmInline
+value class CompoundTag(
+    @JvmField val tags: MutableMap<String, BinaryTag> = hashMapOf()
+) : BinaryTag, MutableMap<String, BinaryTag> by tags {
+    override val type: Type get() = Type
+    override fun copy(): CompoundTag = CompoundTag(
+        this.mapValuesTo(HashMap()) { it.value.copy() }
     )
 
     override fun write(output: DataOutput) {
-        this.forEach { (name, tag) -> output.writeEntry(name, tag) }
-        output.writeByte(TAG_END)
+        this.forEach {
+            output.writeNBT(it.key, it.value)
+        }
+        output.writeByte(TAG_END.toInt())
+    }
+
+    override fun accept(visitor: TagVisitor) {
+        visitor.visit(this)
+    }
+
+    inline fun forEachSorted(action: (BinaryTag) -> Unit) {
+        this.keys.sorted().forEach {
+            action(this[it]!!)
+        }
     }
 
     companion object Type : TagType<CompoundTag> {
-        override val id get() = TAG_COMPOUND
+        override val typeId get() = TAG_COMPOUND
         override fun toString() = "TAG_Compound"
         override fun read(input: DataInput, depth: Int): CompoundTag {
             val child = depth.increaseDepthOrThrow()
-            val tags = HashMap<String, BinaryTag<*>>()
+            val tags = HashMap<String, BinaryTag>()
             input.readBinaryTags loop@{
-                if (it == 0) return@loop false
-                tags[input.readUTF()] = it.asTagType().read(input, child)
+                if (it == TAG_END) return@loop false
+                tags[input.readUTF()] = it.toTagType().read(input, child)
                 return@loop true
             }
             return CompoundTag(tags)
+        }
+
+        override fun transform(tag: BinaryTag) = when (tag) {
+            EndTag -> CompoundTag()
+            is ByteArrayTag -> {
+                val tags = hashMapOf<String, BinaryTag>()
+                tag.elements.forEachIndexed { index, tag ->
+                    tags[index.toString()] = ByteTag(tag)
+                }
+                CompoundTag(tags)
+            }
+
+            is IntArrayTag -> {
+                val tags = hashMapOf<String, BinaryTag>()
+                tag.elements.forEachIndexed { index, tag ->
+                    tags[index.toString()] = IntTag(tag)
+                }
+                CompoundTag(tags)
+            }
+
+            is LongArrayTag -> {
+                val tags = hashMapOf<String, BinaryTag>()
+                tag.elements.forEachIndexed { index, tag ->
+                    tags[index.toString()] = LongTag(tag)
+                }
+                CompoundTag(tags)
+            }
+
+            is ListTag -> {
+                val tags = hashMapOf<String, BinaryTag>()
+                tag.forEachIndexed { index, tag ->
+                    tags[index.toString()] = tag
+                }
+                CompoundTag(tags)
+            }
+
+            else -> tag.boxed()
         }
     }
 }

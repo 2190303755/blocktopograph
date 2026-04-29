@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.view;
 
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -9,14 +11,12 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.EdgeEffect;
 
-import com.github.florent37.expansionpanel.ExpansionLayout;
-import com.mithrilmania.blocktopograph.Log;
-
-import java.lang.reflect.Field;
-
 import androidx.core.widget.NestedScrollView;
 
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import com.github.florent37.expansionpanel.ExpansionLayout;
+import com.mithrilmania.blocktopograph.LogUtil;
+
+import java.lang.reflect.Field;
 
 /**
  * The class serves two purpose, for layout height fix and edge effect on expansion.
@@ -70,7 +70,7 @@ public class MeowExpansionLayout extends ExpansionLayout {
             mEdgeEffect = edge;
             //post(this::doOverScroll);
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
     }
 
@@ -148,7 +148,7 @@ public class MeowExpansionLayout extends ExpansionLayout {
             fieldAnimator.set(this, animator);
             fieldAnimator.setAccessible(false);
         } catch (Throwable e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
     }
 
@@ -160,7 +160,7 @@ public class MeowExpansionLayout extends ExpansionLayout {
             fieldAnimator.setBoolean(this, expanded);
             fieldAnimator.setAccessible(false);
         } catch (Throwable e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
     }
 

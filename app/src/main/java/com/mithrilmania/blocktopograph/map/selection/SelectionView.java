@@ -9,11 +9,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.R;
@@ -24,7 +23,7 @@ import com.mithrilmania.blocktopograph.util.UiUtil;
 
 import java.lang.ref.WeakReference;
 
-public class SelectionView extends FrameLayout {
+public class SelectionView extends FrameLayout implements SelectionViewCompat {
 
     /**
      * The view being dragged now.
@@ -176,259 +175,116 @@ public class SelectionView extends FrameLayout {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onViewAdded(View child) {
-        switch (child.getId()) {
-            case R.id.left:
-            case R.id.right:
-            case R.id.top:
-            case R.id.bottom:
-                child.setOnTouchListener(this::onTouch);
-                break;
-        }
+        this.onViewAddCompat(child);
     }
 
-    private boolean onTouch(View view, MotionEvent motionEvent) {
-
-        MapTileView tileView;
-        if (mTileView == null || (tileView = mTileView.get()) == null) return false;
-
-        // If already dragging another button, disallow dragging a second one.
-        @IdRes int which = view.getId();
-        if (mDragger != null && which != mDragger.getId()) {
-            // Well if we return false for an ACTION_DOWN then it won't bother popping
-            // Tons of confusing ACTION_MOVEs.
-            return false;
-        }
-
-        // Set current pos.
-        switch (which) {
-            case R.id.left:
-            case R.id.right:
-                // Motion event's get x is relative to view's x. Sum 'em up.
-                mDragCurrentPos = view.getX() + motionEvent.getX();
-                break;
-            case R.id.top:
-            case R.id.bottom:
-                mDragCurrentPos = view.getY() + motionEvent.getY();
-                break;
-        }
-
-        switch (motionEvent.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-
-                // Begin visual effect on the pressed button.
-                view.setPressed(true);
-
-                // Show icon.
-                View actionIcon = getChildAt(4);
-                actionIcon.setVisibility(VISIBLE);
-
-                switch (which) {
-                    case R.id.left:
-                        actionIcon.setRotation(270.0f);
-                        break;
-                    case R.id.right:
-                        actionIcon.setRotation(90.0f);
-                        break;
-                    case R.id.top:
-                        actionIcon.setRotation(0.0f);
-                        break;
-                    case R.id.bottom:
-                        actionIcon.setRotation(180.0f);
-                        break;
-                }
-
-                // Prevents tileView being touched while dragging.
-                tileView.setTouchable(false);
-
-                // Set current dragging item.
-                mDragger = view;
-                switch (which) {
-                    case R.id.left:
-                    case R.id.right:
-                        mDragBeginPosCorr = motionEvent.getX();// - view.getX();
-                        break;
-                    case R.id.top:
-                    case R.id.bottom:
-                        mDragBeginPosCorr = motionEvent.getY();// - view.getY();
-                        break;
-                }
-                mDragAccumulation = 0.0f;
-                mDragDirection = 0;
-
-                // And trigger a continuous detecting.
-                post(mHoldingMover);
-
-                // IMPORTANT! Forgot this once. Fuck you man, fuck you!
-                return true;
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-
-                // End visual effect.
-                view.setPressed(false);
-
-                // Hide icon.
-                getChildAt(4).setVisibility(GONE);
-
-                // Clear & Unlock.
-                tileView.setTouchable(true);
-                mDragger = null;
-                return true;
-
-            case MotionEvent.ACTION_MOVE:
-                //onMove(tileView, which, motionEvent);
-                return true;
-        }
-
-        return false;
+    @Override
+    public WeakReference<MapTileView> getTileView() {
+        return mTileView;
     }
 
-    private void onMove() {
+    @Override
+    public View getDragger() {
+        return this.mDragger;
+    }
 
-        // The tileView we serves for.
-        MapTileView tileView;
+    @Override
+    public void setDragger(View view) {
+        this.mDragger = view;
+    }
 
-        // If user no longer holding or we don't have a tileView to serve for.
-        if (mDragger == null || !isEnabled() ||
-                mTileView == null || (tileView = mTileView.get()) == null) return;
+    @Override
+    public float getDragCurrentPos() {
+        return this.mDragCurrentPos;
+    }
 
-        // Distance between view position and current holding position.
-        float distOnScreen;
+    @Override
+    public void setDragCurrentPos(float v) {
+        this.mDragCurrentPos = v;
+    }
 
-        // Get the view to retrieve its position.
+    @Override
+    public float getDragBeginPosCorr() {
+        return this.mDragBeginPosCorr;
+    }
 
-        // Won't happen.
-        if (mDragger == null) return;
+    @Override
+    public void setDragBeginPosCorr(float v) {
+        this.mDragBeginPosCorr = v;
+    }
 
-        // Retrieve view position then get the distance and screen size.
-        int draggerId = mDragger.getId();
-        switch (draggerId) {
-            case R.id.left:
-            case R.id.right:
-                // `dragged.getX() - mDragBeginPosCorr` is the current position of user's initially
-                // touched point of the View.
-                distOnScreen = mDragCurrentPos - mDragger.getX() - mDragBeginPosCorr;
-                break;
-            case R.id.top:
-            case R.id.bottom:
-                distOnScreen = mDragCurrentPos - mDragger.getY() - mDragBeginPosCorr;
-                break;
-            default:
-                return;
+    @Override
+    public float getDragAccumulation() {
+        return this.mDragAccumulation;
+    }
+
+    @Override
+    public void setDragAccumulation(float v) {
+        this.mDragAccumulation = v;
+    }
+
+    @Override
+    public int getDragDirection() {
+        return this.mDragDirection;
+    }
+
+    @Override
+    public void setDragDirection(int i) {
+        this.mDragDirection = i;
+    }
+
+    @Override
+    @NonNull
+    public Runnable getHoldingMover() {
+        return this.mHoldingMover;
+    }
+
+    @Override
+    @NonNull
+    public Rect getSelectionRect() {
+        return this.mSelectionRect;
+    }
+
+    @Override
+    public SelectionChangedListener getSelectionChangedListener() {
+        return this.mSelectionChangedListener;
+    }
+
+    @Override
+    public int preSelect(MapTileView tileView, float distOnScreen, float movement) {
+        // Translate the distance back to blocks count.
+        float scale = tileView.getScale();
+        float pxPerBlx = scale * MCTileProvider.TILESIZE / 16;
+        int distanceInBlocks = Math.round(movement / pxPerBlx);
+
+        // If it's less than a oldBlock we couldn't move, let the accumulation grow.
+        if (distanceInBlocks == 0) {//&& Math.abs(movement) >= 0.00001f) {
+            mDragAccumulation = movement;
+            return 0;
         }
 
-        flow:
-        {
-            // Amplify movement. Maybe we'd allow user to set it, or calculate based on screen
-            // density and tileView's scale.
-            float amp = 0.2f;
-
-            //Log.d(this, "" + distOnScreen + "," + mDragCurrentPos + "," + mDragBeginPosCorr);
-
-            // If a previous round failed to move at least 1 oldBlock's wide,
-            // it would accumulate the distance till in a future round we could move.
-            float movement = distOnScreen * amp + mDragAccumulation;
-
-            // Translate the distance back to blocks count.
-            float scale = tileView.getScale();
-            float pxPerBlx = scale * MCTileProvider.TILESIZE / 16;
-            int distanceInBlocks = Math.round(movement / pxPerBlx);
-
-            // If it's less than a oldBlock we couldn't move, let the accumulation grow.
-            if (distanceInBlocks == 0) {//&& Math.abs(movement) >= 0.00001f) {
-                mDragAccumulation = movement;
-                break flow;
-            }
-
-            // Anti-jitter. If the user's scrolling right carefully, we don't want it suddenly goes
-            // left because the view also moved and moved faster than the finger.
-            if (// If previous direction set, is negative to current, and current movement is short.
-                    (distanceInBlocks < 0 && mDragDirection > 0 && distOnScreen > -10.0f)
-                            || (distanceInBlocks > 0 && mDragDirection < 0 && distOnScreen < 10.0f)) {
-                // Then we do not move and clear accumulation.
-                mDragAccumulation = 0;
-                break flow;
-            }
-
-            // Set direction for next round's anti-jitter.
-            mDragDirection = distanceInBlocks > 0 ? 1 : -1;
-
-            // We've decided to move NOW AND TODAY clear accumulation.
+        // Anti-jitter. If the user's scrolling right carefully, we don't want it suddenly goes
+        // left because the view also moved and moved faster than the finger.
+        if (// If previous direction set, is negative to current, and current movement is short.
+                (distanceInBlocks < 0 && mDragDirection > 0 && distOnScreen > -10.0f)
+                        || (distanceInBlocks > 0 && mDragDirection < 0 && distOnScreen < 10.0f)) {
+            // Then we do not move and clear accumulation.
             mDragAccumulation = 0;
-
-            // Alter selection.
-            // Selection shall be at least 1x1.
-            switch (draggerId) {
-                case R.id.left:
-                    if (mSelectionRect.left + distanceInBlocks >= mSelectionRect.right) {
-                        mSelectionRect.left = mSelectionRect.right - 1;
-                        distanceInBlocks = 0;
-                    } else mSelectionRect.left += distanceInBlocks;
-                    break;
-                case R.id.right:
-                    if (mSelectionRect.right + distanceInBlocks <= mSelectionRect.left) {
-                        mSelectionRect.right = mSelectionRect.left + 1;
-                        distanceInBlocks = 0;
-                    } else mSelectionRect.right += distanceInBlocks;
-                    break;
-                case R.id.top:
-                    if (mSelectionRect.top + distanceInBlocks >= mSelectionRect.bottom) {
-                        mSelectionRect.top = mSelectionRect.bottom - 1;
-                        distanceInBlocks = 0;
-                    } else mSelectionRect.top += distanceInBlocks;
-                    break;
-                case R.id.bottom:
-                    if (mSelectionRect.bottom + distanceInBlocks <= mSelectionRect.top) {
-                        mSelectionRect.bottom = mSelectionRect.top + 1;
-                        distanceInBlocks = 0;
-                    } else mSelectionRect.bottom += distanceInBlocks;
-                    break;
-            }
-
-            // If no movement, return.
-            // It would be caused by the "Selection must be at least 1x1" rule.
-            // For instance in case it's already 200x1 we can't move vertically.
-            if (distanceInBlocks == 0) break flow;
-
-            // Notify outsides.
-            if (mSelectionChangedListener != null)
-                mSelectionChangedListener.onSelectionChanged(mSelectionRect);
-
-            // Should we move the underlying tileView as well?
-            // If touched point is near the moving direction (not the dragger position)
-            // then we scroll.
-
-            int sw = getMeasuredWidth();
-            int sh = getMeasuredHeight();
-            int minw = Math.max(MIN_DIST_TO_SCREEN_BOUND, sw / 8);
-            int minh = Math.max(MIN_DIST_TO_SCREEN_BOUND, sh / 8);
-
-            switch (draggerId) {
-                case R.id.left:
-                case R.id.right:
-                    // (Moving right and near right bound) or
-                    // (Moving left and near left bound)
-                    if (mDragDirection > 0 && sw - mDragCurrentPos < minw
-                            || (mDragDirection < 0 && mDragCurrentPos < minw)
-                    )
-                        tileView.setScrollX((int) (tileView.getScrollX() + movement));
-                    else
-                        requestLayout();
-                    break;
-                case R.id.top:
-                case R.id.bottom:
-                    if (mDragDirection > 0 && sh - mDragCurrentPos < minh
-                            || (mDragDirection < 0 && mDragCurrentPos < minh)
-                    )
-                        tileView.setScrollY((int) (tileView.getScrollY() + movement));
-                    else
-                        requestLayout();
-                    break;
-            }
+            return 0;
         }
 
-        // Schedule the next round.
-        postDelayed(mHoldingMover, 40);
+        // Set direction for next round's anti-jitter.
+        mDragDirection = distanceInBlocks > 0 ? 1 : -1;
+
+        // We've decided to move NOW AND TODAY clear accumulation.
+        mDragAccumulation = 0;
+
+        return distanceInBlocks;
+    }
+
+    @Override
+    public int getMinDistToScreenBound() {
+        return MIN_DIST_TO_SCREEN_BOUND;
     }
 
     public void setTileView(MapTileView tileView) {

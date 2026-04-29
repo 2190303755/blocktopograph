@@ -23,7 +23,6 @@ import android.util.Size
 import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
 import com.mithrilmania.blocktopograph.nbt.old.LevelDBNBT
-import com.mithrilmania.blocktopograph.util.ConvertUtil.bytesToHexStr
 import org.iq80.leveldb.DB
 import java.io.BufferedReader
 import java.io.File
@@ -248,9 +247,9 @@ fun formatSize(size: Long): String {
     return "%.2f %s".format(
         temp,
         when (count) {
-            1 -> "KB"
-            2 -> "MB"
-            3 -> "GB"
+            1 -> "KiB"
+            2 -> "MiB"
+            3 -> "GiB"
             else -> "B"
         }
     )
@@ -271,8 +270,8 @@ inline fun DB.getAsEditableNBT(
     try {
         return LevelDBNBT.open(this, display, key)
     } catch (e: Exception) {
-        val hex = bytesToHexStr(key)
-        Log.e("LevelDB", "Failed to open data with key: $hex", e)
+        val hex = key.toHexString()
+        Log.e(LEVEL_DB_TAG, "Failed to open data with key: $hex", e)
         handler(hex)
     }
     return null

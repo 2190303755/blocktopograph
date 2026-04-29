@@ -1,10 +1,7 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
-import com.google.common.io.LineReader
-import com.mithrilmania.blocktopograph.GZIP_HEADER
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
-import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
 import com.mithrilmania.blocktopograph.nbt.EndTag
 import com.mithrilmania.blocktopograph.nbt.FloatTag
@@ -24,178 +21,188 @@ import com.mithrilmania.blocktopograph.nbt.TAG_LONG
 import com.mithrilmania.blocktopograph.nbt.TAG_LONG_ARRAY
 import com.mithrilmania.blocktopograph.nbt.TAG_SHORT
 import com.mithrilmania.blocktopograph.nbt.TAG_STRING
-import com.mithrilmania.blocktopograph.nbt.asTagType
-import com.mithrilmania.blocktopograph.nbt.increaseDepthOrThrow
-import com.mithrilmania.blocktopograph.nbt.parseSNBT
+import com.mithrilmania.blocktopograph.nbt.toTagType
+import com.mithrilmania.blocktopograph.nbt.util.Indentation
 import com.mithrilmania.blocktopograph.nbt.util.NBTFormatException
-import java.io.ByteArrayInputStream
+import com.mithrilmania.blocktopograph.nbt.util.NBTStackOverflowException
+import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
+import java.io.ByteArrayOutputStream
 import java.io.DataInput
 import java.io.DataOutput
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
-import java.nio.ByteOrder
-import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
-fun interface NBTOutput {
-    fun save(name: String, tag: BinaryTag<*>)
+const val MAX_STACK_DEPTH = 512
+
+fun Int.increaseDepthOrThrow(): Int {
+    val depth = this + 1
+    if (depth < MAX_STACK_DEPTH) return depth
+    throw NBTStackOverflowException("Tried to read NBT tag with too high complexity, depth > $MAX_STACK_DEPTH")
 }
 
-interface NBTOutputFactory {
-    fun createOutput(stream: OutputStream): NBTOutput
+interface NBTExportConfig {
+    val stringify: Boolean
+    val prettify: Boolean
+    val heterogeneous: Boolean
+    val compressed: Boolean
+    val littleEndian: Boolean
+    val storageVersion: UInt?
 }
 
-inline fun DataInput.readBinaryTags(action: (Int) -> Boolean) {
-    while (action(this.readByte().toInt())) continue
+fun OutputStream.writeNBT(name: String, tag: BinaryTag, config: NBTExportConfig) {
+    if (config.stringify) {
+        val builder = NBTStringifier(
+            indentation = Indentation(config.prettify),
+            heterogeneous = config.heterogeneous
+        )
+        tag.accept(builder)
+        this.use {
+            it.write(builder.toString().toByteArray(Charsets.UTF_8))
+        }
+        this.close()
+    } else if (config.littleEndian) {
+        if (config.compressed) {
+            BedrockNBTOutput(GZIPOutputStream(this.buffered())).use {
+                it.writeNBT(name, tag)
+            }
+        } else {
+            val version = config.storageVersion
+            if (version === null) {
+                BedrockNBTOutput(this.buffered()).use {
+                    it.writeNBT(name, tag)
+                }
+            } else {
+                this.buffered().use {
+                    val buffer = ByteArrayOutputStream()
+                    BedrockNBTOutput(buffer).writeNBT(name, tag)
+                    it.writeIntLE(version.toInt())
+                    it.writeIntLE(buffer.size())
+                    buffer.writeTo(it)
+                }
+            }
+        }
+    } else {
+        JavaNBTOutput(
+            if (config.compressed) GZIPOutputStream(this.buffered()) else this.buffered()
+        ).use {
+            it.writeNBT(name, tag)
+        }
+    }
 }
 
-fun DataInput.readBinaryTag(): BinaryTag<*> {
-    val type = this.readByte().toInt()
-    if (type == 0) return EndTag
+fun OutputStream.writeIntLE(value: Int) {
+    this.write(value ushr 0)
+    this.write(value ushr 8)
+    this.write(value ushr 16)
+    this.write(value ushr 24)
+}
+
+fun OutputStream.writeNBTWithHeader(version: UInt, name: String, tag: BinaryTag) {
+    this.buffered().use {
+        val buffer = ByteArrayOutputStream()
+        BedrockNBTOutput(buffer).writeNBT(name, tag)
+        it.writeIntLE(version.toInt())
+        it.writeIntLE(buffer.size())
+        buffer.writeTo(it)
+    }
+}
+
+inline fun DataInput.readBinaryTags(action: (Byte) -> Boolean) {
+    while (action(this.readByte())) continue
+}
+
+fun DataInput.readBinaryTag(): BinaryTag {
+    val type = this.readByte()
+    if (type == TAG_END) return EndTag
     this.skipString()
-    return type.asTagType().read(this, 0)
+    return type.toTagType().read(this, 0)
 }
 
-fun DataInput.readNamedTag(): Pair<String, BinaryTag<*>> {
-    val type = this.readByte().toInt()
-    return if (type == 0) ("" to EndTag) else
-        (this.readUTF() to type.asTagType().read(this, 0))
+fun DataInput.readNamedTag(): Pair<String, BinaryTag> {
+    val type = this.readByte()
+    return if (type == TAG_END) {
+        "" to EndTag
+    } else {
+        this.readUTF() to type.toTagType().read(this, 0)
+    }
 }
 
 fun DataInput.skipBinaryTags(depth: Int = 0) {
-    val type = this.readByte().toInt()
-    when (type) {
-        TAG_END -> {}
-        TAG_BYTE -> this.skipBytes(ByteTag.SIZE * this.readInt())
-        TAG_SHORT -> this.skipBytes(ShortTag.SIZE * this.readInt())
-        TAG_INT -> this.skipBytes(IntTag.SIZE * this.readInt())
-        TAG_LONG -> this.skipBytes(LongTag.SIZE * this.readInt())
-        TAG_FLOAT -> this.skipBytes(FloatTag.SIZE * this.readInt())
-        TAG_DOUBLE -> this.skipBytes(DoubleTag.SIZE * this.readInt())
-        TAG_BYTE_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * ByteTag.SIZE) }
+    when (val type = this.readByte()) {
+        TAG_END -> this.skipBytes(4)
+        TAG_BYTE -> this.skipBytes(ByteTag.PAYLOAD_SIZE * this.readInt())
+        TAG_SHORT -> this.skipBytes(ShortTag.PAYLOAD_SIZE * this.readInt())
+        TAG_INT -> this.skipBytes(IntTag.PAYLOAD_SIZE * this.readInt())
+        TAG_LONG -> this.skipBytes(LongTag.PAYLOAD_SIZE * this.readInt())
+        TAG_FLOAT -> this.skipBytes(FloatTag.PAYLOAD_SIZE * this.readInt())
+        TAG_DOUBLE -> this.skipBytes(DoubleTag.PAYLOAD_SIZE * this.readInt())
+        TAG_BYTE_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * ByteTag.PAYLOAD_SIZE) }
         TAG_STRING -> repeat(this.readInt()) { this.skipString() }
-        TAG_LIST -> depth.increaseDepthOrThrow().let {
-            repeat(this.readInt()) { this.skipBinaryTags(it) }
+        TAG_LIST -> depth.increaseDepthOrThrow().let { child ->
+            repeat(this.readInt()) { this.skipBinaryTags(child) }
         }
 
-        TAG_COMPOUND -> depth.increaseDepthOrThrow().let {
-            repeat(this.readInt()) { this.skipNamedTags(it) }
+        TAG_COMPOUND -> depth.increaseDepthOrThrow().let { child ->
+            repeat(this.readInt()) { this.skipNamedTags(child) }
         }
 
-        TAG_INT_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * IntTag.SIZE) }
-        TAG_LONG_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * LongTag.SIZE) }
+        TAG_INT_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * IntTag.PAYLOAD_SIZE) }
+        TAG_LONG_ARRAY -> repeat(this.readInt()) { this.skipBytes(this.readInt() * LongTag.PAYLOAD_SIZE) }
         else -> throw NBTFormatException("Invalid tag type: $type")
     }
-}
-
-fun DataInput.skipBinaryTag(type: Int, depth: Int = 0) {
-    when (type) {
-        TAG_END -> {}
-        TAG_BYTE -> this.skipBytes(ByteTag.SIZE)
-        TAG_SHORT -> this.skipBytes(ShortTag.SIZE)
-        TAG_INT -> this.skipBytes(IntTag.SIZE)
-        TAG_LONG -> this.skipBytes(LongTag.SIZE)
-        TAG_FLOAT -> this.skipBytes(FloatTag.SIZE)
-        TAG_DOUBLE -> this.skipBytes(DoubleTag.SIZE)
-        TAG_BYTE_ARRAY -> this.skipBytes(this.readInt() * ByteTag.SIZE)
-        TAG_STRING -> this.skipString()
-        TAG_LIST -> this.skipBinaryTags(depth)
-        TAG_COMPOUND -> this.skipNamedTags(depth)
-        TAG_INT_ARRAY -> this.skipBytes(this.readInt() * IntTag.SIZE)
-        TAG_LONG_ARRAY -> this.skipBytes(this.readInt() * LongTag.SIZE)
-        else -> throw NBTFormatException("Invalid tag type: $type")
-    }
-}
-
-fun DataInput.skipNamedTags(depth: Int = 0): Boolean {
-    val child = depth.increaseDepthOrThrow()
-    this.readBinaryTags loop@{
-        if (it == 0) return@loop false
-        this.skipString()
-        this.skipBinaryTag(it, child)
-        return@loop true
-    }
-    return false
 }
 
 fun DataInput.skipString() {
     this.skipBytes(this.readUnsignedShort())
 }
 
-inline fun <reified T : BinaryTag<*>> DataOutput.writeEntry(name: String, tag: T) {
-    val id = tag.type.id
-    this.writeByte(id)
-    if (id == 0) return
+fun DataInput.skipBinaryTag(type: Byte, depth: Int = 0) {
+    when (type) {
+        TAG_END -> {}
+        TAG_BYTE -> this.skipBytes(ByteTag.PAYLOAD_SIZE)
+        TAG_SHORT -> this.skipBytes(ShortTag.PAYLOAD_SIZE)
+        TAG_INT -> this.skipBytes(IntTag.PAYLOAD_SIZE)
+        TAG_LONG -> this.skipBytes(LongTag.PAYLOAD_SIZE)
+        TAG_FLOAT -> this.skipBytes(FloatTag.PAYLOAD_SIZE)
+        TAG_DOUBLE -> this.skipBytes(DoubleTag.PAYLOAD_SIZE)
+        TAG_BYTE_ARRAY -> this.skipBytes(this.readInt() * ByteTag.PAYLOAD_SIZE)
+        TAG_STRING -> this.skipString()
+        TAG_LIST -> this.skipBinaryTags(depth)
+        TAG_COMPOUND -> this.skipNamedTags(depth)
+        TAG_INT_ARRAY -> this.skipBytes(this.readInt() * IntTag.PAYLOAD_SIZE)
+        TAG_LONG_ARRAY -> this.skipBytes(this.readInt() * LongTag.PAYLOAD_SIZE)
+        else -> throw NBTFormatException("Invalid tag type: $type")
+    }
+}
+
+fun DataInput.skipNamedTags(depth: Int = 0) {
+    val child = depth.increaseDepthOrThrow()
+    this.readBinaryTags loop@{
+        if (it == TAG_END) return@loop false
+        this.skipString()
+        this.skipBinaryTag(it, child)
+        return@loop true
+    }
+}
+
+fun DataOutput.writeNBT(name: String, tag: BinaryTag) {
+    val id = tag.type.typeId
+    this.writeByte(id.toInt())
+    if (id == TAG_END) return
     this.writeUTF(name)
     tag.write(this)
 }
 
-inline fun runSilent(action: () -> Unit) {
+@OptIn(ExperimentalContracts::class)
+inline fun runSuppressing(action: () -> Unit) {
+    contract {
+        callsInPlace(action, InvocationKind.AT_MOST_ONCE)
+    }
     try {
         action()
     } catch (_: Exception) {
     }
-}
-
-fun InputStream.readUnknownNBT(): NBTResult {
-    runSilent {
-        val bytes = this.readBytes()
-        // let's check if it starts with '{'
-        val reader = LineReader(InputStreamReader(ByteArrayInputStream(bytes), Charsets.UTF_8))
-        var flag = false
-        var line: String?
-        do {
-            line = reader.readLine()
-            if (line === null) break
-            val content = line.trimStart()
-            if (content.startsWith('{')) {
-                // it is probably SNBT
-                flag = true
-                break
-            }
-            if (content.isNotBlank()) break
-        } while (true)
-        if (flag) runSilent {
-            val tag = String(bytes, Charsets.UTF_8).parseSNBT()
-            if (tag is CompoundTag) return SNBTResult(tag)
-        }
-        // let's check if contains something like header
-        if (bytes.size > 8 && bytes.size == 8 + ((bytes[4].toInt() and 0xFF)
-                    or (bytes[5].toInt() shl 8)
-                    or (bytes[6].toInt() shl 16)
-                    or (bytes[7].toInt() shl 24))
-        ) runSilent {
-            val pair = NBTInputBuffer(
-                ByteArrayInputStream(bytes, 8, bytes.size - 8),
-                ByteOrder.LITTLE_ENDIAN
-            ).use {
-                it.readNamedTag()
-            }
-            return NamedResult(
-                pair.first,
-                pair.second,
-                false,
-                (bytes[0].toUInt()
-                        or (bytes[1].toUInt() shl 8)
-                        or (bytes[2].toUInt() shl 16)
-                        or (bytes[3].toUInt() shl 24))
-            )
-        }
-        val compressed = GZIP_HEADER == bytes[0]
-        runSilent { return bytes.readNamedTag(true, compressed) }
-        runSilent { return bytes.readNamedTag(false, compressed) }
-    }
-    return NamedResult("", CompoundTag())
-}
-
-fun ByteArray.readNamedTag(
-    littleEndian: Boolean,
-    compressed: Boolean
-): NamedResult {
-    val stream = ByteArrayInputStream(this)
-    val pair = NBTInputBuffer(
-        if (compressed) GZIPInputStream(stream) else stream,
-        if (littleEndian) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
-    ).use { it.readNamedTag() }
-    return NamedResult(pair.first, pair.second, compressed, null, littleEndian)
 }

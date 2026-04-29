@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.util
 
 import android.content.ClipData
+import android.content.Context
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
@@ -50,10 +51,17 @@ fun View.applyFloatingInsets(insets: Insets, padding: Int) {
 fun MaterialTextView.copyOnClick() {
     (this.parent?.parent?.parent as? View)?.setOnClickListener {
         if (this.text.isNullOrBlank()) return@setOnClickListener
-        this.context.clipboard?.setPrimaryClip(ClipData.newPlainText("", this.text))
-            ?: return@setOnClickListener
+        this.context.setPrimaryClip {
+            ClipData.newPlainText("", this.text)
+        }
+    }
+}
+
+inline fun Context.setPrimaryClip(factory: () -> ClipData) {
+    this.clipboard?.let {
+        it.setPrimaryClip(factory())
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            this.context.toast(R.string.toast_copy_success)
+            this.toast(R.string.toast_copy_success)
         }
     }
 }

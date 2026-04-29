@@ -11,6 +11,9 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
+    <string name="expander_expand">Expand</string>
+    <string name="expander_collapse">Collapse</string>
+
     <string name="action_settings">Settings</string>
     <string name="action_about">About</string>
     <string name="action_help">Help</string>
@@ -435,7 +438,6 @@
         -->by Firebase automatically, which might be (indirectly) personally identifiable, technically.\n\n<!--
         -->Link to privacy policy of third party service providers used by the app:\n<!--
         --><a href="https://www.google.com/policies/privacy/">Google Play Services</a>\n<!--
-        --><a href="https://firebase.google.com/policies/analytics">Firebase Analytics</a>\n<!--
         --><a href="http://try.crashlytics.com/terms/privacy-policy.pdf">Crashlytics</a>\n\n<!--
         -->All collected data would only be processed on secured services provided by those <!--
         -->publicly trusted providers online.\n\n<!--
@@ -522,6 +524,7 @@
     <string name="action_file_info">Properties</string>
     <string name="action_quit">Quit</string>
     <string name="dialog_storage_option_type">Type</string>
+    <string name="dialog_storage_option_format">Format</string>
     <string name="dialog_storage_option_type_nbt" translatable="false">NBT</string>
     <string name="dialog_storage_option_type_snbt" translatable="false">SNBT</string>
     <string name="dialog_storage_option_endian">Endian</string>
@@ -532,6 +535,7 @@
     <string name="dialog_storage_option_compression_zlib" translatable="false">ZLib</string>
     <string name="dialog_storage_option_header">Header</string>
     <string name="dialog_storage_option_prettify">Prettify</string>
+    <string name="dialog_storage_option_heterogeneous">Heterogeneous List</string>
     <string name="option_on">On</string>
     <string name="option_off">Off</string>
     <string name="option_none">None</string>
@@ -541,7 +545,8 @@
     <string name="option_tag_name">Tag Name</string>
     <string name="toast_copy_success">Copied to clipboard</string>
     <string name="toast_empty_clipboard">Clipboard is empty</string>
-    <string name="error_duplicate_key">Duplicate key: %s</string>
+    <string name="error_duplicate_key_format">Duplicate key: %s</string>
+    <string name="error_duplicate_key">Duplicate key</string>
     <string name="generic_unknown">Unknown</string>
     <string-array name="tag_types">
         <item>Byte Tag</item>
@@ -557,4 +562,5 @@
         <item>Int Array Tag</item>
         <item>Long Array Tag</item>
     </string-array>
+    <string name="title_activity_neo_nbteditor">NeoNBTEditorActivity</string>
 </resources>

@@ -10,10 +10,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.DialogWorldDetailBinding
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.WorldEditorActivity
+import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.test.WorldTestActivity
 import com.mithrilmania.blocktopograph.util.copyOnClick
 import com.mithrilmania.blocktopograph.util.makeCommonDialog
@@ -82,6 +86,9 @@ class WorldDetailDialog : BottomSheetDialogFragment() {
                             context,
                             NBTEditorActivity::class.java
                         ).setAction(Intent.ACTION_VIEW)
+                            .putExtra(EXTRA_EDITOR_DEFAULT_FORMAT, NBTFormat.LITTLE_ENDIAN.name)
+                            .putExtra(EXTRA_EDITOR_DETECT_HEADER, true)
+                            .putExtra(EXTRA_EDITOR_SKIP_IMPORTER, true)
                     )
                 )
             }

@@ -4,16 +4,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.BuildConfig;
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.terrain.TerrainSubChunk;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Biome;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.util.ColorUtil;
 import com.mithrilmania.blocktopograph.util.Noise;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import org.iq80.leveldb.DBException;
 
@@ -63,7 +63,7 @@ public final class BedrockChunk extends Chunk {
                 this.data2D = ByteBuffer.wrap(rawData);
             } catch (Exception e) {
                 if (BuildConfig.DEBUG) {
-                    Log.d(this, e);
+                    LogUtil.d(this, e);
                 }
                 mIsError = true;
                 mIsVoid = true;
@@ -87,7 +87,7 @@ public final class BedrockChunk extends Chunk {
                 }
             } catch (Exception e) {
                 if (BuildConfig.DEBUG) {
-                    Log.d(this, e);
+                    LogUtil.d(this, e);
                 }
                 mErrorList[which] = true;
                 mVoidList[which] = true;

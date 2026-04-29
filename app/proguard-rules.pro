@@ -16,4 +16,8 @@
 #   public *;
 #}
 
-# Keep LevelDB classes, native methods may not be obfuscated!
+-dontwarn org.jetbrains.annotations.NotNull
+-dontwarn org.jetbrains.annotations.Nullable
+-dontwarn org.iq80.leveldb.env.Env
+-dontwarn org.iq80.leveldb.fileenv.EnvImpl
+-dontwarn org.iq80.leveldb.impl.DbImpl

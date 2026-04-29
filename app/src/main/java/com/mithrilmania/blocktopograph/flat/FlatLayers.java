@@ -3,7 +3,7 @@ package com.mithrilmania.blocktopograph.flat;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 
 import org.json.JSONArray;
@@ -49,7 +49,7 @@ public final class FlatLayers {
             layers.hasStructureOps = root.has(KEY_STRUCTURE_OPS);
             return layers;
         } catch (JSONException e) {
-            Log.d(FlatLayers.class, e);
+            LogUtil.d(FlatLayers.class, e);
         }
         return null;
     }
@@ -108,7 +108,7 @@ public final class FlatLayers {
             if (hasStructureOps) root.put(KEY_STRUCTURE_OPS, null);
             return root.toString(4);
         } catch (JSONException e) {
-            Log.d(FlatLayers.class, e);
+            LogUtil.d(FlatLayers.class, e);
         }
         return null;
     }

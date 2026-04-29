@@ -6,11 +6,11 @@ import android.graphics.Rect;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class RectEditTarget extends EditTarget {
@@ -78,7 +78,7 @@ public class RectEditTarget extends EditTarget {
                     int result = chunkBasedEdit.edit(chunk, innerMinX, innerMaxX, yLowest, yHighest, innerMinZ, innerMaxZ);
                     if (result != 0) {
                         if (exceptionCount < 5 || exceptionCount > mMaxError) {
-                            Log.d(this, String.format(
+                            LogUtil.d(this, String.format(
                                     "Failed with chunk (%d,%d), code %d",
                                     chunkX, chunkZ, result));
                             if (exceptionCount > mMaxError)
@@ -96,7 +96,7 @@ public class RectEditTarget extends EditTarget {
                                 int result = randomAccessEdit.edit(chunk, innerX, 0, innerZ);
                                 if (result != 0) {
                                     if (exceptionCount < 5 || exceptionCount > mMaxError) {
-                                        Log.d(this, String.format(
+                                        LogUtil.d(this, String.format(
                                                 "Failed with chunk (%d,%d), rel (%d,%d), code %d",
                                                 chunkX, chunkZ, innerX, innerZ, result));
                                         if (exceptionCount > mMaxError)
@@ -112,7 +112,7 @@ public class RectEditTarget extends EditTarget {
                                     int result = randomAccessEdit.edit(chunk, innerX, y, innerZ);
                                     if (result != 0) {
                                         if (exceptionCount < 5 || exceptionCount > mMaxError) {
-                                            Log.d(this, String.format(
+                                            LogUtil.d(this, String.format(
                                                     "Failed with chunk (%d,%d), rel (%d,%d,%d), code %d",
                                                     chunkX, chunkZ, innerX, y, innerZ, result));
                                             if (exceptionCount > mMaxError)
@@ -131,7 +131,7 @@ public class RectEditTarget extends EditTarget {
                     chunk.save();
                 } catch (Exception e) {
                     if (exceptionCount < 5 || exceptionCount > mMaxError) {
-                        Log.d(this, e);
+                        LogUtil.d(this, e);
                         if (exceptionCount > mMaxError) return EditResultCode.QUIT_TOO_MANY_ERROR;
                         exceptionCount++;
                     }

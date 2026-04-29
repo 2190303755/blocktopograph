@@ -13,37 +13,41 @@ import java.io.InputStream
 import java.io.OutputStream
 
 interface File {
-    fun <T> read(context: Context, action: (InputStream) -> T): T?
-    fun <T> save(context: Context, action: (OutputStream) -> T): T?
+    fun <T> read(context: Context, action: (InputStream) -> T?): T?
+    fun <T> save(context: Context, action: (OutputStream) -> T?): T?
     fun getName(context: Context): String
 }
 
 class SAFFile(
     val uri: Uri
 ) : File {
-    override fun <T> read(context: Context, action: (InputStream) -> T): T? =
+    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         context.contentResolver.openInputStream(this.uri)?.use(action)
 
-    override fun <T> save(context: Context, action: (OutputStream) -> T): T? =
+    override fun <T> save(context: Context, action: (OutputStream) -> T?): T? =
         context.contentResolver.openOutputStream(this.uri)?.use(action)
 
     override fun getName(context: Context) = this.uri.queryName(context) ?: ""
+
+    override fun toString() = "SAFFile[$uri]"
 }
 
 class ShizukuFile(
     val path: String
 ) : File {
-    override fun <T> read(context: Context, action: (InputStream) -> T): T? =
+    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         Blocktopograph.fileService?.getFileDescriptor(this.path)?.use {
             FileInputStream(it.fileDescriptor).use(action)
         }
 
-    override fun <T> save(context: Context, action: (OutputStream) -> T): T? =
+    override fun <T> save(context: Context, action: (OutputStream) -> T?): T? =
         Blocktopograph.fileService?.getFileDescriptor(this.path)?.use {
             FileOutputStream(it.fileDescriptor).use(action)
         }
 
     override fun getName(context: Context) = java.io.File(this.path).name ?: ""
+
+    override fun toString() = "ShizukuFile[$path]"
 }
 
 class VirtualFile(
@@ -51,10 +55,10 @@ class VirtualFile(
     private val key: ByteArray,
     val name: String = ""
 ) : File {
-    override fun <T> read(context: Context, action: (InputStream) -> T): T? =
+    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         this.db[this.key]?.let { ByteArrayInputStream(it).use(action) }
 
-    override fun <T> save(context: Context, action: (OutputStream) -> T): T? {
+    override fun <T> save(context: Context, action: (OutputStream) -> T?): T? {
         val stream = ByteArrayOutputStream()
         val result = stream.use(action)
         this.db.put(this.key, stream.toByteArray())
@@ -62,4 +66,6 @@ class VirtualFile(
     }
 
     override fun getName(context: Context) = this.name
+
+    override fun toString() = "VirtualFile[$db <${key.toHexString()}>]"
 }

@@ -23,11 +23,12 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldTestBinding
 import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants
 import com.mithrilmania.blocktopograph.util.ByteArrayMatcher
-import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.FileCreator
+import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
-import com.mithrilmania.blocktopograph.util.logError
-import com.mithrilmania.blocktopograph.util.popError
+import com.mithrilmania.blocktopograph.util.error
+import com.mithrilmania.blocktopograph.util.errorAndPop
+import com.mithrilmania.blocktopograph.util.lenientHexToByteArray
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import kotlinx.coroutines.CompletableDeferred
@@ -43,8 +44,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
     override fun onCreate(bundle: Bundle?) {
         super.onCreate(bundle)
         val model = this.model
-        var storage: Deferred<WorldStorage?> =
-            CompletableDeferred<WorldStorage?>(model.handler?.storage)
+        var storage: Deferred<WorldStorage?> = CompletableDeferred(model.handler?.storage)
         if (model.handler == null) {
             try {
                 model.init(this, this.intent)
@@ -53,7 +53,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                 }
             } catch (e: Throwable) {
                 Toast.makeText(this, "Failed to open world", Toast.LENGTH_SHORT).show()
-                logError("Failed to open world", e)
+                e.error("Failed to open world")
                 this.finish()
                 return
             }
@@ -66,11 +66,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                 this.finish()
             }
         }
-        val onSwitchType = object : View.OnClickListener {
-            override fun onClick(v: View) {
-                model.checked = v.id
-            }
-        }
+        val onSwitchType = View.OnClickListener { v -> model.checked = v.id }
         binding.type.check(model.checked)
         binding.plainText.setOnClickListener(onSwitchType)
         binding.hexText.setOnClickListener(onSwitchType)
@@ -86,33 +82,33 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                     val display = ArrayList<String>()
                     val values = ArrayList<String>()
                     val iterator = storage.await()?.db?.iterator() ?: return@launch
+                    val failure = ByteArrayMatcher.computeFailure(pattern)
                     try {
                         iterator.seekToFirst()
-                        val failure = ByteArrayMatcher.computeFailure(pattern)
                         while (iterator.hasNext()) {
                             val entry = iterator.next()
                             val key = entry.key
                             if (ByteArrayMatcher.contains(key, pattern, failure)) {
-                                values += ConvertUtil.bytesToHexStr(entry.value)
-                                display += if (isPlainText) {
-                                    String(key, NBTConstants.CHARSET)
-                                } else {
-                                    ConvertUtil.bytesToHexStr(key)
-                                }
+                                values.add(entry.value.toHexString())
+                                display.add(
+                                    if (isPlainText) {
+                                        key.toString(Charsets.UTF_8)
+                                    } else {
+                                        key.toHexString()
+                                    }
+                                )
                             }
                         }
                     } catch (e: Throwable) {
                         iterator.close()
-                        popError(e)
+                        errorAndPop("Failed to collect keys", e, LEVEL_DB_TAG)
                         return@launch
                     }
                     iterator.close()
-                    val onClick = object : DialogInterface.OnClickListener {
-                        override fun onClick(dialog: DialogInterface?, which: Int) {
-                            MaterialAlertDialogBuilder(this@WorldTestActivity)
-                                .setMessage(values.getOrNull(which) ?: "")
-                                .show()
-                        }
+                    val onClick = DialogInterface.OnClickListener { dialog, which ->
+                        MaterialAlertDialogBuilder(this@WorldTestActivity)
+                            .setMessage(values.getOrNull(which) ?: "")
+                            .show()
                     }
                     val entries = display.toArray(arrayOfNulls<String>(display.size))
                     withContext(Dispatchers.Main) {
@@ -132,11 +128,11 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
             val key = this.getDBKey() ?: return@setOnClickListener
             this.lifecycleScope.launch(Dispatchers.Default) {
                 val db = storage.await()?.db ?: return@launch
-                var value: String
+                val value: String
                 try {
-                    value = ConvertUtil.bytesToHexStr(db[key] ?: return@launch)
+                    value = db[key]?.toHexString() ?: return@launch
                 } catch (e: Throwable) {
-                    popError(e)
+                    errorAndPop("Failed to query value with key $key", e, LEVEL_DB_TAG)
                     return@launch
                 }
                 withContext(Dispatchers.Main) {
@@ -160,7 +156,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                     stream.write(db[key])
                 } catch (e: Throwable) {
                     stream.close()
-                    popError(e)
+                    errorAndPop("Failed to query and export value with key $key", e, LEVEL_DB_TAG)
                     return@launch
                 }
                 stream.close()
@@ -192,19 +188,19 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
     }
 
     private fun getDBKey(): ByteArray? {
-        val text = this.binding.key.editText?.text?.toString() ?: return null
-        if (text.isBlank()) return null
-        return if (
-            this.model.checked == R.id.plain_text
-        ) text.toByteArray(NBTConstants.CHARSET)
-        else ConvertUtil.hexStringToBytes(text)
+        val text = this.binding.key.editText?.text?.toString()
+        if (text.isNullOrBlank()) return null
+        if (this.model.checked == R.id.plain_text) return text.toByteArray(NBTConstants.CHARSET)
+        try {
+            return text.lenientHexToByteArray()
+        } catch (e: IllegalArgumentException) {
+        }
+        return null
     }
 
-    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-    }
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-    }
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
     override fun afterTextChanged(s: Editable?) {
         this.model.text = s.toString()

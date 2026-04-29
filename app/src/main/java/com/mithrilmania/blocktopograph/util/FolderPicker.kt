@@ -8,11 +8,11 @@ import android.provider.DocumentsContract
 import androidx.activity.result.contract.ActivityResultContract
 
 object FolderPicker : ActivityResultContract<Uri?, Uri?>() {
-    override fun createIntent(context: Context, initial: Uri?): Intent {
+    override fun createIntent(context: Context, input: Uri?): Intent {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-        return intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initial ?: return intent)
+        return intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, input ?: return intent)
     }
 
-    override fun parseResult(code: Int, intent: Intent?) =
-        if (code == RESULT_OK) intent?.data else null
+    override fun parseResult(resultCode: Int, intent: Intent?) =
+        if (resultCode == RESULT_OK) intent?.data else null
 }

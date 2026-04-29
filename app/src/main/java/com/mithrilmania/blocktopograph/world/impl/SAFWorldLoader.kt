@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.world.impl
 
+import android.content.ContentResolver
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -84,6 +85,22 @@ suspend fun Uri.populate(info: WorldInfo, adapter: WorldItemAdapter, context: Co
     }
 }
 
+suspend fun Context.loadSAFWorld(
+    adapter: WorldItemAdapter,
+    location: Uri,
+    tag: String = "",
+    resolver: ContentResolver = this.contentResolver
+) {
+    val config = location.findChild(resolver, FILE_LEVEL_DAT) ?: return
+    val world = resolver.openInputStream(config)?.extractInfo(
+        SAFLocation(location),
+        SAFLocation(config),
+        this,
+        tag
+    ) ?: return
+    location.populate(world, adapter, this)
+}
+
 suspend fun loadSAFWorlds(
     model: WorldListModel,
     context: Context,
@@ -105,16 +122,12 @@ suspend fun loadSAFWorlds(
         if (!it.moveToLast()) return@use// idk why ` DESC` doesn't work, so reverse iteration
         forEachCandidate@ do {
             if (it.isNull(0) || DocumentsContract.Document.MIME_TYPE_DIR != it.getString(0)) continue
-            val candidate =
-                DocumentsContract.buildDocumentUriUsingTree(location, it.getString(2))
-            val config = candidate.findChild(resolver, FILE_LEVEL_DAT) ?: continue
-            val world = resolver.openInputStream(config)?.extractInfo(
-                SAFLocation(candidate),
-                SAFLocation(config),
-                context,
-                tag
-            ) ?: continue
-            candidate.populate(world, adapter, context)
+            context.loadSAFWorld(
+                adapter,
+                DocumentsContract.buildDocumentUriUsingTree(location, it.getString(2)),
+                tag,
+                resolver
+            )
         } while (it.moveToPrevious())
     }
     model.loading.postValue(false)

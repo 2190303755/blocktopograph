@@ -8,15 +8,20 @@ import kotlinx.coroutines.withContext
 import java.io.PrintWriter
 import java.io.StringWriter
 
-const val LOG_TAG = "Blocktopograph"
+const val APP_TAG = "Blocktopograph"
+const val LEVEL_DB_TAG = "LevelDB"
 
-fun logError(
+fun Throwable.error(
+    message: String,
+    tag: String = APP_TAG
+) = Log.e(tag, message, this)
+
+suspend fun Context.errorAndPop(
     message: String,
     throwable: Throwable,
-    tag: String = LOG_TAG
-) = Log.e(tag, message, throwable)
-
-suspend fun Context.popError(throwable: Throwable) {
+    tag: String = APP_TAG
+) {
+    Log.e(tag, message, throwable)
     val message = StringWriter().let { writer ->
         PrintWriter(writer).use {
             throwable.printStackTrace(it)
@@ -24,6 +29,6 @@ suspend fun Context.popError(throwable: Throwable) {
         writer.toString()
     }
     withContext(Dispatchers.Main) {
-        MaterialAlertDialogBuilder(this@popError).setMessage(message).show()
+        MaterialAlertDialogBuilder(this@errorAndPop).setMessage(message).show()
     }
 }

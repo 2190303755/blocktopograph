@@ -19,11 +19,10 @@ import com.mithrilmania.blocktopograph.flat.FlatLayers
 import com.mithrilmania.blocktopograph.flat.Layer
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
-import com.mithrilmania.blocktopograph.nbt.io.BedrockOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.io.NBTInputBuffer
+import com.mithrilmania.blocktopograph.nbt.StringTag
+import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readBinaryTag
-import com.mithrilmania.blocktopograph.nbt.io.writeEntry
-import com.mithrilmania.blocktopograph.nbt.toBinaryTag
+import com.mithrilmania.blocktopograph.nbt.io.writeNBTWithHeader
 import com.mithrilmania.blocktopograph.util.BiomePicker
 import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.util.applyFloatingInsets
@@ -35,7 +34,6 @@ import com.mithrilmania.blocktopograph.world.KEY_LEVEL_NAME
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.nio.ByteOrder
 
 class CreateWorldActivity : BaseActivity() {
     private lateinit var binding: ActivityCreateWorldBinding
@@ -70,27 +68,22 @@ class CreateWorldActivity : BaseActivity() {
                     .getFragment<EditFlatFragment>().resultLayers
                 viewModelScope.launch(Dispatchers.IO) {
                     val folder = DocumentFile.fromTreeUri(activity, path) ?: return@launch
-                    val config =
-                        folder.createFile(MIME_TYPE_DEFAULT, FILE_LEVEL_DAT)
+                    val config = folder.createFile(MIME_TYPE_DEFAULT, FILE_LEVEL_DAT)
                             ?: return@launch
-                    val assets = activity.assets
-                    val model = this@apply
                     val data = try {
-                        NBTInputBuffer(
-                            assets.open("dats/1_2_13.dat"),
-                            ByteOrder.LITTLE_ENDIAN
-                        ).use {
+                        BedrockNBTInput(activity.assets.open("dats/1_2_13.dat").buffered()).use {
+                            it.skipBytes(8)
                             it.readBinaryTag() as? CompoundTag
                         }
                     } catch (_: Exception) {
                         return@launch
                     }
                     if (data === null) return@launch
-                    data[KEY_LEVEL_NAME] = model.name.ifBlank {
+                    data[KEY_LEVEL_NAME] = StringTag(this@apply.name.ifBlank {
                         activity.getString(R.string.create_world_name)
-                    }.toBinaryTag()
+                    })
                     data[KEY_LAST_PLAYED_TIME] = LongTag(System.currentTimeMillis() / 1000)
-                    var layers = model.layers
+                    var layers = this@apply.layers
                     if (layers.size < 3) {
                         layers = ArrayList<Layer>(layers).also { list ->
                             repeat(3 - layers.size) {
@@ -102,13 +95,10 @@ class CreateWorldActivity : BaseActivity() {
                         biome.value?.id ?: 21,
                         layers
                     ).write()?.let {
-                        data[KEY_FLAT_WORLD_LAYERS] = it.toBinaryTag()
+                        data[KEY_FLAT_WORLD_LAYERS] = StringTag(it)
                     }
-                    val stream = activity.contentResolver.openOutputStream(config.uri)
-                        ?: return@launch
-                    val buffer = BedrockOutputBuffer(stream, 4U)
-                    buffer.writeEntry("Blocktopograph", data)
-                    buffer.close()
+                    (activity.contentResolver.openOutputStream(config.uri) ?: return@launch)
+                        .writeNBTWithHeader(4U, "Blocktopograph", data)
                     withContext(Dispatchers.Main) {
                         Toast.makeText(activity, "Done!", Toast.LENGTH_SHORT).show()
                         activity.setResult(RESULT_OK, Intent().setData(folder.uri))

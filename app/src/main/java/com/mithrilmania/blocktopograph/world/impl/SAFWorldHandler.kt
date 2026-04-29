@@ -2,10 +2,10 @@ package com.mithrilmania.blocktopograph.world.impl
 
 import android.content.Context
 import android.net.Uri
-import com.mithrilmania.blocktopograph.Log
 import com.mithrilmania.blocktopograph.nbt.old.convert.LevelDataConverter
 import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
 import com.mithrilmania.blocktopograph.util.copyFolderTo
+import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.world.WorldHandler
 import com.mithrilmania.blocktopograph.world.WorldStorage
@@ -31,7 +31,7 @@ class SAFWorldHandler(
                 context.contentResolver.openInputStream(this.config)
             )
         } catch (e: IOException) {
-            Log.e(this, e)
+            e.error("Failed to read level.dat with url: $config")
         }
     }
 
@@ -39,7 +39,7 @@ class SAFWorldHandler(
         try {
             LevelDataConverter.write(context.contentResolver.openOutputStream(this.config), data)
         } catch (e: IOException) {
-            Log.e(this, e)
+            e.error("Failed to write level.dat with url: $config")
         }
         this.dataCompat = data
     }
@@ -47,11 +47,11 @@ class SAFWorldHandler(
     override fun open(scope: CoroutineScope, context: Context) = scope.async(Dispatchers.IO) {
         if (this@SAFWorldHandler.storage != null) return@async this@SAFWorldHandler.storage
         val cache = context.externalCacheDir?.path ?: return@async null
+        var folder: File? = null
         try {
             val resolver = context.contentResolver
             val location = this@SAFWorldHandler.root
             val source = location.findChild(resolver, "db") ?: return@async null
-            var folder: File
             do {
                 folder = File(cache, UUID.randomUUID().toString())
             } while (folder.exists())
@@ -59,7 +59,7 @@ class SAFWorldHandler(
             this@SAFWorldHandler.storage = WorldStorage(folder.path, Options.newDefaultOptions())
             return@async this@SAFWorldHandler.storage
         } catch (e: IOException) {
-            Log.e(this@SAFWorldHandler, e)
+            e.error("Failed to open level db at ${folder?.path} from $root")
             return@async null
         }
     }

@@ -1,5 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <style name="ComposeTheme" parent="android:Theme.Material.Light.NoActionBar" />
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.Material3.DayNight">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
@@ -168,10 +169,5 @@
         <item name="android:shadowDx">1</item>
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">1</item>
-    </style>
-
-    <style name="Widget.AppTheme.MyView" parent="">
-        <item name="android:background">@color/gray_400</item>
-        <item name="exampleColor">@color/light_blue_400</item>
     </style>
 </resources>

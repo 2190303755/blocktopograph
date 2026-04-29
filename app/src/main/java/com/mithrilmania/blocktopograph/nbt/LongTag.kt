@@ -1,28 +1,34 @@
 package com.mithrilmania.blocktopograph.nbt
 
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
+import com.mithrilmania.blocktopograph.nbt.util.toLongTag
 import java.io.DataInput
 import java.io.DataOutput
 
 @JvmInline
-value class LongTag(override val value: Long) : NumericTag<Long> {
-    override val type get() = Type
-    override fun accept(visitor: TagVisitor) = visitor.visit(this)
-    override fun copy() = this
-    override fun getAsByte() = this.value.toByte()
-    override fun getAsShort() = this.value.toShort()
-    override fun getAsInt() = this.value.toInt()
-    override fun getAsLong() = this.value
-    override fun getAsFloat() = this.value.toFloat()
-    override fun getAsDouble() = this.value.toDouble()
+value class LongTag(@JvmField val value: Long) : NumericTag {
+    override val type: Type get() = Type
+    override fun toNumber(): Long = this.value
+    override fun toByte(): Byte = this.value.toByte()
+    override fun toShort(): Short = this.value.toShort()
+    override fun toInt(): Int = this.value.toInt()
+    override fun toLong(): Long = this.value
+    override fun toFloat(): Float = this.value.toFloat()
+    override fun toDouble(): Double = this.value.toDouble()
+    override fun toString(): String = this.value.toString()
     override fun write(output: DataOutput) {
         output.writeLong(this.value)
     }
 
-    companion object Type : TagType<LongTag> {
-        const val SIZE = 8
-        override val id get() = TAG_LONG
+    override fun accept(visitor: TagVisitor) {
+        visitor.visit(this)
+    }
+
+    companion object Type : NumericTagType<LongTag> {
+        const val PAYLOAD_SIZE: Int = 8
+        override val typeId get() = TAG_LONG
         override fun toString() = "TAG_Long"
         override fun read(input: DataInput, depth: Int) = LongTag(input.readLong())
+        override fun transform(tag: BinaryTag) = tag.toLongTag()
     }
 }

@@ -1,9 +1,10 @@
 package com.mithrilmania.blocktopograph.nbt.old;
 
-import static com.mithrilmania.blocktopograph.util.ConvertUtil.bytesToHexStr;
+import static com.mithrilmania.blocktopograph.util.LoggerKt.LEVEL_DB_TAG;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.nbt.old.convert.DataConverter;
@@ -13,6 +14,9 @@ import org.iq80.leveldb.DB;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
+import kotlin.text.HexExtensionsKt;
+import kotlin.text.HexFormat;
 
 /**
  * @noinspection rawtypes
@@ -26,7 +30,7 @@ public class LevelDBNBT extends EditableNBT {
      * @return EditableNBT, NBT wrapper of NBT objects to view or to edit.
      * @throws IOException when database fails.
      */
-    public static @Nullable LevelDBNBT open(DB db, String display, byte[] key) throws IOException {
+    public static @Nullable LevelDBNBT open(DB db, String display, @NonNull byte[] key) throws IOException {
         byte[] data = db.get(key);
         if (data == null) return null;
         ArrayList<Tag> tags = DataConverter.read(data);
@@ -35,10 +39,10 @@ public class LevelDBNBT extends EditableNBT {
 
     public final DB db;
     public final String display;
-    private final byte[] key;
+    private final @NonNull byte[] key;
     public final ArrayList<Tag> tags;
 
-    protected LevelDBNBT(DB db, String display, byte[] key, ArrayList<Tag> tags) {
+    protected LevelDBNBT(DB db, String display, @NonNull byte[] key, ArrayList<Tag> tags) {
         this.db = db;
         this.display = display;
         this.key = key;
@@ -56,7 +60,9 @@ public class LevelDBNBT extends EditableNBT {
             this.db.put(this.key, DataConverter.write(this.tags));
             return true;
         } catch (Exception e) {
-            Log.e("LevelDB", "Failed to save data with key: " + bytesToHexStr(this.key), e);
+            Log.e(LEVEL_DB_TAG, "Failed to save data with key: " + HexExtensionsKt.toHexString(
+                    this.key, HexFormat.Companion.getDefault()
+            ), e);
         }
         return false;
     }

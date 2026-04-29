@@ -3,7 +3,7 @@ package com.mithrilmania.blocktopograph;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -27,11 +27,9 @@ import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
-import com.mithrilmania.blocktopograph.map.TileEntity;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.nbt.old.EditableNBT;
 import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
-import com.mithrilmania.blocktopograph.util.LoggerKt;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.WorldHandler;
 
@@ -42,6 +40,7 @@ public abstract class WorldActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
 
     public static final String PREF_KEY_SHOW_MARKERS = "showMarkers";
+    private static final String TAG = WorldActivity.class.getSimpleName();
     protected ActivityWorldBinding mBinding;
     protected WorldMapModel model;
     protected MapFragment mapFragment;
@@ -58,7 +57,7 @@ public abstract class WorldActivity extends AppCompatActivity
         /*
         Retrieve world from previous state or intent
          */
-        Log.d(this, "World activity creating...");
+        LogUtil.d(this, "World activity creating...");
         WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
         if (model.getHandler() == null) {
             try {
@@ -67,7 +66,7 @@ public abstract class WorldActivity extends AppCompatActivity
                     this.finish();
                 }
             } catch (Exception e) {
-                Log.e(this, e);
+                Log.e(TAG, "Failed to open world", e);
                 Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
                 //WTF, try going back to the previous screen by finishing this hopeless activity...
                 this.finish();
@@ -196,105 +195,7 @@ public abstract class WorldActivity extends AppCompatActivity
             }
         });
         mBinding.drawerLayout.addDrawerListener(this);
-        Log.d(this, "World activity created");
-    }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        Log.d(this, "World activity nav-drawer menu item selected: " + id);
-
-
-        final DrawerLayout drawer = mBinding.drawerLayout;
-
-
-        switch (id) {
-            case (R.id.nav_world_show_map) -> changeContentFragment(this::openWorldMap);
-            case (R.id.nav_world_select) ->
-                    closeWorldActivity(); //close activity; back to world selection screen
-            case (R.id.nav_singleplayer_nbt) -> openLocalPlayer();
-            case (R.id.nav_multiplayer_nbt) -> openMultiplayerEditor();
-            /*case(R.id.nav_inventory):
-                //TODO go to inventory editor
-                //This feature is planned, but not yet implemented,
-                // use the generic NBT editor for now...
-                break;*/
-            case (R.id.nav_world_nbt) -> openLevelEditor();
-            /*case(R.id.nav_tools):
-                //TODO open tools menu (world downloader/importer/exporter maybe?)
-                break;*/
-            case (R.id.nav_overworld_satellite) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_SATELLITE);
-            case (R.id.nav_overworld_cave) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_CAVE);
-            case (R.id.nav_overworld_slime_chunk) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_SLIME_CHUNK);
-            /*case(R.id.nav_overworld_debug):
-                changeMapType(MapType.DEBUG); //for debugging tiles positions, rendering, etc.
-                break;*/
-            case (R.id.nav_overworld_heightmap) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_HEIGHTMAP);
-            case (R.id.nav_overworld_biome) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_BIOME);
-            case (R.id.nav_overworld_grass) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_GRASS);
-            case (R.id.nav_overworld_xray) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_XRAY);
-            case (R.id.nav_overworld_block_light) ->
-                    this.model.navigateTo(Dimension.OVERWORLD, MapType.OVERWORLD_BLOCK_LIGHT);
-            case (R.id.nav_nether_map) -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER);
-            case (R.id.nav_nether_xray) ->
-                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_XRAY);
-            case (R.id.nav_nether_block_light) ->
-                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BLOCK_LIGHT);
-            case (R.id.nav_nether_biome) ->
-                    this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BIOME);
-            case (R.id.nav_end_satellite) ->
-                    this.model.navigateTo(Dimension.END, MapType.END_SATELLITE);
-            case (R.id.nav_end_heightmap) ->
-                    this.model.navigateTo(Dimension.END, MapType.END_HEIGHTMAP);
-            case (R.id.nav_end_block_light) ->
-                    this.model.navigateTo(Dimension.END, MapType.END_BLOCK_LIGHT);
-            case (R.id.nav_map_opt_toggle_grid) ->
-                //toggle the grid
-                    this.model.getShowGrid().setValue(Boolean.FALSE.equals(this.model.getShowGrid().getValue()));
-            case (R.id.nav_map_opt_filter_markers) -> {
-                //toggle the grid
-                TileEntity.loadIcons(getAssets());
-                this.mapFragment.openMarkerFilter();
-            }
-            case (R.id.nav_map_opt_toggle_markers) -> {
-                //toggle markers
-                boolean visible = Boolean.FALSE.equals(this.model.getShowMarkers().getValue());
-                this.model.getShowMarkers().setValue(visible);
-                this.getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_KEY_SHOW_MARKERS, visible).apply();
-            }
-            case (R.id.nav_biomedata_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA));
-            case (R.id.nav_overworld_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD));
-            case (R.id.nav_villages_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES));
-            case (R.id.nav_portals_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.PORTALS));
-            case (R.id.nav_dimension0_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0));
-            case (R.id.nav_dimension1_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1));
-            case (R.id.nav_dimension2_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2));
-            case (R.id.nav_autonomous_entities_nbt) ->
-                    changeContentFragment(() -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES));
-            case (R.id.nav_open_nbt_by_name) -> this.openCustomEntry();
-            default ->
-                //Warning, we might have messed with the menu XML!
-                    Log.d(this, "pressed unknown navigation-item in world-activity-drawer");
-        }
-
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
+        LogUtil.d(this, "World activity created");
     }
 
     public abstract void openCustomEntry();
@@ -415,7 +316,7 @@ public abstract class WorldActivity extends AppCompatActivity
     public void openChunkNBTEditor(final int chunkX, final int chunkZ, final NBTChunkData nbtChunkData, final ViewGroup viewGroup) {
         if (nbtChunkData == null) {
             //should never happen
-            Log.e(this, "User tried to open null chunkData in the nbt-editor!!!");
+            Log.e(TAG, "User tried to open null chunkData in the nbt-editor!!!");
             return;
         }
 
@@ -446,7 +347,7 @@ public abstract class WorldActivity extends AppCompatActivity
                                     } catch (Exception e) {
                                         Snackbar.make(viewGroup, R.string.failed_to_create_or_save_chunk_NBT_data, Snackbar.LENGTH_LONG)
                                                 .setAction("Action", null).show();
-                                        Log.d(this, e);
+                                        LogUtil.d(this, e);
                                     }
                                 }
                             })
@@ -483,7 +384,7 @@ public abstract class WorldActivity extends AppCompatActivity
                         nbtChunkData.write();
                         return true;
                     } catch (Exception e) {
-                        Log.e(LoggerKt.LOG_TAG, e);
+                        Log.e("OldEditorImpl", "Failed to save data", e);
                     }
                     return false;
                 }

@@ -3,141 +3,606 @@ package com.mithrilmania.blocktopograph.editor.nbt
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.view.ContextMenu
-import android.view.ContextMenu.ContextMenuInfo
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import androidx.activity.OnBackPressedCallback
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
-import androidx.core.graphics.Insets
-import androidx.lifecycle.Observer
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.mithrilmania.blocktopograph.BaseActivity
-import com.mithrilmania.blocktopograph.EXTRA_INVALIDATED
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoveDown
+import androidx.compose.material.icons.filled.MoveUp
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AppBarRow
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
+import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewModelScope
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
 import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.databinding.ActivityNbtEditorBinding
-import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
-import com.mithrilmania.blocktopograph.editor.nbt.holder.RootHolder
+import com.mithrilmania.blocktopograph.editor.dialog.NBTExportDialog
+import com.mithrilmania.blocktopograph.editor.dialog.NBTImportDialog
+import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
+import com.mithrilmania.blocktopograph.editor.dialog.NBTPickerDialog
+import com.mithrilmania.blocktopograph.editor.dialog.TagNameInputField
+import com.mithrilmania.blocktopograph.editor.dialog.TagPickerDialog
+import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.RootLike
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.buildNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
+import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
+import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.storage.ShizukuFile
+import com.mithrilmania.blocktopograph.ui.component.AlertDialog
+import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
+import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
+import com.mithrilmania.blocktopograph.ui.component.IconButton
+import com.mithrilmania.blocktopograph.ui.component.PastableDialog
+import com.mithrilmania.blocktopograph.ui.component.TextButton
+import com.mithrilmania.blocktopograph.ui.component.TooltipBox
+import com.mithrilmania.blocktopograph.ui.component.TopAppBar
+import com.mithrilmania.blocktopograph.ui.component.cascadingMenu
+import com.mithrilmania.blocktopograph.ui.component.clickableItem
+import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
+import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.FilePicker
-import com.mithrilmania.blocktopograph.util.applyFloatingInsets
-import com.mithrilmania.blocktopograph.util.applyListInsets
-import com.mithrilmania.blocktopograph.util.clipboard
-import com.mithrilmania.blocktopograph.util.showIfAbsent
+import com.mithrilmania.blocktopograph.util.collectText
+import com.mithrilmania.blocktopograph.util.setPrimaryClip
+import com.mithrilmania.blocktopograph.util.toEnum
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
+import kotlinx.coroutines.launch
 
-class NBTEditorActivity : BaseActivity() {
-    private lateinit var binding: ActivityNbtEditorBinding
+class NBTEditorActivity : ComponentActivity() {
+    private val viewModel by viewModels<NBTEditorModel>()
     private lateinit var open: ActivityResultLauncher<Uri?>
-    private val model by viewModels<NBTEditorModel>()
-    private val requiringConfirmation = object : OnBackPressedCallback(false), Observer<Boolean> {
-        override fun handleOnBackPressed() {
-            // TODO i18n
-            MaterialAlertDialogBuilder(this@NBTEditorActivity)
-                .setTitle("更改未保存")
-                .setMessage("如果不保存，您的更改将丢失。")
-                .setNeutralButton("继续编辑", null)
-                .setPositiveButton("保存") { dialog, which ->
-                    this@NBTEditorActivity.saveFile()
-                }.setNegativeButton("不保存") { dialog, which ->
-                    this@NBTEditorActivity.finish()
-                }.show()
-        }
+    private lateinit var create: ActivityResultLauncher<FileCreator.Options?>
 
-        override fun onChanged(value: Boolean) {
-            this.isEnabled = value
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        this.enableEdgeToEdge()
+        this.open = registerForActivityResult(FilePicker) callback@{
+            this.viewModel.importer = NBTImportModel(SAFFile(it ?: return@callback))
         }
-    }
-
-    override fun onCreate(bundle: Bundle?) {
-        super.onCreate(bundle)
-        val model = this.model
-        val binding = ActivityNbtEditorBinding.inflate(this.layoutInflater)
-        this.binding = binding
-        this.setContentView(binding.root)
-        binding.appBar.let {
-            this.setSupportActionBar(it)
-            it.setNavigationOnClickListener {
-                this.onBackPressedDispatcher.onBackPressed()
+        this.create = registerForActivityResult(FileCreator) callback@{
+            val file = SAFFile(it ?: return@callback)
+            this.viewModel.viewModelScope.launch {
+                saveToFile(file)
+                executeConfirmation()
             }
         }
-        binding.editor.let {
-            it.layoutManager = LinearLayoutManager(this)
-            this.registerForContextMenu(it)
+        if (savedInstanceState === null) {
+            this.onNewIntent(this.intent)
         }
-        model.tree.observe(this) {
-            this.invalidateOptionsMenu()
-            this.binding.apply {
-                if (it === null) {
-                    save.isEnabled = false
-                    search.isEnabled = false
-                    return@observe
+        this.setThemedContent {
+            val viewModel = this.viewModel
+            BackHandler(viewModel.modified) {
+                viewModel.confirmation = ConfirmationRequest.EXIT
+            }
+            if (viewModel.confirmation !== null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        viewModel.confirmation = null
+                    },
+                    title = { Text("更改未保存") },
+                    neutralButton = {
+                        TextButton("继续编辑") {
+                            viewModel.confirmation = null
+                        }
+                    },
+                    positiveButton = {
+                        TextButton("保存") {
+                            val source = viewModel.source
+                            if (source === null) {
+                                viewModel.buildExporter()
+                            } else {
+                                viewModel.viewModelScope.launch {
+                                    saveToFile(source)
+                                    executeConfirmation()
+                                }
+                            }
+                        }
+                    },
+                    negativeButton = {
+                        TextButton("不保存", onClick = this::executeConfirmation)
+                    }
+                ) {
+                    Text("如果不保存，您的更改将丢失")
                 }
-                save.isEnabled = true
-                search.isEnabled = true
-                editor.adapter = it
             }
-            it.reloadAsync()
-        }
-        model.version.observe(this) {
-            this.binding.appBar.subtitle = if (it == null) null else
-                this.getString(R.string.activity_nbt_editor_subtitle, it.toLong())
-        }
-        model.loading.observe(this) {
-            if (it) this.binding.progress.show() else this.binding.progress.hide()
-        }
-        model.source.observe(this) {
-            this.title = it?.getName(this)
-                ?: this.resources.getString(R.string.nbt_editor)
-        }
-        model.history.observe(this) {
-            this.binding.apply {
-                undo.isEnabled = it.undo
-                redo.isEnabled = it.redo
-            }
-        }
-        this.requiringConfirmation.let {
-            this.onBackPressedDispatcher.addCallback(this, it)
-            model.modified.observe(this, it)
-        }
-        binding.undo.setOnClickListener callback@{
-            this.model.undo()
-        }
-        binding.redo.setOnClickListener callback@{
-            this.model.redo()
-        }
-        binding.search.setOnClickListener {
-            this.upcoming()
-        }
-        binding.save.setOnClickListener {
-            this.saveFile()
-        }
-        this.open = registerForActivityResult(FilePicker) registry@{
-            this.model.readFileAsync(SAFFile(it ?: return@registry), this)
-        }
-        if (model.source.isInitialized) return
-        this.onNewIntent(this.intent)
-    }
+            val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+            Scaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                topBar = {
+                    TopAppBar(
+                        scrollBehavior = scrollBehavior,
+                        title = {
+                            Text(
+                                viewModel.source?.getName(this@NBTEditorActivity)
+                                    ?: stringResource(R.string.nbt_editor)
+                            )
+                        },
+                        subtitle = viewModel.storageVersion?.let { version ->
+                            {
+                                Text(
+                                    stringResource(
+                                        R.string.activity_nbt_editor_subtitle,
+                                        version.toLong()
+                                    )
+                                )
+                            }
+                        },
+                        actions = {
+                            AppBarRow(maxItemCount = 2) {
+                                cascadingMenu(
+                                    Icons.Filled.Inventory2,
+                                    getString(R.string.action_file)
+                                ) { showMenu ->
+                                    DropdownMenuItem(getString(R.string.action_file_create)) {
+                                        if (viewModel.modified) {
+                                            viewModel.confirmation = ConfirmationRequest.NEW
+                                        } else {
+                                            viewModel.reset()
+                                        }
+                                        showMenu.value = false
+                                    }
+                                    DropdownMenuItem(getString(R.string.action_file_open)) {
+                                        if (viewModel.modified) {
+                                            viewModel.confirmation = ConfirmationRequest.OPEN
+                                        } else {
+                                            open.launch(null)
+                                        }
+                                        showMenu.value = false
+                                    }
+                                    DropdownMenuItem(
+                                        getString(R.string.action_file_save),
+                                        viewModel.nodes.isNotEmpty()
+                                    ) {
+                                        saveAsync()
+                                        showMenu.value = false
+                                    }
+                                    DropdownMenuItem(
+                                        getString(R.string.action_file_save_as),
+                                        viewModel.nodes.isNotEmpty()
+                                    ) {
+                                        viewModel.buildExporter(true)
+                                        showMenu.value = false
+                                    }
+                                    DropdownMenuItem(
+                                        getString(R.string.action_file_reload),
+                                        viewModel.source !== null
+                                    ) click@{
+                                        if (viewModel.modified) {
+                                            viewModel.confirmation = ConfirmationRequest.RELOAD
+                                        } else {
+                                            this@NBTEditorActivity.viewModel.importer =
+                                                NBTImportModel(viewModel.source ?: return@click)
+                                        }
+                                        showMenu.value = false
+                                    }
+                                }
+                                clickableItem(
+                                    Icons.Filled.Info,
+                                    getString(R.string.action_file_info),
+                                    false
+                                ) {
+                                    upcoming()
+                                }
+                                clickableItem(
+                                    Icons.AutoMirrored.Filled.ExitToApp,
+                                    getString(R.string.action_quit)
+                                ) {
+                                    this@NBTEditorActivity.viewModel.apply {
+                                        if (modified) {
+                                            confirmation = ConfirmationRequest.EXIT
+                                        } else {
+                                            this@NBTEditorActivity.finish()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
 
-    fun saveFile() {
-        val model = this.model
-        val source = model.source.value
-        if (source === null) {
-            this.showIfAbsent(NBTExportDialog.TAG, ::NBTExportDialog)
-        } else {
-            model.saveFileAsync(source, this)
+            ) { padding ->
+                Box(Modifier.fillMaxSize()) {
+                    AnimatedVisibility(
+                        visible = viewModel.flattening,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .zIndex(1.0F)
+                            .padding(top = padding.calculateTopPadding())
+                    ) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        modifier =
+                            Modifier
+                                .padding(padding)
+                                .align(Alignment.BottomCenter)
+                                .offset(y = -ScreenOffset)
+                                .zIndex(1.0F),
+                        leadingContent = {
+                            TooltipBox("undo") { tooltip ->
+                                IconButton(
+                                    Icons.AutoMirrored.Filled.Undo,
+                                    tooltip,
+                                    viewModel.undo.isNotEmpty()
+                                ) {
+                                    viewModel.performUndo()
+                                }
+                            }
+                            TooltipBox("redo") { tooltip ->
+                                IconButton(
+                                    Icons.AutoMirrored.Filled.Redo,
+                                    tooltip,
+                                    viewModel.redo.isNotEmpty()
+                                ) {
+                                    viewModel.performRedo()
+                                }
+                            }
+                        },
+                        trailingContent = {
+                            TooltipBox("save") { tooltip ->
+                                OutlinedIconButton(
+                                    onClick = {
+                                        saveAsync()
+                                    },
+                                    enabled = viewModel.nodes.isNotEmpty(),
+                                    colors = IconButtonDefaults.outlinedIconButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.Save, tooltip)
+                                }
+                            }
+                        }
+                    ) {
+                        TooltipBox("search") { tooltip ->
+                            IconButton(Icons.Filled.Search, tooltip, viewModel.nodes.isNotEmpty()) {
+                                this@NBTEditorActivity.upcoming()
+                            }
+                        }
+                    }
+                    LazyColumn(
+                        contentPadding = padding + PaddingValues(bottom = 80.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        items(
+                            items = viewModel.nodes,
+                            key = { it.uid },
+                            contentType = { it.type },
+                        ) { node ->
+                            Box(
+                                Modifier
+                                    .animateItem()
+                                    .padding(start = (node.depth * 16).dp)
+                            ) {
+                                node.Content(
+                                    Modifier.combinedClickable(
+                                        onLongClick = { node.showContextMenu = true }
+                                    ) {
+                                        if (node is RootLike && node.parent is NBTNode) {
+                                            val expanded = !node.expanded
+                                            if (expanded) {
+                                                viewModel.expandNode(node)
+                                            } else {
+                                                viewModel.collapsesNode(node)
+                                            }
+                                            node.expanded = expanded
+                                        }
+                                    }
+                                )
+                                DropdownMenu(
+                                    expanded = node.showContextMenu,
+                                    onDismissRequest = { node.showContextMenu = false },
+                                    scrollState = rememberScrollState(),
+                                ) {
+                                    DropdownMenuItem(
+                                        Icons.Filled.ContentCopy,
+                                        stringResource(R.string.edit_copy)
+                                    ) {
+                                        node.showContextMenu = false
+                                        this@NBTEditorActivity.setPrimaryClip {
+                                            ClipData.newPlainText("Copy", node.stringify())
+                                        }
+                                    }
+                                    node.ContextMenu(viewModel)
+                                    val parent = node.parent
+                                    if (parent is RootNode) {
+                                        if (parent is MapNode) {
+                                            DropdownMenuItem(
+                                                Icons.Filled.Edit,
+                                                stringResource(R.string.edit_rename)
+                                            ) {
+                                                node.showContextMenu = false
+                                                viewModel.renaming = RenamingRequest(node)
+                                            }
+                                            DropdownMenuItem(
+                                                Icons.Filled.SwapHoriz,
+                                                stringResource(R.string.action_replace)
+                                            ) {
+                                                node.showContextMenu = false
+                                                viewModel.replacement = ReplacementRequest(node)
+                                            }
+                                        } else if (parent is CollectionNode<*, *>) {
+                                            if (node !== parent.children.firstOrNull()) {
+                                                DropdownMenuItem(
+                                                    Icons.Filled.MoveUp,
+                                                    stringResource(R.string.action_move_up)
+                                                ) {
+                                                    node.showContextMenu = false
+                                                    val children = node.parent.children
+                                                    val index = children.indexOf(node)
+                                                    if (index in 1 until children.size) {
+                                                        viewModel.performOperation(
+                                                            Swap(
+                                                                node.parent,
+                                                                index - 1,
+                                                                index
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (node !== parent.children.lastOrNull()) {
+                                                DropdownMenuItem(
+                                                    Icons.Filled.MoveDown,
+                                                    stringResource(R.string.action_move_dowm)
+                                                ) {
+                                                    node.showContextMenu = false
+                                                    val children = node.parent.children
+                                                    val index = children.indexOf(node)
+                                                    if (index in 0 until children.size - 1) {
+                                                        viewModel.performOperation(
+                                                            Swap(
+                                                                node.parent,
+                                                                index,
+                                                                index + 1
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (parent is ListNode) {
+                                                DropdownMenuItem(
+                                                    Icons.Filled.SwapHoriz,
+                                                    stringResource(R.string.action_replace)
+                                                ) {
+                                                    node.showContextMenu = false
+                                                    viewModel.replacement = ReplacementRequest(node)
+                                                }
+                                            }
+                                        }
+                                        DropdownMenuItem(
+                                            Icons.Filled.Delete,
+                                            stringResource(R.string.edit_delete)
+                                        ) {
+                                            node.showContextMenu = false
+                                            viewModel.performOperation(Delete(node.parent, node))
+                                        }
+                                    } else {
+                                        DropdownMenuItem(
+                                            Icons.Filled.Edit,
+                                            stringResource(R.string.edit_rename)
+                                        ) {
+                                            node.showContextMenu = false
+                                            viewModel.renaming = RenamingRequest(node)
+                                        }
+                                        DropdownMenuItem(
+                                            Icons.Filled.SwapHoriz,
+                                            stringResource(R.string.action_replace)
+                                        ) {
+                                            node.showContextMenu = false
+                                            viewModel.replacement = ReplacementRequest(node)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            when (val parent = viewModel.insertion?.parent) {
+                is MapNode -> {
+                    NBTPickerDialog(
+                        title = stringResource(R.string.action_insert),
+                        validator = { parent.nodes.containsKey(it.toString()) },
+                        onCancel = { viewModel.insertion = null }
+                    ) { name, tag ->
+                        viewModel.insertion = null
+                        viewModel.performOperation(
+                            Insert(
+                                parent,
+                                tag.buildNode(
+                                    parent,
+                                    name
+                                )
+                            )
+                        )
+                    }
+                }
+
+                is CollectionNode<*, *> -> {
+                    TagPickerDialog(
+                        title = stringResource(R.string.action_insert),
+                        initial = parent.children.getHomogenousTypeId(NBTNode::type).toInt(),
+                        onCancel = { viewModel.insertion = null }
+                    ) {
+                        viewModel.insertion = null
+                        viewModel.performOperation(
+                            Insert(
+                                parent,
+                                it.buildNode(
+                                    parent,
+                                    parent.children.size
+                                )
+                            )
+                        )
+                    }
+                }
+
+                null -> {}
+            }
+            val replacement = viewModel.replacement?.node
+            if (replacement !== null) {
+                TagPickerDialog(
+                    title = stringResource(R.string.action_replace),
+                    initial = replacement.type.toInt(),
+                    source = replacement,
+                    exclude = true,
+                    onCancel = { viewModel.replacement = null }
+                ) {
+                    viewModel.replacement = null
+                    viewModel.performOperation(
+                        Replace(
+                            replacement.parent as? RootNode,
+                            replacement,
+                            it.buildNode(
+                                replacement.parent,
+                                replacement.key
+                            )
+                        )
+                    )
+                }
+            }
+            val renaming = viewModel.renaming?.node
+            if (renaming !== null) {
+                val name = rememberTextFieldState(renaming.key.toString())
+                val duplicate = rememberSaveable { mutableStateOf(false) }
+                PastableDialog(
+                    title = stringResource(R.string.rename),
+                    onPaste = {
+                        val text = it?.collectText()
+                        if (text === null) {
+                            toast(R.string.toast_empty_clipboard)
+                        } else {
+                            name.setTextAndPlaceCursorAtEnd(text)
+                        }
+                    },
+                    onCancel = { viewModel.renaming = null },
+                    onConfirm = {
+                        val key = name.text.toString()
+                        if (renaming.parent is MapNode) {
+                            if (!renaming.parent.nodes.containsKey(key)) {
+                                viewModel.renaming = null
+                                viewModel.performOperation(
+                                    Rename(renaming.parent, renaming.key.toString(), key)
+                                )
+                            }
+                        } else {
+                            viewModel.renaming = null
+                            if (key != renaming.key) {
+                                viewModel.performOperation(
+                                    Rename(null, renaming.key.toString(), key)
+                                )
+                            }
+                        }
+                    },
+                    isValid = !duplicate.value
+                ) {
+                    TagNameInputField(name, duplicate) {
+                        renaming.parent is MapNode && renaming.parent.nodes.containsKey(it.toString())
+                    }
+                }
+            }
+            AnimatedBottomSheetDialog(
+                targetState = viewModel.exporter,
+                skipPartiallyExpanded = true
+            ) { sheetState, exporter ->
+                NBTExportDialog(
+                    exporter = exporter,
+                    picker = this.create,
+                    state = sheetState,
+                    onDismiss = {
+                        viewModel.exporter = null
+                    }
+                ) { file ->
+                    viewModel.viewModelScope.launch {
+                        saveToFile(file)
+                    }
+                }
+            }
+            AnimatedBottomSheetDialog(
+                targetState = viewModel.importer,
+                skipPartiallyExpanded = true
+            ) { sheetState, importer ->
+                NBTImportDialog(
+                    importer = importer,
+                    state = sheetState,
+                    onDismiss = {
+                        viewModel.importer = null
+                    }
+                ) {
+                    viewModel.viewModelScope.launch {
+                        readAsync(importer)
+                    }
+                }
+            }
         }
     }
 
@@ -146,177 +611,70 @@ class NBTEditorActivity : BaseActivity() {
         when (intent.action) {
             Intent.ACTION_VIEW -> {
                 val uri = intent.data
-                this.model.readFileAsync(
+                val importer = NBTImportModel(
                     if (uri == null) {
                         ShizukuFile(intent.getStringExtra(EXTRA_PATH) ?: return)
                     } else {
                         SAFFile(uri)
                     },
-                    this
+                    header = intent.getBooleanExtra(EXTRA_EDITOR_DETECT_HEADER, true),
+                    format = intent.getStringExtra(EXTRA_EDITOR_DEFAULT_FORMAT)
+                        ?.uppercase()
+                        .toEnum(NBTFormat.UNKNOWN)
+                )
+                if (intent.getBooleanExtra(EXTRA_EDITOR_SKIP_IMPORTER, false)) {
+                    this.readAsync(importer)
+                } else {
+                    this.viewModel.importer = importer
+                }
+            }
+        }
+    }
+
+    fun readAsync(importer: NBTImportModel) {
+        viewModel.viewModelScope.launch {
+            viewModel.readFromFile(importer, this@NBTEditorActivity)
+        }
+    }
+
+
+    fun saveAsync() {
+        val source = viewModel.source
+        if (source === null) {
+            viewModel.buildExporter()
+        } else {
+            viewModel.viewModelScope.launch {
+                saveToFile(source)
+            }
+        }
+    }
+
+    suspend fun saveToFile(file: File) {
+        this.viewModel.saveToFile(file, this)
+    }
+
+    fun executeConfirmation() {
+        val request = this.viewModel.confirmation
+        this.viewModel.confirmation = null
+        when (request) {
+            ConfirmationRequest.EXIT -> this.finish()
+            ConfirmationRequest.NEW -> this.viewModel.reset()
+            ConfirmationRequest.RELOAD -> this.viewModel.apply {
+                importer = NBTImportModel(
+                    source = source ?: return,
+                    header = storageVersion != null,
+                    format = if (stringify) {
+                        NBTFormat.STRINGIFIED
+                    } else if (littleEndian) {
+                        NBTFormat.LITTLE_ENDIAN
+                    } else {
+                        NBTFormat.BIG_ENDIAN
+                    }
                 )
             }
-        }
-    }
 
-    override fun onCreateContextMenu(menu: ContextMenu, view: View?, info: ContextMenuInfo?) {
-        if (info !is NodeHolder<*, *>) return
-        menu.add(R.string.action_copy).setOnMenuItemClickListener callback@{
-            val holder = it.menuInfo as? NodeHolder<*, *> ?: return@callback true
-            val node = holder.node ?: return@callback true
-            holder.context.clipboard?.apply {
-                setPrimaryClip(ClipData.newPlainText("Copy", node.stringify()))
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    holder.context.toast(R.string.toast_copy_success)
-                }
-            }
-            true
-        }
-        val holding = info.node
-        val parent = holding?.parent
-        when (parent) {
-            is MapNode -> {
-                menu.add(R.string.action_rename).setOnMenuItemClickListener callback@{
-                    val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-                    val parent = node.parent as? MapNode ?: return@callback true
-                    this.renameNode(node.name, parent) rename@{ old, neo ->
-                        if (old == neo) return@rename
-                        parent.remove(old)
-                        node.name = neo
-                        parent.put(neo, node)
-                        this.model += Rename(node, parent, old, neo)
-                    }
-                    true
-                }
-                menu.add(R.string.action_replace).setOnMenuItemClickListener callback@{
-                    val old = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-                    val parent = old.parent as? MapNode ?: return@callback true
-                    this.replaceNode(parent, old) { neo ->
-                        parent.remove(old.name)
-                        parent.put(neo.name, neo)
-                        this.model += Replace(old, parent, neo)
-                        if (parent.expanded) {
-                            parent.tree.reloadAsync()
-                        }
-                    }
-                    true
-                }
-            }
-
-            is ListNode -> {
-                val index = parent.indexOf(holding)
-                if (index > 0) {
-                    menu.add(R.string.action_move_up).setOnMenuItemClickListener callback@{
-                        val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-                        val parent = node.parent as? ListNode ?: return@callback true
-                        val index = parent.indexOf(node)
-                        if (index > 0 && parent.swap(index, index - 1)) {
-                            this.model += Move(node, parent, index, index - 1)
-                            parent.notifyMovedChildren()
-                        }
-                        true
-                    }
-                }
-                if (index + 1 < parent.size) {
-                    menu.add(R.string.action_move_dowm).setOnMenuItemClickListener callback@{
-                        val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-                        val parent = node.parent as? ListNode ?: return@callback true
-                        val index = parent.indexOf(node)
-                        if (index >= 0 && parent.swap(index, index + 1)) {
-                            this.model += Move(node, parent, index, index + 1)
-                            parent.notifyMovedChildren()
-                        }
-                        true
-                    }
-                }
-            }
-
+            ConfirmationRequest.OPEN -> this.open.launch(null)
             else -> {}
         }
-        when (holding) {
-            is NBTTree -> {
-                menu.add(R.string.action_rename).setOnMenuItemClickListener callback@{
-                    val node = (it.menuInfo as? RootHolder)?.node ?: return@callback true
-                    this.renameNode(this.model.name, null) rename@{ old, neo ->
-                        if (old == neo) return@rename
-                        this.model.name = neo
-                        this.model += Relabel(node, old, neo)
-                    }
-                    true
-                }
-                holding.makeInsertOption(menu.add(R.string.action_insert), this)
-                return
-            }
-
-            is RootNode<*> -> holding.makeInsertOption(menu.add(R.string.action_insert), this)
-        }
-        menu.add(R.string.action_delete).setOnMenuItemClickListener callback@{
-            val node = (it.menuInfo as? NodeHolder<*, *>)?.node ?: return@callback true
-            val parent = node.parent
-            when (parent) {
-                is ListNode -> {
-                    val index = parent.indexOf(node)
-                    if (index < 0 || parent.remove(index) == null) return@callback true
-                    this.model += Delete<Int>(node, parent, index)
-                }
-
-                is MapNode -> {
-                    if (parent.remove(node.name) == null) return@callback true
-                    this.model += Delete<String>(node, parent, node.name)
-                }
-                else -> return@callback true
-            }
-            if (parent.expanded) {
-                this.model.tree.value?.reloadAsync()
-            }
-            true
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        this.menuInflater.inflate(R.menu.activity_nbt_editor, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_file_create -> this.model.reset()
-            R.id.action_file_open -> this.open.launch(null)
-            R.id.action_file_save -> this.saveFile()
-            R.id.action_file_save_as -> this.showIfAbsent(NBTExportDialog.TAG) {
-                NBTExportDialog().apply {
-                    arguments = Bundle().apply {
-                        putBoolean(EXTRA_INVALIDATED, true)
-                    }
-                }
-            }
-            R.id.action_file_reload, R.id.action_info -> this.upcoming()
-            R.id.action_quit -> this.onBackPressedDispatcher.onBackPressed()
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        this.model.apply {
-            val hasFile = source.value !== null
-            val notEmpty = tree.value !== null
-            menu.apply {
-                findItem(R.id.action_file_save).isEnabled = notEmpty
-                findItem(R.id.action_file_save_as).isEnabled = notEmpty
-                findItem(R.id.action_file_reload).isEnabled = hasFile
-                findItem(R.id.action_info).isEnabled = hasFile
-            }
-        }
-        return super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun applyContentInsets(window: View, insets: Insets) {
-        val res = this.resources
-        val margin = res.getDimensionPixelSize(R.dimen.small_floating_margin)
-        binding.toolbar.applyFloatingInsets(insets, margin)
-        this.binding.editor.applyListInsets(
-            this.isIndicatorEnabled,
-            insets,
-            res.getDimensionPixelSize(R.dimen.editor_extra_padding) + margin
-        )
     }
 }

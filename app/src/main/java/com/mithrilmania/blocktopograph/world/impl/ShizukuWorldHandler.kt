@@ -2,9 +2,9 @@ package com.mithrilmania.blocktopograph.world.impl
 
 import android.content.Context
 import com.mithrilmania.blocktopograph.Blocktopograph
-import com.mithrilmania.blocktopograph.Log
 import com.mithrilmania.blocktopograph.nbt.old.convert.LevelDataConverter
 import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
+import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.WorldHandler
 import com.mithrilmania.blocktopograph.world.WorldStorage
@@ -22,23 +22,25 @@ class ShizukuWorldHandler(
 ) : WorldHandler(name, root) {
     override fun load(context: Context) {
         val service = Blocktopograph.fileService ?: return
+        val config = this.path + '/' + FILE_LEVEL_DAT
         try {
-            service.getFileDescriptor(this.path + '/' + FILE_LEVEL_DAT)?.use {
+            service.getFileDescriptor(config)?.use {
                 this.dataCompat = LevelDataConverter.read(FileInputStream(it.fileDescriptor))
             }
         } catch (e: IOException) {
-            Log.e(this, e)
+            e.error("Failed to read level.dat with path: $config")
         }
     }
 
     override fun save(context: Context, data: CompoundTag) {
         val service = Blocktopograph.fileService ?: return
+        val config = this.path + '/' + FILE_LEVEL_DAT
         try {
-            service.getFileDescriptor(this.path + '/' + FILE_LEVEL_DAT)?.use {
+            service.getFileDescriptor(config)?.use {
                 LevelDataConverter.write(FileOutputStream(it.fileDescriptor), data)
             }
         } catch (e: IOException) {
-            Log.e(this, e)
+            e.error("Failed to write level.dat with path: $config")
         }
         this.dataCompat = data
     }
@@ -56,7 +58,7 @@ class ShizukuWorldHandler(
             )
             return@async this@ShizukuWorldHandler.storage
         } catch (e: IOException) {
-            Log.e(this@ShizukuWorldHandler, e)
+            e.error("Failed to open level db from $path")
             return@async null
         }
     }

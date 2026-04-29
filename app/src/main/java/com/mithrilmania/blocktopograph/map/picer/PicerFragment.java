@@ -278,7 +278,7 @@ public final class PicerFragment extends DialogFragment {
         mBinding.finalButton.setTag(bitmap);
         mBinding.previewCase.setVisibility(View.VISIBLE);
 
-        Glide.with(this).load(bitmap).listener(new RequestListener<Drawable>() {
+        Glide.with(this).load(bitmap).listener(new RequestListener<>() {
             @Override
             public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
                 // How could.

@@ -7,7 +7,7 @@ import android.util.LruCache;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
@@ -54,7 +54,7 @@ public class WorldStorage {
 
     public WorldStorage(String path, Options options) throws IOException {
         this.mOldBlockRegistry = new OldBlockRegistry(2048);
-        Log.d(this, "[Open DB]" + path);
+        LogUtil.d(this, "[Open DB]" + path);
         this.path = path;
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);
     }
@@ -171,7 +171,7 @@ public class WorldStorage {
             try {
                 oldValue.save();
             } catch (Exception e) {
-                Log.d(this, e);
+                LogUtil.d(this, e);
             }
         }
 
@@ -218,7 +218,7 @@ public class WorldStorage {
                     : (CompoundTag) levelDat.getChildTagByKey("Player");
 
             if (player == null) {
-                Log.d(this, "No local player. A server world?");
+                LogUtil.d(this, "No local player. A server world?");
                 return null;
             }
             ListTag posVec = (ListTag) player.getChildTagByKey("Pos");
@@ -232,7 +232,7 @@ public class WorldStorage {
                     (float) posVec.getValue().get(2).getValue(),
                     dimension);
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
             return null;
         }
     }
@@ -259,7 +259,7 @@ public class WorldStorage {
                     (float) posVec.getValue().get(2).getValue(),
                     dimension);
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
             throw new Exception("Could not find " + dbKey, e);
         }
     }
@@ -277,7 +277,7 @@ public class WorldStorage {
             }
             return new DimensionVector3<>(spawnX, spawnY, spawnZ, Dimension.OVERWORLD);
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
             throw new Exception("Could not find spawn");
         }
     }

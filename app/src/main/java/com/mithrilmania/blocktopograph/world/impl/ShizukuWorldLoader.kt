@@ -17,7 +17,7 @@ import com.mithrilmania.blocktopograph.storage.FileServiceClient.CODE_EXTRA_WORL
 import com.mithrilmania.blocktopograph.storage.FileServiceClient.CODE_RELEASE
 import com.mithrilmania.blocktopograph.storage.ShizukuLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
-import com.mithrilmania.blocktopograph.util.getSafely
+import com.mithrilmania.blocktopograph.util.getTypedParcelable
 import com.mithrilmania.blocktopograph.util.loadThumbnail
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.WorldInfo
@@ -51,18 +51,9 @@ fun loadShizukuWorlds(
                 CODE_BASIC_WORLD_INFO -> {
                     val bundle = msg.data
                     val path = bundle.getString("Path") ?: return true
-                    val icon: ParcelFileDescriptor?
-                    val config: ParcelFileDescriptor
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                        @Suppress("DEPRECATION")
-                        config = bundle.getParcelable("Dat")
-                            ?: return true
-                        @Suppress("DEPRECATION")
-                        icon = bundle.getParcelable("Icon")
-                    } else {
-                        config = bundle.getSafely("Dat") ?: return true
-                        icon = bundle.getSafely("Icon")
-                    }
+                    val config = bundle.getTypedParcelable<ParcelFileDescriptor>("Dat")
+                        ?: return true
+                    val icon = bundle.getTypedParcelable<ParcelFileDescriptor>("Icon")
                     CoroutineScope(Dispatchers.IO).launch {
                         val res = async(Dispatchers.IO) {
                             if (icon == null) null else if (

@@ -1,5 +1,41 @@
 package com.mithrilmania.blocktopograph.util
 
+import java.lang.reflect.Array
+
+inline fun <reified A : Any> A.expandAt(
+    index: Int,
+    factory: (Int) -> A
+): A {
+    val length = Array.getLength(this)
+    if (index !in 0..length) {
+        throw IndexOutOfBoundsException("Index: $index, Length: $length")
+    }
+    val result = factory(length + 1)
+    if (index > 0) {
+        System.arraycopy(this, 0, result, 0, index)
+    }
+    if (index < length) {
+        System.arraycopy(this, index, result, index + 1, length - index)
+    }
+    return result
+}
+
+inline fun <reified A : Any> A.shrinkAt(
+    index: Int,
+    factory: (Int) -> A
+): A {
+    val length = Array.getLength(this)
+    if (index !in 0..<length) {
+        throw IndexOutOfBoundsException("Index: $index, Length: $length")
+    }
+    val result = factory(length - 1)
+    System.arraycopy(this, 0, result, 0, index)
+    if (index < length - 1) {
+        System.arraycopy(this, index + 1, result, index, length - index - 1)
+    }
+    return result
+}
+
 private inline fun <T : Any> T.add(
     index: Int,
     length: (T) -> Int,

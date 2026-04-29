@@ -12,12 +12,13 @@ import com.mithrilmania.blocktopograph.nbt.LongArrayTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
+import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 
 class NBTStringifier(
-    val builder: StringBuilder = StringBuilder(),
-    val indent: String = "    "
+    val indentation: Indentation = Indentation("    "),
+    val heterogeneous: Boolean = false,
+    val builder: StringBuilder = StringBuilder()
 ) : TagVisitor {
-    private var depth = 0
     override fun visit(tag: StringTag) {
         this.builder.appendQuoted(tag.value)
     }
@@ -48,7 +49,7 @@ class NBTStringifier(
 
     override fun visit(tag: ByteArrayTag) {
         val builder = this.builder.append('[').append('B').append(';')
-        tag.array.forEach {
+        tag.elements.forEach {
             builder.append(' ').append(it).append('B').append(',')
         }
         builder.setCharAt(builder.length - 1, ']')
@@ -56,7 +57,7 @@ class NBTStringifier(
 
     override fun visit(tag: IntArrayTag) {
         val builder = this.builder.append('[').append('I').append(';')
-        tag.array.forEach {
+        tag.elements.forEach {
             builder.append(' ').append(it).append(',')
         }
         builder.setCharAt(builder.length - 1, ']')
@@ -64,7 +65,7 @@ class NBTStringifier(
 
     override fun visit(tag: LongArrayTag) {
         val builder = this.builder.append('[').append('L').append(';')
-        tag.array.forEach {
+        tag.elements.forEach {
             builder.append(' ').append(it).append('L').append(',')
         }
         builder.setCharAt(builder.length - 1, ']')
@@ -76,19 +77,16 @@ class NBTStringifier(
             return
         }
         val builder = this.builder.append('[')
-        val indent = this.indent
-        if (indent.isEmpty()) {
-            builder.append(tag, { append(' ') }) {
+        if (this.heterogeneous || tag.elementTypeId != TAG_COMPOUND) {
+            builder.append(tag, this.indentation) {
                 it.accept(this)
             }
-            builder.append(']')
         } else {
-            val child = ++this.depth
-            builder.append(tag, { append('\n').indent(indent, child) }) {
-                it.accept(this)
+            builder.append(tag, this.indentation) {
+                it.boxed().accept(this)
             }
-            builder.append('\n').indent(indent, --this.depth).append(']')
         }
+        builder.append(']')
     }
 
     override fun visit(tag: CompoundTag) {
@@ -97,25 +95,13 @@ class NBTStringifier(
             return
         }
         val builder = this.builder.append('{')
-        val indent = this.indent
-        if (indent.isEmpty()) {
-            builder.append(tag.keys.sorted(), { append(' ') }) {
-                builder.appendSafeLiteral(it)
-                    .append(':')
-                    .append(' ')
-                tag[it]?.accept(this)
-            }
-            builder.append('}')
-        } else {
-            val child = ++this.depth
-            builder.append(tag.keys.sorted(), { append('\n').indent(indent, child) }) {
-                builder.appendSafeLiteral(it)
-                    .append(':')
-                    .append(' ')
-                tag[it]?.accept(this)
-            }
-            builder.append('\n').indent(indent, --this.depth).append('}')
+        builder.append(tag.keys.sorted(), this.indentation) {
+            builder.appendSafeLiteral(it)
+                .append(':')
+                .append(' ')
+            tag[it]!!.accept(this)
         }
+        builder.append('}')
     }
 
     override fun toString() = this.builder.toString()

@@ -42,7 +42,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
@@ -145,7 +145,6 @@ public class MapFragment extends Fragment {
         FragmentActivity activity = getActivity();
         if (activity == null) return;
         activity.setTitle(model.getHandler().getPlainName());
-        Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.MAPFRAGMENT_OPEN);
     }
 
     @Override
@@ -227,12 +226,11 @@ public class MapFragment extends Fragment {
                 this.model.setDimension(playerPos.dimension);
                 this.model.getMapType().postValue(playerPos.dimension.defaultMapType);
             }
-            Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.GPS_LOCATE);
 
             frameTo((double) playerPos.x, (double) playerPos.z);
 
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
             Snackbar.make(view, R.string.failed_find_player, Snackbar.LENGTH_LONG)
                     .show();
         }
@@ -265,10 +263,7 @@ public class MapFragment extends Fragment {
                 this.model.setDimension(spawnPos.dimension);
                 this.model.getMapType().setValue(spawnPos.dimension.defaultMapType);
             }
-            Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.GPS_LOCATE);
-
             frameTo((double) spawnPos.x, (double) spawnPos.z);
-
         } catch (Exception e) {
             e.printStackTrace();
             Snackbar.make(view, R.string.failed_find_spawn, Snackbar.LENGTH_LONG)
@@ -450,18 +445,18 @@ public class MapFragment extends Fragment {
         try {
             Entity.loadEntityBitmaps(activity.getAssets());
         } catch (IOException e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
 
         try {
             KnownBlockRepr.loadBitmaps(activity.getAssets());
         } catch (IOException e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
         try {
             CustomIcon.loadCustomBitmaps(activity.getAssets());
         } catch (IOException e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
 
         //set the map-type
@@ -662,7 +657,7 @@ public class MapFragment extends Fragment {
                 DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getHandler().getDataCompat(activity));
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
-                    Log.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
+                    LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
                     localPlayerMarker = new AbstractMarker((int) x, (int) y, (int) z,
                             playerPos.dimension, new CustomNamedBitmapProvider(Entity.PLAYER, "~local_player"), false);
                     this.staticMarkers.add(localPlayerMarker);
@@ -677,7 +672,7 @@ public class MapFragment extends Fragment {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.d(this, "Failed to place player marker. " + e);
+                LogUtil.d(this, "Failed to place player marker. " + e);
             }
 
             try {
@@ -921,7 +916,7 @@ public class MapFragment extends Fragment {
 
         final View container = activity.findViewById(R.id.world_content);
         if (container == null) {
-            Log.d(this, "CANNOT FIND MAIN CONTAINER, WTF");
+            LogUtil.d(this, "CANNOT FIND MAIN CONTAINER, WTF");
             return;
         }
 
@@ -977,7 +972,6 @@ public class MapFragment extends Fragment {
             setUpSelectionMenu();
             Activity activity = getActivity();
             if (activity != null) {
-                Log.logFirebaseEvent(activity, Log.CustomFirebaseEvent.SELECTION);
                 activity.getPreferences(Context.MODE_PRIVATE).edit()
                         .putBoolean(PREF_KEY_HAS_USED_SELECTION, true).apply();
             }
@@ -991,7 +985,7 @@ public class MapFragment extends Fragment {
         try {
             chunk = storage.getChunk(chunkXint, chunkZint, dim);
         } catch (Exception e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
             Toast.makeText(getContext(), R.string.error_could_not_open_world, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1516,9 +1510,6 @@ public class MapFragment extends Fragment {
                                                         playerPos.z),
                                                 Snackbar.LENGTH_LONG)
                                         .setAction("Action", null).show();
-
-                                Log.logFirebaseEvent(activity.get(), Log.CustomFirebaseEvent.GPS_LOCATE);
-
                                 if (playerPos.dimension != fragment.model.getDimension()) {
                                     fragment.model.setDimension(playerPos.dimension);
                                     fragment.model.getMapType().setValue(playerPos.dimension.defaultMapType);

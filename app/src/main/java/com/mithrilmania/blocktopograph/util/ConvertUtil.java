@@ -12,62 +12,6 @@ import java.util.Locale;
  */
 public class ConvertUtil {
 
-    public static String bytesToHexStr(byte[] in) {
-        if (in == null) return "null";
-        final StringBuilder builder = new StringBuilder();
-        for (byte b : in) {
-            builder.append(String.format("%02x", b));
-        }
-        return builder.toString();
-    }
-
-    private static int hexCharToByte(char ch) {
-        return switch (ch) {
-            case '0' -> 0;
-            case '1' -> 1;
-            case '2' -> 2;
-            case '3' -> 3;
-            case '4' -> 4;
-            case '5' -> 5;
-            case '6' -> 6;
-            case '7' -> 7;
-            case '8' -> 8;
-            case '9' -> 9;
-            case 'a', 'A' -> 10;
-            case 'b', 'B' -> 11;
-            case 'c', 'C' -> 12;
-            case 'd', 'D' -> 13;
-            case 'e', 'E' -> 14;
-            case 'f', 'F' -> 15;
-            default -> -1;
-        };
-    }
-
-    @Nullable
-    public static byte[] hexStringToBytes(@NonNull String text) {
-        byte[] ret;
-        if (text.charAt(0) == '0' && (text.charAt(1) == 'x' || text.charAt(1) == 'X'))
-            text = text.substring(2);
-        flow:
-        {
-            int len = text.length();
-            if ((len & 1) != 0) {
-                ret = null;
-                break flow;
-            }
-            len = len >> 1;
-            ret = new byte[len];
-            for (int i = 0; i < len; i++) {
-                int h = hexCharToByte(text.charAt(i << 1)) << 4;
-                if (h < 0) break flow;
-                int l = hexCharToByte(text.charAt(i << 1 | 1));
-                if (l < 0) break flow;
-                ret[i] = (byte) (h | l);
-            }
-        }
-        return ret;
-    }
-
     @NonNull
     public static String getLegalFileName(@NonNull String text) {
         return text.replaceAll("[\\\\/:*?\"<>|.]", "_");

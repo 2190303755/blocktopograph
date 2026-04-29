@@ -8,10 +8,10 @@ import com.mithrilmania.blocktopograph.BiomeSelectDialog
 import com.mithrilmania.blocktopograph.map.Biome
 
 object BiomePicker : ActivityResultContract<Any?, Biome?>() {
-    override fun createIntent(context: Context, ignored: Any?): Intent {
+    override fun createIntent(context: Context, input: Any?): Intent {
         return Intent(context, BiomeSelectDialog::class.java)
     }
 
-    override fun parseResult(code: Int, intent: Intent?) =
-        if (code == RESULT_OK) intent?.getSerializableExtra(BiomeSelectDialog.KEY_BIOME) as? Biome else null
+    override fun parseResult(resultCode: Int, intent: Intent?) =
+        if (resultCode == RESULT_OK) intent?.getTypedSerializableExtra<Biome>(BiomeSelectDialog.KEY_BIOME) else null
 }

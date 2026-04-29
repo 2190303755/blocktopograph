@@ -1,167 +1,169 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.mithrilmania.blocktopograph.editor.nbt.holder.NodeHolder
-import com.mithrilmania.blocktopograph.nbt.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.io.BedrockOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.io.NBTOutput
-import com.mithrilmania.blocktopograph.nbt.io.NBTOutputBuffer
-import com.mithrilmania.blocktopograph.nbt.io.NBTOutputFactory
-import com.mithrilmania.blocktopograph.nbt.io.NamedResult
-import com.mithrilmania.blocktopograph.nbt.io.readUnknownNBT
-import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
+import androidx.annotation.MainThread
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.mithrilmania.blocktopograph.editor.dialog.NBTExportModel
+import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
+import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
+import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
+import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.storage.File
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.InputStream
-import java.io.OutputStream
-import java.lang.ref.WeakReference
-import java.nio.ByteOrder
-import java.util.zip.GZIPOutputStream
+import java.io.IOException
 
-class NBTEditorModel : ViewModel(), NBTOutputFactory {
-    val modified: MutableLiveData<Boolean> = MutableLiveData(false)
-    val loading: MutableLiveData<Boolean> = MutableLiveData(false)
-    val version: MutableLiveData<UInt?> = MutableLiveData()
-    var stringify = false
-    var prettify = true
-    var littleEndian = true
-    var compressed = false
-    val source: MutableLiveData<File?> = MutableLiveData()
-    val tree: MutableLiveData<NBTTree> = MutableLiveData(null)
-    val history: MutableLiveData<HistoryState> = MutableLiveData(HistoryState(false, false))
-    private val undo: ArrayDeque<Operation<*>> = ArrayDeque()
-    private val redo: ArrayDeque<Operation<*>> = ArrayDeque()
-    var holder: WeakReference<NodeHolder<*, *>>? = null
-    var name: String = ""
-        set(value) {
-            field = value
-            this.holder?.get()?.onRename(value)
-        }
+enum class ConfirmationRequest {
+    EXIT,
+    NEW,
+    OPEN,
+    RELOAD
+}
 
-    fun readFileAsync(file: File, context: Context) {
-        loading.value = true
-        source.value = file
-        val app = context.applicationContext
-        viewModelScope.launch(Dispatchers.IO) {
-            val result = file.read(app, InputStream::readUnknownNBT) ?: return@launch
-            withContext(Dispatchers.Main) {
-                undo.clear()
-                redo.clear()
-                loading.value = false
-                if (result is NamedResult) {
-                    name = result.name
-                    stringify = false
-                    littleEndian = result.littleEndian
-                    compressed = result.compressed
-                    version.value = result.version
-                } else {
-                    name = ""
-                    stringify = true
-                    littleEndian = true
-                    compressed = false
-                    version.value = null
-                }
-                tree.value = NBTTree(this@NBTEditorModel, result.tag as? CompoundTag)
-            }
+@JvmInline
+value class InsertionRequest(val parent: RootNode)
+
+@JvmInline
+value class ReplacementRequest(val node: NBTNode)
+
+@JvmInline
+value class RenamingRequest(val node: NBTNode)
+
+class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
+    var modified: Boolean by mutableStateOf(false)
+    var flattening: Boolean by mutableStateOf(false)
+    var confirmation: ConfirmationRequest? by mutableStateOf(null)
+    var insertion: InsertionRequest? by mutableStateOf(null)
+    var replacement: ReplacementRequest? by mutableStateOf(null)
+    var renaming: RenamingRequest? by mutableStateOf(null)
+    var toolbarVisible: Boolean by mutableStateOf(true)
+    var source: File? by mutableStateOf(null)
+    var exporter: NBTExportModel? by mutableStateOf(null)
+    var importer: NBTImportModel? by mutableStateOf(null)
+    override var stringify: Boolean by mutableStateOf(false)
+    override var prettify: Boolean by mutableStateOf(true)
+    override var compressed: Boolean by mutableStateOf(false)
+    override var heterogeneous: Boolean by mutableStateOf(false)
+    override var littleEndian: Boolean by mutableStateOf(true)
+    override var storageVersion: UInt? by mutableStateOf(null)
+    val undo: MutableList<Operation> = mutableStateListOf()
+    val redo: MutableList<Operation> = mutableStateListOf()
+
+    fun performUndo() {
+        undo.removeLastOrNull()?.let {
+            redo.add(it)
+            it.undo(this)
+            modified = true
         }
     }
 
-    fun saveFileAsync(file: File, context: Context, factory: NBTOutputFactory = this) {
-        source.value = file
-        val app = context.applicationContext
-        val model = this
-        viewModelScope.launch(Dispatchers.Default) {
-            val tag = model.tree.value?.asTag() ?: return@launch
-            withContext(Dispatchers.IO) {
-                model.source.value?.save(app) { stream ->
-                    factory.createOutput(stream).save(model.name, tag)
-                }
-            }
-            withContext(Dispatchers.Main) {
-                Toast.makeText(app, "Done", Toast.LENGTH_SHORT).show()
-                model.modified.value = false
-            }
+    fun performRedo() {
+        redo.removeLastOrNull()?.let {
+            undo.add(it)
+            it.redo(this)
+            modified = true
         }
+    }
+
+    fun performOperation(operation: Operation) {
+        operation.redo(this)
+        undo.add(operation)
+        redo.clear()
+        modified = true
     }
 
     fun reset() {
-        name = ""
         undo.clear()
         redo.clear()
-        source.value = null
-        loading.value = false
-        stringify = true
-        littleEndian = true
-        compressed = false
-        version.value = null
-        tree.value = NBTTree(this, null)
+        nodes.clear()
+        confirmation = null
+        source = null
+        storageVersion = null
+        modified = true // remind to save
+        nodes.add(MapNode(this, ""))
     }
 
-    operator fun plusAssign(operation: Operation<*>) {
-        this.redo.clear()
-        this.undo.addLast(operation)
-        this.updateHistory()
+    @MainThread
+    suspend fun readFromFile(importer: NBTImportModel, context: Context) {
+        val result = try {
+            withContext(Dispatchers.IO) {
+                importer.source.read(context, importer::import)
+            } ?: return
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to read", Toast.LENGTH_SHORT).show()
+            Log.e("NBTEditor", "Failed to read ${importer.source}", e)
+            return
+        }
+        flattening = true
+        val flattened = withContext(Dispatchers.Default) {
+            flattenTag(result.tag, result.name ?: "")
+        }
+        nodes.clear()
+        nodes.addAll(flattened)
+        source = importer.source
+        flattening = false
+        if (result.stringified) {
+            stringify = true
+            littleEndian = true
+            compressed = false
+            storageVersion = null
+        } else {
+            stringify = false
+            littleEndian = result.littleEndian
+            compressed = result.compressed
+            storageVersion = result.version
+        }
+        this.importer = null
+        modified = false
     }
 
-    fun undo() {
-        val queue = this.undo
-        if (queue.isEmpty()) return
-        val action = queue.removeLast()
-        this.redo.addLast(action)
-        action.undo()
-        this.updateHistory()
-    }
-
-    fun redo() {
-        val queue = this.redo
-        if (queue.isEmpty()) return
-        val action = queue.removeLast()
-        this.undo.addLast(action)
-        action.redo()
-        this.updateHistory()
-    }
-
-    fun markDirty() {
-        if (this.modified.value == true) return
-        this.modified.value = true
-    }
-
-    fun updateHistory() {
-        this.history.value = HistoryState(this.undo.isNotEmpty(), this.redo.isNotEmpty())
-        this.markDirty()
-    }
-
-    override fun createOutput(stream: OutputStream): NBTOutput {
-        if (this.stringify) {
-            val builder = NBTStringifier(indent = if (this.prettify) "    " else "")
-            return NBTOutput { name, tag ->
-                tag.accept(builder)
-                stream.use {
-                    it.write(builder.toString().toByteArray(Charsets.UTF_8))
+    @MainThread
+    suspend fun saveToFile(file: File, context: Context) {
+        val exporter = this.exporter
+        val root = this.nodes.firstOrNull() ?: return
+        val tag = withContext(Dispatchers.Default) {
+            root.toBinaryTag()
+        }
+        try {
+            withContext(Dispatchers.IO) {
+                file.save(context) { stream ->
+                    stream.writeNBT(root.key.toString(), tag, exporter ?: this@NBTEditorModel)
                 }
             }
+        } catch (e: IOException) {
+            Toast.makeText(context, "Failed to save", Toast.LENGTH_SHORT).show()
+            Log.e("NBTEditor", "Failed to save $file", e)
+            return
         }
-        if (this.littleEndian) {
-            if (this.compressed) return NBTOutputBuffer(
-                GZIPOutputStream(stream),
-                ByteOrder.LITTLE_ENDIAN
-            )
-            val version = this.version.value
-            if (version === null) return NBTOutputBuffer(stream, ByteOrder.LITTLE_ENDIAN)
-            return BedrockOutputBuffer(stream, version)
+        Toast.makeText(context, "Done", Toast.LENGTH_SHORT).show()
+        if (exporter !== null) {
+            this.stringify = exporter.stringify
+            this.prettify = exporter.prettify
+            this.compressed = exporter.compressed
+            this.littleEndian = exporter.littleEndian
+            this.exporter = null
         }
-        return NBTOutputBuffer(
-            if (this.compressed) GZIPOutputStream(stream) else stream,
-            ByteOrder.BIG_ENDIAN
-        )
+        this.source = file
+        this.modified = false
     }
 
-    @JvmRecord
-    data class HistoryState(val undo: Boolean, val redo: Boolean)
+    fun buildExporter(repick: Boolean = false) {
+        this.exporter = NBTExportModel(
+            source = this.source,
+            repick = repick,
+            stringify = this.stringify,
+            prettify = this.prettify,
+            heterogeneous = this.heterogeneous,
+            compressed = this.compressed,
+            littleEndian = this.littleEndian,
+            version = this.storageVersion
+        )
+    }
 }

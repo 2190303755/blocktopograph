@@ -11,7 +11,7 @@ object WorldCreator : ActivityResultContract<Unit, Uri?>() {
     override fun createIntent(context: Context, input: Unit) =
         Intent(context, CreateWorldActivity::class.java)
 
-    override fun parseResult(code: Int, intent: Intent?): Uri? {
-        return if (code == RESULT_OK) intent?.data else null
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
+        return if (resultCode == RESULT_OK) intent?.data else null
     }
 }

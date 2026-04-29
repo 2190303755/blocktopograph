@@ -2,11 +2,11 @@ package com.mithrilmania.blocktopograph.chunk;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import org.iq80.leveldb.DBException;
 
@@ -37,7 +37,7 @@ public abstract class Chunk {
             mEntity = version.createEntityChunkData(this);
             mTileEntity = version.createBlockEntityChunkData(this);
         } catch (Version.VersionException e) {
-            Log.d(this, e);
+            LogUtil.d(this, e);
         }
     }
 
@@ -52,7 +52,7 @@ public abstract class Chunk {
                     storage.writeChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension, (byte) 0, false, new byte[]{0xf});
                     chunk = new BedrockChunk(storage, createOfVersion, chunkX, chunkZ, dimension, true);
                 } catch (Exception e) {
-                    Log.d(Chunk.class, e);
+                    LogUtil.d(Chunk.class, e);
                     chunk = new VoidChunk(storage, createOfVersion, chunkX, chunkZ, dimension);
                 }
                 break;
@@ -73,7 +73,7 @@ public abstract class Chunk {
                 return createEmpty(storage, chunkX, chunkZ, dimension, createOfVersion);
             version = Version.getVersion(data);
         } catch (DBException e) {
-            Log.d(Chunk.class, e);
+            LogUtil.d(Chunk.class, e);
             version = Version.ERROR;
         }
         Chunk chunk;

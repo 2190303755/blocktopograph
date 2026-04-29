@@ -244,7 +244,6 @@ NBT редактором миров Minecraft для Android.
     <string name="failed_to_read_x_from_db">Не удалось прочитать \"%1$s\" из базы данных мира</string>
     <string name="failed_to_retrieve_player_data">Не удалось получить данные игрока.</string>
     <string name="filter_markers">Фильтр отметок</string>
-    <string name="firebase_database_url">https://rbq2012-blocktopograph-r.firebaseio.com</string>
     <string name="foliage_color">Показать цвета листвы</string>
     <string name="full_date_format">dd/MM/yyyy hh:mm a</string>
     <string name="func_begin_selection">Выделить область</string>
@@ -452,7 +451,6 @@ NBT редактором миров Minecraft для Android.
 
 Ссылки на политику конфиденциальности сторонних поставщиков услуг, используемых приложением:
 "<a href="https://www.google.com/policies/privacy/">Сервисы Google Play</a>"
-"<a href="https://firebase.google.com/policies/analytics">Firebase Analytics</a>"
 "<a href="https://web.archive.org/web/20190613214939/https://try.crashlytics.com/">Crashlytics (web archive)</a>"
 
 Все собранные данные будут обрабатываться только на защищенных сервисах, предоставляемых этими общедоступными поставщиками онлайн услуг.

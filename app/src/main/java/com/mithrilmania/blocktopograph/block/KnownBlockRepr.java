@@ -8,7 +8,7 @@ import android.util.SparseArray;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
@@ -1193,7 +1193,7 @@ public enum KnownBlockRepr implements NamedBitmapProviderHandle, NamedBitmapProv
                     //TODO file-paths were generated from block names; some do not actually exist...
                     //Log.w("File not found! "+b.texPath);
                 } catch (Exception e) {
-                    Log.d(KnownBlockRepr.class, e);
+                    LogUtil.d(KnownBlockRepr.class, e);
                 }
             }
         }

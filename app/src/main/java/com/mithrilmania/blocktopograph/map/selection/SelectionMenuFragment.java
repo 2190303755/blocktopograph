@@ -3,8 +3,6 @@ package com.mithrilmania.blocktopograph.map.selection;
 import android.app.Activity;
 import android.graphics.Rect;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,7 +17,6 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
-import com.mithrilmania.blocktopograph.Log;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
 import com.mithrilmania.blocktopograph.databinding.FragSelMenuBinding;
@@ -122,14 +119,12 @@ public class SelectionMenuFragment extends FloatPaneFragment {
                 .setNegativeButton(android.R.string.cancel, null)
                 .create();
         dialog.show();
-        Log.logFirebaseEvent(view.getContext(), Log.CustomFirebaseEvent.SNR_OPEN);
     }
 
     private void onChooseSnr(View view) {
         SearchAndReplaceFragment fragment = SearchAndReplaceFragment.newInstance(registry, mEditFunctionEntry);
         FragmentManager fragmentManager = getMeowFragmentManager();
         fragment.show(fragmentManager, TAG_SNR);
-        Log.logFirebaseEvent(view.getContext(), Log.CustomFirebaseEvent.SNR_OPEN);
     }
 
     private void onChooseDchunk(View view) {
@@ -145,14 +140,12 @@ public class SelectionMenuFragment extends FloatPaneFragment {
                 .setNegativeButton(android.R.string.cancel, null)
                 .create();
         dialog.show();
-        Log.logFirebaseEvent(view.getContext(), Log.CustomFirebaseEvent.DCHUNK);
     }
 
     private void onChooseChbiome(View view) {
         ChBiomeFragment fragment = ChBiomeFragment.newInstance(mEditFunctionEntry);
         FragmentManager fragmentManager = getMeowFragmentManager();
         fragment.show(fragmentManager, TAG_CHBIOME);
-        Log.logFirebaseEvent(view.getContext(), Log.CustomFirebaseEvent.CH_BIOME);
     }
 
     private void onChoosePicer(View view) {
@@ -190,12 +183,9 @@ public class SelectionMenuFragment extends FloatPaneFragment {
         void invokeEditFunction(@NonNull EditFunction func, @Nullable Bundle args);
     }
 
-    private class MeowWatcher implements TextWatcher {
-
-        private final WeakReference<EditText> which;
-
+    private class MeowWatcher extends MeowWatcherCompat {
         MeowWatcher(EditText which) {
-            this.which = new WeakReference<>(which);
+            super(new WeakReference<>(which));
         }
 
         @Override
@@ -207,42 +197,14 @@ public class SelectionMenuFragment extends FloatPaneFragment {
         }
 
         @Override
-        public void afterTextChanged(Editable editable) {
-            EditText which = this.which.get();
-            if (which == null) return;
-            String text = editable.toString();
-            int val;
-            try {
-                val = Integer.parseInt(text);
-            } catch (NumberFormatException e) {
-                return;
-            }
-            switch (which.getId()) {
-                case R.id.from_x_text:
-                    if (mSelection.left == val) return;
-                    which.removeTextChangedListener(this);
-                    mSelection.right += val - mSelection.left;
-                    mSelection.left = val;
-                    break;
-                case R.id.from_y_text:
-                    if (mSelection.top == val) return;
-                    which.removeTextChangedListener(this);
-                    mSelection.bottom += val - mSelection.top;
-                    mSelection.top = val;
-                    break;
-                case R.id.range_w_text:
-                    if (mSelection.right - mSelection.left == val) return;
-                    which.removeTextChangedListener(this);
-                    mSelection.right = mSelection.left + val;
-                    break;
-                case R.id.range_h_text:
-                    if (mSelection.bottom - mSelection.top == val) return;
-                    which.removeTextChangedListener(this);
-                    mSelection.bottom = mSelection.top + val;
-                    break;
-            }
-            mBinding.content.setSelection(mSelection);
-            which.addTextChangedListener(this);
+        @NonNull
+        public Rect getSelection() {
+            return mSelection;
+        }
+
+        @Override
+        public void setSelection(@NonNull Rect rect) {
+            mBinding.content.setSelection(rect);
         }
     }
 }

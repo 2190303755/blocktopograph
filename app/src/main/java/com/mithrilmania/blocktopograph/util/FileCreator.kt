@@ -19,11 +19,13 @@ object FileCreator : ActivityResultContract<Options?, Uri?>() {
     override fun parseResult(resultCode: Int, intent: Intent?) =
         if (resultCode == RESULT_OK) intent?.data else null
 
-    data class Options(val mime: String, val location: Uri? = null, val name: String = "") {
+    class Options(val mime: String, val location: Uri? = null, val name: String = "") {
         fun applyTo(intent: Intent): Intent {
+            if (this.location !== null) {
+                intent.putExtra(EXTRA_INITIAL_URI, this.location)
+            }
             return intent.setType(this.mime)
                 .putExtra(EXTRA_TITLE, this.name)
-                .putExtra(EXTRA_INITIAL_URI, this.location ?: return intent)
         }
     }
 }

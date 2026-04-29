@@ -1,10 +1,9 @@
 package com.mithrilmania.blocktopograph.nbt.util
 
-import com.mithrilmania.blocktopograph.nbt.BYTE_TAG_ONE
-import com.mithrilmania.blocktopograph.nbt.BYTE_TAG_ZERO
+import com.mithrilmania.blocktopograph.BuildConfig
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
-import com.mithrilmania.blocktopograph.nbt.CollectionTag
+import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
 import com.mithrilmania.blocktopograph.nbt.FloatTag
@@ -15,215 +14,284 @@ import com.mithrilmania.blocktopograph.nbt.LongArrayTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
-import com.mithrilmania.blocktopograph.nbt.TagType
-import com.mithrilmania.blocktopograph.nbt.toBinaryTag
-import java.util.regex.Pattern
+import com.mithrilmania.blocktopograph.nbt.StringTag
+import com.mithrilmania.blocktopograph.nbt.io.SNBTReader
+import com.mithrilmania.blocktopograph.util.toChar
+import java.util.UUID
 
-class SNBTParser internal constructor(
-    val snbt: String
+typealias NBTFunction = (List<BinaryTag>) -> BinaryTag
+
+val INTEGER_LIKE_PATTERN = Regex(
+    "^([+-]?)(?:0b([01_]+)|0o([0-7_]+)|0x([0-9a-f_]+)|([0-9_]+))([us])?([bsil])?$",
+    RegexOption.IGNORE_CASE
+)
+val FLOAT_LIKE_PATTERN = Regex(
+    "^([+-]?(?:[0-9_]+(?:\\.[0-9_]*)?|\\.[0-9_]+)(?:e[+-]?[0-9_]+)?)([fd]?)$",
+    RegexOption.IGNORE_CASE
+)
+val INVALID_NUMERIC_LITERAL = Regex("(?<!\\d)_|_(?!\\d)")
+
+val BUILTIN_FUNCTIONS: Map<String, NBTFunction> = mapOf(
+    "bool" to {
+        if (it.size != 1) throw IllegalArgumentException("Too many arguments")
+        val tag = it.first()
+        if (tag !is NumericTag) throw ClassCastException()
+        ByteTag(tag.toInt() == 0)
+    },
+    "uuid" to {
+        if (it.size != 1) throw IllegalArgumentException("Too many arguments")
+        val tag = it.first()
+        if (tag !is StringTag) throw ClassCastException()
+        val uuid = UUID.fromString(tag.value)
+        val mostSignificantBits = uuid.mostSignificantBits
+        val leastSignificantBits = uuid.leastSignificantBits
+        IntArrayTag(
+            intArrayOf(
+                (mostSignificantBits shr 32).toInt(),
+                mostSignificantBits.toInt(),
+                (leastSignificantBits shr 32).toInt(),
+                leastSignificantBits.toInt()
+            )
+        )
+    },
+    "blocktopograph" to {
+        CompoundTag(
+            hashMapOf(
+                "VersionName" to StringTag(BuildConfig.VERSION_NAME),
+                "VersionCode" to IntTag(BuildConfig.VERSION_CODE),
+                "BuildType" to StringTag(BuildConfig.BUILD_TYPE),
+                "IsDebug" to ByteTag(BuildConfig.DEBUG),
+            )
+        )
+    }
+)
+
+fun parseIntegerLike(literal: String): NumericTag? {
+    val match = INTEGER_LIKE_PATTERN.matchEntire(literal) ?: return null
+    var index = 2
+    var boxed: ULong? = null
+    do {
+        val number = match.groupValues[index]
+        if (number.isNotEmpty()) {
+            boxed = number.replace("_", "").toULongOrNull(
+                when (index) {
+                    2 -> 2
+                    3 -> 8
+                    4 -> 16
+                    else -> 10
+                }
+            )
+            if (boxed !== null) break
+        }
+    } while (++index < 6)
+    if (boxed === null) return null
+    val value = if (match.groupValues[1].toChar() == '-') -boxed.toLong() else boxed.toLong()
+    return when (match.groupValues[7].ifEmpty {
+        match.groupValues[6] // it means short if there is only one `s`
+    }.toChar()) {
+        'b', 'B' -> ByteTag(value.toByte())
+        's', 'S' -> ShortTag(value.toShort())
+        'l', 'L' -> LongTag(value)
+        else -> IntTag(value.toInt())
+    }
+}
+
+fun parseFloatLike(literal: String): NumericTag? {
+    val match = FLOAT_LIKE_PATTERN.matchEntire(literal) ?: return null
+    val value = match.groupValues[1].replace("_", "").toDoubleOrNull()
+        ?: return null
+    return when (match.groupValues[2].toChar()) {
+        'f', 'F' -> FloatTag(value.toFloat())
+        else -> DoubleTag(value)
+    }
+
+}
+
+fun parseLiteral(unquoted: String): BinaryTag {
+    if (unquoted.isEmpty()) return StringTag("")
+    if (unquoted.equals("true", true)) return ByteTag(1.toByte())
+    if (unquoted.equals("false", true)) return ByteTag(0.toByte())
+    if (INVALID_NUMERIC_LITERAL.matches(unquoted)) return StringTag(unquoted)
+    return parseIntegerLike(unquoted) ?: parseFloatLike(unquoted) ?: StringTag(unquoted)
+}
+
+class SNBTParser(
+    val reader: SNBTReader,
+    val functions: Map<String, NBTFunction> = BUILTIN_FUNCTIONS
 ) {
-    private val length = snbt.length
-    private var cursor: Int = 0
+    var current: Token = reader.nextToken()
+    var pos: Long = reader.pos()
+    var next: Token = reader.nextToken()
 
-    fun reset() {
-        this.cursor = 0
+    fun expect(token: Token) {
+        if (this.current !== token) {
+            throw IllegalArgumentException("Expected $token, got $current")
+        }
+        this.advance()
     }
 
-    fun skipWhitespace() {
-        val input = this.snbt
-        while (this.cursor < this.length && input[this.cursor].isWhitespace()) {
-            ++this.cursor
+    fun advance() {
+        this.current = this.next
+        this.pos = this.reader.pos()
+        this.next = this.reader.nextToken()
+    }
+
+    fun fetch() {
+        this.current = this.reader.nextToken()
+        this.pos = this.reader.pos()
+        this.next = this.reader.nextToken()
+    }
+
+    fun advanceIfHasNext(terminator: Token): Boolean {
+        if (this.current === Token.Comma && this.next !== terminator) {
+            this.advance()
+            return true
+        }
+        return false
+    }
+
+    fun consume(token: Token): Boolean {
+        if (this.current === token) {
+            this.advance()
+            return true
+        }
+        return false
+    }
+
+    fun parseRoot(): Pair<String, BinaryTag> {
+        val pair = (this.parseKey() ?: "") to this.parseValue()
+        if (this.current === Token.EOF) return pair
+        throw IllegalArgumentException("Expect EOF at $pos")
+    }
+
+    fun parseKey(): String? {
+        val current = this.current
+        if (current === Token.Colon) {
+            this.advance()
+            return ""
+        } else if (this.next === Token.Colon) {
+            if (current is Token.Literal) {
+                this.fetch()
+                return current.value
+            }
+            throw IllegalArgumentException("Expected string literal")
+        }
+        return null
+    }
+
+    fun parseValue(): BinaryTag {
+        when (val token = this.current) {
+            Token.LBrace -> return this.parseCompound()
+            Token.LBracket -> {
+                this.advance()
+                val pos = this.pos
+                if (this.next === Token.Semicolon) {
+                    val current = this.current
+                    if (current is Token.Literal.Unquoted) {
+                        this.fetch()
+                        when (current.value.toChar()) {
+                            'b', 'B' -> return this.parseArray(NumericTag::toByte) {
+                                ByteArrayTag(it.toByteArray())
+                            }
+
+                            'i', 'I' -> return this.parseArray(NumericTag::toInt) {
+                                IntArrayTag(it.toIntArray())
+                            }
+
+                            'l', 'L' -> return this.parseArray(NumericTag::toLong) {
+                                LongArrayTag(it.toLongArray())
+                            }
+
+                            's', 'S' -> return this.parseArray(
+                                ::ShortTag,
+                                ::ListTag
+                            )
+                        }
+                    }
+                    throw IllegalArgumentException("Unexpected $current at $pos")
+                }
+                return this.parseList(Token.RBracket)
+            }
+
+            Token.LParen -> {
+                this.advance()
+                return this.parseList(Token.RParen)
+            }
+
+            is Token.Literal.Quoted -> {
+                this.advance()
+                return StringTag(token.value)
+            }
+
+            is Token.Literal.Unquoted -> {
+                if (this.next === Token.LParen) {
+                    val function = this.functions[token.value]
+                    if (function !== null) {
+                        this.fetch()
+                        return function(this.parseList(Token.RParen).tags)
+                    }
+                    throw IllegalArgumentException("Unknown operation named ${token.value} at $pos")
+                }
+                this.advance()
+                return parseLiteral(token.value)
+            }
+
+            else -> throw IllegalArgumentException("Unexpected $token at $pos")
         }
     }
 
-    private inline fun <T, R> readArray(
-        converter: NumericTag<*>.() -> T,
-        factory: (ArrayList<T>) -> R
+
+    fun parseCompound(): CompoundTag {
+        this.advance()
+        val tags = hashMapOf<String, BinaryTag>()
+        if (this.consume(Token.RBrace)) return CompoundTag(tags)
+        do {
+            tags[
+                this.parseKey() ?: throw IllegalArgumentException(
+                    "Expect string literal at $pos"
+                )
+            ] = this.parseValue()
+        } while (this.advanceIfHasNext(Token.RBrace))
+        if (this.current === Token.Comma) {
+            this.advance()
+        }
+        this.expect(Token.RBrace)
+        return CompoundTag(tags)
+    }
+
+    fun parseList(terminator: Token): ListTag {
+        val tags = mutableListOf<BinaryTag>()
+        if (this.consume(terminator)) return ListTag(tags)
+        do {
+            tags.add(this.parseValue())
+        } while (this.advanceIfHasNext(terminator))
+        if (this.current === Token.Comma) {
+            this.advance()
+        }
+        this.expect(terminator)
+        return ListTag(tags)
+    }
+
+    fun <T, R> parseArray(
+        converter: (NumericTag) -> T,
+        factory: (MutableList<T>) -> R
     ): R {
-        this.cursor += 2
-        this.skipWhitespace()
-        if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
-        val list = ArrayList<T>()
-        val input = this.snbt
-        while (input[this.cursor] != ']') {
-            val index = this.cursor
-            val value = this.readValue()
-            if (value is NumericTag<*>) {
-                list += value.converter()
+        val tags = mutableListOf<T>()
+        if (this.consume(Token.RBracket)) return factory(tags)
+        do {
+            val pos = this.pos
+            val tag = this.parseValue()
+            if (tag is NumericTag) {
+                tags.add(converter(tag))
             } else {
-                throw NBTFormatException("Can't insert ${value.type} into numeric array at $index")
+                throw IllegalArgumentException("Expect numeric literal at $pos")
             }
-            if (this.missesSeparator()) break
-            if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
+        } while (this.advanceIfHasNext(Token.RBracket))
+        if (this.current === Token.Comma) {
+            this.advance()
         }
-        this.expect(']')
-        return factory(list)
+        this.expect(Token.RBracket)
+        return factory(tags)
     }
 
-    fun expect(char: Char) {
-        this.skipWhitespace()
-        if (this.cursor < this.length && this.snbt[this.cursor] == char) {
-            ++this.cursor
-            return
-        }
-        throw NBTFormatException("Expect $char at $cursor")
-    }
-
-    fun missesSeparator(): Boolean {
-        this.skipWhitespace()
-        if (this.cursor < this.length && this.snbt[this.cursor] == ',') {
-            ++this.cursor
-            this.skipWhitespace()
-            return false
-        }
-        return true
-    }
-
-    fun readString(): String {
-        if (this.cursor >= this.length) return ""
-        val char = this.snbt[this.cursor]
-        return if (char.isQuote()) {
-            this.readStringUntil(char)
-        } else {
-            this.readUnquotedString()
-        }
-    }
-
-    fun readStringUntil(terminator: Char): String {
-        val builder = StringBuilder()
-        var escaped = false
-        val input = this.snbt
-        while (++this.cursor < this.length) {//skip promoter
-            val char = input[this.cursor]
-            if (escaped) {
-                if (char == terminator || char == ESCAPE) {
-                    builder.append(char)
-                    escaped = false
-                    continue
-                }
-                throw NBTFormatException("Invalid escape at position ${--this.cursor}")
-            } else if (char == ESCAPE) {
-                escaped = true
-            } else if (char == terminator) {
-                ++this.cursor // consume this
-                return builder.toString()
-            } else {
-                builder.append(char)
-            }
-        }
-        throw NBTFormatException("Expect $terminator")
-    }
-
-    fun readUnquotedString(): String {
-        val start = this.cursor
-        val input = this.snbt
-        while (this.cursor < this.length && input[this.cursor].isSafeLiteral()) {
-            ++this.cursor
-        }
-        return this.snbt.substring(start, this.cursor)
-    }
-
-    fun readCompound(): CompoundTag {
-        val compound = CompoundTag()
-        val input = this.snbt
-        if (this.cursor >= this.length) throw NBTFormatException("Expect } at $cursor")
-        while (input[this.cursor] != '}') {
-            val index = this.cursor
-            this.skipWhitespace()
-            val key = this.readString()
-            if (key.isEmpty()) throw NBTFormatException("Expect key at $index")
-            this.expect(':')
-            compound[key] = this.readValue()
-            if (this.missesSeparator()) break
-            if (this.cursor >= this.length) throw NBTFormatException("Expect key at $index")
-        }
-        this.expect('}')
-        return compound
-    }
-
-    fun readList(): CollectionTag<out BinaryTag<*>> {
-        val input = this.snbt
-        if (this.cursor + 1 < this.length && input[this.cursor + 1] == ';') {
-            val type = input[this.cursor]
-            when (type) {
-                'S', 's', 'I', 'i' -> return this.readArray(NumericTag<*>::getAsInt) {
-                    IntArrayTag(
-                        it.toIntArray()
-                    )
-                }
-
-                'B', 'b' -> return this.readArray(NumericTag<*>::getAsByte) { ByteArrayTag(it.toByteArray()) }
-                'L', 'l' -> return this.readArray(NumericTag<*>::getAsLong) { LongArrayTag(it.toLongArray()) }
-                SINGLE_QUOTE, DOUBLE_QUOTE -> {}
-                else -> throw NBTFormatException("Invalid array with type $type at $cursor")
-            }
-        }
-        this.skipWhitespace()
-        if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
-        val list = ListTag()
-        var type: TagType<*>? = null
-        while (input[this.cursor] != ']') {
-            val index = this.cursor
-            val value = this.readValue()
-            if (type === null) {
-                type = value.type
-            } else if (type !== value.type) {
-                throw NBTFormatException("Can't insert ${value.type} into list of $type at $index")
-            }
-            list += value
-            if (this.missesSeparator()) break
-            if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
-        }
-        this.expect(']')
-        return list
-    }
-
-    fun readValue(): BinaryTag<*> {
-        this.skipWhitespace()
-        if (this.cursor >= this.length) throw NBTFormatException("Expect value at $cursor")
-        return when (this.snbt[this.cursor]) {
-            DOUBLE_QUOTE -> this.readStringUntil(DOUBLE_QUOTE).toBinaryTag()
-            SINGLE_QUOTE -> this.readStringUntil(SINGLE_QUOTE).toBinaryTag()
-            '{' -> {
-                ++this.cursor
-                this.readCompound()
-            }
-
-            '[' -> {
-                ++this.cursor
-                this.readList()
-            }
-
-            else -> {
-                val value = this.readUnquotedString()
-                if ("true".equals(value, true)) return BYTE_TAG_ONE
-                if ("false".equals(value, true)) return BYTE_TAG_ZERO
-                try {
-                    if (INTEGER_LIKE_PATTERN.matcher(value).matches()) return when (value.last()) {
-                        'b', 'B' -> value.substring(0, value.length - 1).toByte().toBinaryTag()
-                        's', 'S' -> ShortTag(value.substring(0, value.length - 1).toShort())
-                        'l', 'L' -> LongTag(value.substring(0, value.length - 1).toLong())
-                        else -> IntTag(value.toInt())
-                    }
-                    if (FLOAT_LIKE_PATTERN.matcher(value).matches()) return when (value.last()) {
-                        'f', 'F' -> FloatTag(value.substring(0, value.length - 1).toFloat())
-                        'd', 'D' -> DoubleTag(value.substring(0, value.length - 1).toDouble())
-                        else -> DoubleTag(value.toDouble())
-                    }
-                } catch (_: NumberFormatException) {
-                }
-                return value.toBinaryTag()
-            }
-        }
-    }
-
-    companion object {
-        const val DOUBLE_QUOTE = '"'
-        const val SINGLE_QUOTE = '\''
-        const val ESCAPE = '\\'
-        val INTEGER_LIKE_PATTERN: Pattern =
-            Pattern.compile("^[-+]?(?:0|[1-9][0-9]*)[bBlLsS]?$")
-        val FLOAT_LIKE_PATTERN: Pattern =
-            Pattern.compile("^[-+]?(?:[0-9]+[.]?|[0-9]*[.][0-9]+)(?:e[-+]?[0-9]+)?[dDfF]?$")
-    }
 }

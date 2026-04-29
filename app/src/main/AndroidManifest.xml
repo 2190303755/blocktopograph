@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-sdk tools:overrideLibrary="com.jbvincey.nestedradiobutton" />
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -8,36 +10,26 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <uses-sdk tools:overrideLibrary="com.jbvincey.nestedradiobutton" />
-
     <application
         android:name=".Blocktopograph"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:enableOnBackInvokedCallback="true"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
-
-        <meta-data
-            android:name="firebase_crashlytics_collection_enabled"
-            android:value="false" />
-
-        <meta-data
-            android:name="firebase_analytics_collection_enabled"
-            android:value="false" />
         <activity
             android:name=".worldlist.WorldListActivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <!-- World -->
         <activity
             android:name=".editor.world.WorldEditorActivity"
@@ -45,34 +37,29 @@
             android:label="@string/title_activity_world"
             android:parentActivityName=".worldlist.WorldListActivity"
             android:theme="@style/World" />
-
         <activity
             android:name=".editor.world.CreateWorldActivity"
             android:label="@string/create_world_title"
             android:theme="@style/AppTheme.NoActionBar" />
-
         <activity
             android:name=".flat.EditLayerDialog"
             android:theme="@style/AppTheme.Dialog" />
-
         <activity
             android:name=".flat.PickBlockActivity"
             android:label="@string/pick_block_title"
             android:theme="@style/AppTheme.Dialog" />
-
         <activity
             android:name=".test.WorldTestActivity"
             android:label="@string/title_test_page"
             android:theme="@style/AppTheme.NoActionBar" />
-
         <activity
             android:name=".editor.nbt.NBTEditorActivity"
-            android:label="@string/activity_nbt_editor"
             android:exported="true"
-            android:theme="@style/AppTheme.NoActionBar">
-
+            android:label="@string/activity_nbt_editor"
+            android:theme="@style/ComposeTheme">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data android:scheme="content" />
@@ -80,7 +67,6 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".BiomeSelectDialog"
             android:label="@string/biome_pick_title"
@@ -88,7 +74,6 @@
         <activity
             android:name=".UnsatisfiedLinkErrorActivity"
             android:label="@string/some_thing_went_wrong" />
-
         <activity android:name=".test.VisualizationActivity" />
 
         <provider

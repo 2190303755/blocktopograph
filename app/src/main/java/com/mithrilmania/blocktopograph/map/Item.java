@@ -7,7 +7,7 @@ import android.util.SparseArray;
 
 import androidx.annotation.NonNull;
 
-import com.mithrilmania.blocktopograph.Log;
+import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.util.ColorWrapper;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
@@ -291,7 +291,7 @@ public enum Item implements NamedBitmapProviderHandle, NamedBitmapProvider {
                     //TODO file-paths were generated from item names; some do not actually exist...
                     //Log.w("File not found! "+b.texPath);
                 } catch (Exception e) {
-                    Log.d(Item.class, e);
+                    LogUtil.d(Item.class, e);
                 }
             }
         }
