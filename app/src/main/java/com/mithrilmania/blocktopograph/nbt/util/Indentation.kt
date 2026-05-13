@@ -9,7 +9,7 @@ interface Indentation {
 fun Indentation(
     unit: String? = "    "
 ): Indentation = if (unit.isNullOrEmpty()) {
-    EmptyIndentation
+    CompactIndentation
 } else {
     IndentationImpl(unit)
 }
@@ -17,9 +17,9 @@ fun Indentation(
 fun Indentation(
     enabled: Boolean
 ): Indentation = if (enabled) {
-    EmptyIndentation
-} else {
     IndentationImpl()
+} else {
+    CompactIndentation
 }
 
 fun Appendable.indent(unit: String, depth: Int) {
@@ -28,7 +28,7 @@ fun Appendable.indent(unit: String, depth: Int) {
     }
 }
 
-object EmptyIndentation : Indentation {
+object CompactIndentation : Indentation {
     override fun beginStructure(appendable: Appendable) {}
     override fun endStructure(appendable: Appendable) {}
     override fun applyToElement(appendable: Appendable) {

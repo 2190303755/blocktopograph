@@ -2,11 +2,11 @@ package com.mithrilmania.blocktopograph.nbt.io
 
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 
-class TagWithMeta(
+data class TagWithMeta(
     val tag: BinaryTag,
-    val name: String?,
+    val name: String,
     val compressed: Boolean = false,
     val version: UInt? = null,
     val littleEndian: Boolean = true,
-    val stringified: Boolean = name === null
+    val stringified: Boolean = false
 )

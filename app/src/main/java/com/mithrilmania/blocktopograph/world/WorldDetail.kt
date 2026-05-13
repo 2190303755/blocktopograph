@@ -17,7 +17,7 @@ import com.mithrilmania.blocktopograph.nbt.io.skipString
 import com.mithrilmania.blocktopograph.storage.Location
 import java.io.InputStream
 
-class WorldInfo(
+class WorldDetail(
     val location: Location,
     val config: Location,
     val name: String,
@@ -37,12 +37,12 @@ class WorldInfo(
         .putExtra(EXTRA_TITLE, this.name)
 }
 
-fun InputStream.extractInfo(
+fun InputStream.extractDetail(
     location: Location,
     config: Location,
     context: Context,
     tag: String = ""
-): WorldInfo {
+): WorldDetail {
     val input = BedrockNBTInput(this.buffered())
     input.skipBytes(8)
     var name: String? = null
@@ -82,7 +82,7 @@ fun InputStream.extractInfo(
         }
     }
     input.close()
-    return WorldInfo(
+    return WorldDetail(
         location,
         config,
         name ?: location.queryName(context),

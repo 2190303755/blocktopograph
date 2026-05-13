@@ -21,9 +21,6 @@ import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Log
 import android.util.Size
 import androidx.annotation.RequiresApi
-import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
-import com.mithrilmania.blocktopograph.nbt.old.LevelDBNBT
-import org.iq80.leveldb.DB
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -256,23 +253,3 @@ fun formatSize(size: Long): String {
 }
 
 fun String.toLDBKey() = this.toByteArray(Charsets.UTF_8)
-
-inline fun DB.getAsEditableNBT(
-    entry: SpecialDBEntryType,
-    handler: (String) -> Unit = {}
-) = this.getAsEditableNBT(entry.keyName, entry.keyBytes, handler)
-
-inline fun DB.getAsEditableNBT(
-    display: String,
-    key: ByteArray = display.toLDBKey(),
-    handler: (String) -> Unit = {}
-): EditableNBT? {
-    try {
-        return LevelDBNBT.open(this, display, key)
-    } catch (e: Exception) {
-        val hex = key.toHexString()
-        Log.e(LEVEL_DB_TAG, "Failed to open data with key: $hex", e)
-        handler(hex)
-    }
-    return null
-}

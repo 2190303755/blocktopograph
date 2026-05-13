@@ -4,12 +4,8 @@ import static com.google.common.io.ByteStreams.skipFully;
 
 import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 public final class LevelDataConverter {
     public static final byte[] header = {0x04, 0x00, 0x00, 0x00};
@@ -22,18 +18,5 @@ public final class LevelDataConverter {
         CompoundTag levelTag = (CompoundTag) in.readTag();
         in.close();
         return levelTag;
-    }
-
-    public static void write(OutputStream stream, CompoundTag levelTag) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        NBTOutputStream out = new NBTOutputStream(bos);
-        out.writeTag(levelTag);
-        out.close();
-        DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(stream));
-        int length = bos.size();
-        dos.write(header);
-        dos.writeInt(Integer.reverseBytes(length));
-        bos.writeTo(dos);
-        dos.close();
     }
 }

@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 public class LogUtil {
@@ -11,14 +13,18 @@ public class LogUtil {
     }
 
     public static void d(@NonNull Object caller, @NonNull String msg) {
-        android.util.Log.d(LOG_TAG, prependClassName(caller, msg));
+        Log.d(LOG_TAG, prependClassName(caller, msg));
+    }
+
+    public static void d(@NonNull Object caller, @NonNull String msg, @NonNull Throwable throwable) {
+        Log.d(LOG_TAG, prependClassName(caller, msg), throwable);
     }
 
     public static void d(@NonNull Object caller, @NonNull Throwable throwable) {
-        android.util.Log.e(LOG_TAG, caller.getClass().getSimpleName(), throwable);
+        Log.e(LOG_TAG, caller.getClass().getSimpleName(), throwable);
     }
 
     public static void d(@NonNull Class<?> caller, @NonNull Throwable throwable) {
-        android.util.Log.e(LOG_TAG, caller.getSimpleName(), throwable);
+        Log.e(LOG_TAG, caller.getSimpleName(), throwable);
     }
 }

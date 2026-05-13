@@ -16,8 +16,8 @@ import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
-import com.mithrilmania.blocktopograph.world.WorldInfo
-import com.mithrilmania.blocktopograph.world.extractInfo
+import com.mithrilmania.blocktopograph.world.WorldDetail
+import com.mithrilmania.blocktopograph.world.extractDetail
 import com.mithrilmania.blocktopograph.worldlist.WorldItemAdapter
 import com.mithrilmania.blocktopograph.worldlist.WorldListModel
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +29,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
-suspend fun Uri.populate(info: WorldInfo, adapter: WorldItemAdapter, context: Context) {
+suspend fun Uri.populate(info: WorldDetail, adapter: WorldItemAdapter, context: Context) {
     val root = this
     withContext(Dispatchers.IO) {
         val insert = async(Dispatchers.Main) {
@@ -92,7 +92,7 @@ suspend fun Context.loadSAFWorld(
     resolver: ContentResolver = this.contentResolver
 ) {
     val config = location.findChild(resolver, FILE_LEVEL_DAT) ?: return
-    val world = resolver.openInputStream(config)?.extractInfo(
+    val world = resolver.openInputStream(config)?.extractDetail(
         SAFLocation(location),
         SAFLocation(config),
         this,

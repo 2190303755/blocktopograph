@@ -31,10 +31,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -160,18 +162,25 @@ fun <T> DropdownMenuChip(
     selected: T,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     namer: @Composable (T) -> String,
 ) {
-    val (expanded, onExpandedChange) = remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = onExpandedChange) {
+    var expanded by remember { mutableStateOf(false) }
+    val effectiveExpanded = remember {
+        derivedStateOf { enabled && expanded }
+    }.value
+    ExposedDropdownMenuBox(
+        expanded = effectiveExpanded,
+        onExpandedChange = { expanded = it && enabled }) {
         val minSize = LocalMinimumInteractiveComponentSize.current
         AssistChip(
             onClick = {},
+            enabled = enabled,
             label = {
                 Text(text = namer(selected))
             },
             trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = effectiveExpanded)
             },
             modifier = modifier
                 .defaultMinSize(minHeight = minSize, minWidth = minSize)
@@ -180,8 +189,8 @@ fun <T> DropdownMenuChip(
                 )
         )
         ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
+            expanded = effectiveExpanded,
+            onDismissRequest = { expanded = false },
             containerColor = MenuDefaults.groupStandardContainerColor,
             shape = MenuDefaults.standaloneGroupShape,
         ) {
@@ -199,7 +208,7 @@ fun <T> DropdownMenuChip(
                     selected = option == selected,
                     onClick = {
                         onSelect(option)
-                        onExpandedChange(false)
+                        expanded = false
                     },
                     selectedLeadingIcon = {
                         Icon(

@@ -14,8 +14,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
-import com.mithrilmania.blocktopograph.nbt.io.writeNBT
-import com.mithrilmania.blocktopograph.storage.File
+import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -44,7 +43,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     var replacement: ReplacementRequest? by mutableStateOf(null)
     var renaming: RenamingRequest? by mutableStateOf(null)
     var toolbarVisible: Boolean by mutableStateOf(true)
-    var source: File? by mutableStateOf(null)
+    var source: NBTSource? by mutableStateOf(null)
     var exporter: NBTExportModel? by mutableStateOf(null)
     var importer: NBTImportModel? by mutableStateOf(null)
     override var stringify: Boolean by mutableStateOf(false)
@@ -94,7 +93,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     suspend fun readFromFile(importer: NBTImportModel, context: Context) {
         val result = try {
             withContext(Dispatchers.IO) {
-                importer.source.read(context, importer::import)
+                importer.source.readNBT(context, importer)
             } ?: return
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to read", Toast.LENGTH_SHORT).show()
@@ -103,7 +102,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
         }
         flattening = true
         val flattened = withContext(Dispatchers.Default) {
-            flattenTag(result.tag, result.name ?: "")
+            flattenTag(result.tag, result.name)
         }
         nodes.clear()
         nodes.addAll(flattened)
@@ -125,7 +124,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     }
 
     @MainThread
-    suspend fun saveToFile(file: File, context: Context) {
+    suspend fun saveToFile(source: NBTSource, context: Context) {
         val exporter = this.exporter
         val root = this.nodes.firstOrNull() ?: return
         val tag = withContext(Dispatchers.Default) {
@@ -133,13 +132,11 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
         }
         try {
             withContext(Dispatchers.IO) {
-                file.save(context) { stream ->
-                    stream.writeNBT(root.key.toString(), tag, exporter ?: this@NBTEditorModel)
-                }
+                source.saveNBT(context, exporter ?: this@NBTEditorModel, root.key.toString(), tag)
             }
         } catch (e: IOException) {
             Toast.makeText(context, "Failed to save", Toast.LENGTH_SHORT).show()
-            Log.e("NBTEditor", "Failed to save $file", e)
+            Log.e("NBTEditor", "Failed to save $source", e)
             return
         }
         Toast.makeText(context, "Done", Toast.LENGTH_SHORT).show()
@@ -150,7 +147,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
             this.littleEndian = exporter.littleEndian
             this.exporter = null
         }
-        this.source = file
+        this.source = source
         this.modified = false
     }
 

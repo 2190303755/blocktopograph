@@ -11,18 +11,18 @@ import androidx.recyclerview.widget.SortedList
 import androidx.recyclerview.widget.SortedListAdapterCallback
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.databinding.CardWorldItemBinding
-import com.mithrilmania.blocktopograph.world.WorldInfo
+import com.mithrilmania.blocktopograph.world.WorldDetail
 import java.util.Date
 
 class WorldItemAdapter : RecyclerView.Adapter<WorldItemAdapter.WorldItemHolder>() {
-    val selected: MutableLiveData<WorldInfo> = MutableLiveData()
+    val selected: MutableLiveData<WorldDetail> = MutableLiveData()
     val worlds = SortedList(
-        WorldInfo::class.java,
-        object : SortedListAdapterCallback<WorldInfo>(this) {
-            override fun compare(left: WorldInfo, right: WorldInfo) =
+        WorldDetail::class.java,
+        object : SortedListAdapterCallback<WorldDetail>(this) {
+            override fun compare(left: WorldDetail, right: WorldDetail) =
                 right.time.compareTo(left.time)
 
-            override fun areContentsTheSame(old: WorldInfo, neo: WorldInfo) =
+            override fun areContentsTheSame(old: WorldDetail, neo: WorldDetail) =
                 old.location == neo.location
                         && old.name == neo.name
                         && old.time == neo.time
@@ -31,7 +31,7 @@ class WorldItemAdapter : RecyclerView.Adapter<WorldItemAdapter.WorldItemHolder>(
                         && old.mode == neo.mode
                         && old.version == neo.version
 
-            override fun areItemsTheSame(old: WorldInfo, neo: WorldInfo) =
+            override fun areItemsTheSame(old: WorldDetail, neo: WorldDetail) =
                 old.location == neo.location
         }
     )
@@ -62,7 +62,7 @@ class WorldItemAdapter : RecyclerView.Adapter<WorldItemAdapter.WorldItemHolder>(
     }
 
 
-    fun notifyItemChanged(world: WorldInfo) {
+    fun notifyItemChanged(world: WorldDetail) {
         val worlds = this.worlds
         val index = worlds.indexOf(world)
         if (index == -1) return
@@ -70,10 +70,10 @@ class WorldItemAdapter : RecyclerView.Adapter<WorldItemAdapter.WorldItemHolder>(
     }
 
     class WorldItemHolder(
-        val selected: MutableLiveData<WorldInfo>,
+        val selected: MutableLiveData<WorldDetail>,
         val binding: CardWorldItemBinding
     ) : RecyclerView.ViewHolder(binding.root), OnClickListener {
-        var world: WorldInfo? = null
+        var world: WorldDetail? = null
         override fun onClick(v: View?) {
             this.selected.value = this.world ?: return
         }

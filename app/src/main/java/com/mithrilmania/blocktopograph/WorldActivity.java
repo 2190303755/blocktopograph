@@ -28,12 +28,11 @@ import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
-import com.mithrilmania.blocktopograph.nbt.old.EditableNBT;
 import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.WorldHandlerKt;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public abstract class WorldActivity extends AppCompatActivity
@@ -131,7 +130,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
             *link to results will be included here for reference when @mithrilmania is done*
          */
-        subtitle.setText(String.valueOf(handler.getWorldSeed(this)));
+        subtitle.setText(String.valueOf(WorldHandlerKt.resolveSeed(handler, this)));
 
         // Open the world-map as default content
         openWorldMap();
@@ -358,7 +357,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
 
         //open nbt editor for entity data
-        changeContentFragment(() -> {
+        /*changeContentFragment(() -> {
 
             //make a copy first, the user might not want to save changed tags.
             final List<Tag> workCopy = new ArrayList<>();
@@ -414,6 +413,6 @@ public abstract class WorldActivity extends AppCompatActivity
             };
 
             //openNBTEditor(editableChunkData);
-        });
+        });*/
     }
 }

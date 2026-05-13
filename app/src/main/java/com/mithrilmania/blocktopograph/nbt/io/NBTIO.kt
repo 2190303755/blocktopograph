@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
+import com.google.common.primitives.Ints
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
@@ -26,10 +27,16 @@ import com.mithrilmania.blocktopograph.nbt.util.Indentation
 import com.mithrilmania.blocktopograph.nbt.util.NBTFormatException
 import com.mithrilmania.blocktopograph.nbt.util.NBTStackOverflowException
 import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
+import com.mithrilmania.blocktopograph.nbt.util.SNBTParser
+import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
+import com.mithrilmania.blocktopograph.util.autoDecompress
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
 import java.io.DataOutput
+import java.io.InputStream
 import java.io.OutputStream
+import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -50,6 +57,175 @@ interface NBTExportConfig {
     val compressed: Boolean
     val littleEndian: Boolean
     val storageVersion: UInt?
+}
+
+interface NBTImportConfig {
+    val format: NBTFormat
+    val header: HeaderPresence
+}
+
+data class NBTImportConfigImpl(
+    override val format: NBTFormat = NBTFormat.UNKNOWN,
+    override val header: HeaderPresence = HeaderPresence.UNCERTAIN
+) : NBTImportConfig
+
+fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
+    val wrapped = this.autoDecompress()
+    when (config.format) {
+        NBTFormat.STRINGIFIED -> {
+            val pair = SNBTParser(SNBTStreamReader(wrapped)).parseRoot()
+            return TagWithMeta(
+                pair.second,
+                pair.first,
+                wrapped is GZIPInputStream,
+                null,
+                littleEndian = false,
+                stringified = true
+            )
+        }
+
+        NBTFormat.BIG_ENDIAN -> {
+            val pair = JavaNBTInput(wrapped).readNamedTag()
+            return TagWithMeta(
+                pair.second,
+                pair.first,
+                wrapped is GZIPInputStream,
+                null,
+                littleEndian = false
+            )
+        }
+
+        NBTFormat.LITTLE_ENDIAN -> {
+            when (config.header) {
+                HeaderPresence.ABSENT -> {
+                    val pair = BedrockNBTInput(wrapped).readNamedTag()
+                    return TagWithMeta(
+                        pair.second,
+                        pair.first,
+                        wrapped is GZIPInputStream,
+                        null,
+                        littleEndian = true
+                    )
+                }
+
+                HeaderPresence.PRESENT -> {
+                    val input = BedrockNBTInput(wrapped)
+                    val version = input.readInt()
+                    input.skipBytes(4)
+                    val pair = input.readNamedTag()
+                    return TagWithMeta(
+                        pair.second,
+                        pair.first,
+                        wrapped is GZIPInputStream,
+                        version.toUInt(),
+                        littleEndian = true
+                    )
+                }
+
+                else -> {
+                    val bytes = wrapped.readBytes()
+                    if (bytes.size > 8 && bytes.size == 8 + Ints.fromBytes(
+                            bytes[7],
+                            bytes[6],
+                            bytes[5],
+                            bytes[4]
+                        )
+                    ) {
+                        val pair = BedrockNBTInput(
+                            ByteArrayInputStream(bytes, 8, bytes.size - 8)
+                        ).readNamedTag()
+                        return TagWithMeta(
+                            pair.second,
+                            pair.first,
+                            wrapped is GZIPInputStream,
+                            Ints.fromBytes(
+                                bytes[3],
+                                bytes[2],
+                                bytes[1],
+                                bytes[0]
+                            ).toUInt(),
+                            littleEndian = true
+                        )
+                    } else {
+                        val pair = BedrockNBTInput(
+                            ByteArrayInputStream(bytes)
+                        ).readNamedTag()
+                        return TagWithMeta(
+                            pair.second,
+                            pair.first,
+                            wrapped is GZIPInputStream,
+                            null,
+                            littleEndian = true
+                        )
+                    }
+                }
+            }
+        }
+
+        NBTFormat.UNKNOWN -> {
+            val bytes = wrapped.readBytes()
+            if (config.header !== HeaderPresence.ABSENT) {
+                if (bytes.size > 8 && bytes.size == 8 + Ints.fromBytes(
+                        bytes[7],
+                        bytes[6],
+                        bytes[5],
+                        bytes[4]
+                    )
+                ) runSuppressing {
+                    val pair = BedrockNBTInput(
+                        ByteArrayInputStream(bytes, 8, bytes.size - 8)
+                    ).readNamedTag()
+                    return TagWithMeta(
+                        pair.second,
+                        pair.first,
+                        false,
+                        Ints.fromBytes(
+                            bytes[3],
+                            bytes[2],
+                            bytes[1],
+                            bytes[0]
+                        ).toUInt()
+                    )
+                }
+            }
+            runSuppressing {
+                val pair = bytes.toString(Charsets.UTF_8).parseSNBT()
+                if (pair !== null) return TagWithMeta(
+                    pair.second,
+                    pair.first,
+                    false,
+                    null,
+                    littleEndian = false,
+                    stringified = true
+                )
+            }
+            runSuppressing {
+                val pair = BedrockNBTInput(
+                    ByteArrayInputStream(bytes)
+                ).readNamedTag()
+                return TagWithMeta(
+                    pair.second,
+                    pair.first,
+                    wrapped is GZIPInputStream,
+                    null,
+                    littleEndian = true
+                )
+            }
+            runSuppressing {
+                val pair = JavaNBTInput(
+                    ByteArrayInputStream(bytes)
+                ).readNamedTag()
+                return TagWithMeta(
+                    pair.second,
+                    pair.first,
+                    wrapped is GZIPInputStream,
+                    null,
+                    littleEndian = false
+                )
+            }
+        }
+    }
+    return null
 }
 
 fun OutputStream.writeNBT(name: String, tag: BinaryTag, config: NBTExportConfig) {

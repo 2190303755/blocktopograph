@@ -20,8 +20,8 @@ import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.getTypedParcelable
 import com.mithrilmania.blocktopograph.util.loadThumbnail
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
-import com.mithrilmania.blocktopograph.world.WorldInfo
-import com.mithrilmania.blocktopograph.world.extractInfo
+import com.mithrilmania.blocktopograph.world.WorldDetail
+import com.mithrilmania.blocktopograph.world.extractDetail
 import com.mithrilmania.blocktopograph.worldlist.WorldListModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +43,7 @@ fun loadShizukuWorlds(
     val service = Blocktopograph.fileService ?: return
     val adapter = model.adapter
     model.loading.postValue(true)
-    val jobs = HashMap<String, CompletableDeferred<WorldInfo>>()
+    val jobs = HashMap<String, CompletableDeferred<WorldDetail>>()
     val callback = object : Callback {
         override fun handleMessage(msg: Message): Boolean {
             when (msg.what) {
@@ -67,7 +67,7 @@ fun loadShizukuWorlds(
                                 )
                             })
                         }
-                        val world = FileInputStream(config.fileDescriptor).extractInfo(
+                        val world = FileInputStream(config.fileDescriptor).extractDetail(
                             ShizukuLocation(path),
                             ShizukuLocation("$path/$FILE_LEVEL_DAT"),
                             context
@@ -92,7 +92,7 @@ fun loadShizukuWorlds(
                     val behavior = msg.arg1
                     val resource = msg.arg2
                     CoroutineScope(Dispatchers.Default).launch {
-                        var job: Deferred<WorldInfo>
+                        var job: Deferred<WorldDetail>
                         synchronized(jobs) {
                             job = jobs.computeIfAbsent(path) {
                                 CompletableDeferred()

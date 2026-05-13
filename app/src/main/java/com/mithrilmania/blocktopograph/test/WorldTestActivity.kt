@@ -34,6 +34,7 @@ import com.mithrilmania.blocktopograph.world.WorldStorage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -48,8 +49,8 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
         if (model.handler == null) {
             try {
                 model.init(this, this.intent)
-                this.lifecycleScope.launch(Dispatchers.IO) {
-                    storage = model.handler!!.open(this, this@WorldTestActivity)
+                storage = this.lifecycleScope.async(Dispatchers.IO) {
+                    model.handler!!.open(this@WorldTestActivity)
                 }
             } catch (e: Throwable) {
                 Toast.makeText(this, "Failed to open world", Toast.LENGTH_SHORT).show()

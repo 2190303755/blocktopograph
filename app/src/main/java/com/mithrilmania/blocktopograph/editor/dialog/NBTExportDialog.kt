@@ -32,7 +32,7 @@ import com.mithrilmania.blocktopograph.MIME_SNBT
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
-import com.mithrilmania.blocktopograph.storage.File
+import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
@@ -40,7 +40,7 @@ import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.util.FileCreator
 
 class NBTExportModel(
-    val source: File?,
+    val source: NBTSource?,
     val repick: Boolean,
     stringify: Boolean,
     prettify: Boolean,
@@ -62,7 +62,7 @@ class NBTExportModel(
     fun buildOptions(context: Context) = FileCreator.Options(
         if (this.stringify) MIME_SNBT else MIME_TYPE_DEFAULT,
         (this.source as? SAFFile)?.uri,
-        this.source?.getName(context) ?: ""
+        this.source?.resolveName(context) ?: ""
     )
 }
 
@@ -70,10 +70,10 @@ class NBTExportModel(
 @Composable
 fun NBTExportDialog(
     exporter: NBTExportModel,
-    picker: ActivityResultLauncher<FileCreator.Options?>,
+    creator: ActivityResultLauncher<FileCreator.Options?>,
     state: SheetState,
     onDismiss: () -> Unit,
-    onExport: (File) -> Unit
+    onExport: (NBTSource) -> Unit
 ) {
     val isHeaderAvailable = remember {
         derivedStateOf {
@@ -200,7 +200,7 @@ fun NBTExportDialog(
                 onClick = {
                     val file = exporter.source
                     if (exporter.repick || file == null) {
-                        picker.launch(exporter.buildOptions(context))
+                        creator.launch(exporter.buildOptions(context))
                     } else {
                         onExport(file)
                     }

@@ -64,6 +64,7 @@ import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
+import com.mithrilmania.blocktopograph.world.WorldHandlerKt;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.io.IOException;
@@ -209,11 +210,12 @@ public class MapFragment extends Fragment {
 //            return;
 //        }
         try {
-
+            var handler = this.model.getHandler();
+            if (handler == null) return;
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Float> playerPos = model.getHandler().getStorage().getLocalPlayerPos(this.model.getHandler().getDataCompat(activity));
+            DimensionVector3<Float> playerPos = WorldHandlerKt.resolveLocalPlayerPos(handler, activity);
 
             if (playerPos == null) return;
             Snackbar.make(mBinding.tileView,
@@ -248,11 +250,12 @@ public class MapFragment extends Fragment {
     @UiThread
     private void moveCameraToSpawn(View view) {
         try {
-
+            var handler = this.model.getHandler();
+            if (handler == null) return;
             Activity activity = getActivity();
             if (activity == null) return;
 
-            DimensionVector3<Integer> spawnPos = model.getHandler().getStorage().getSpawnPos(this.model.getHandler().getDataCompat(activity));
+            DimensionVector3<Integer> spawnPos = WorldHandlerKt.resolveSpawnPoint(handler, activity);
 
             Snackbar.make(mBinding.tileView,
                     getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn),
@@ -651,10 +654,10 @@ public class MapFragment extends Fragment {
                 //resetTileView();
             }
         });
-        AsyncKt.openDB(model.getHandler(), activity, storage -> {
+        AsyncKt.openDB(model.getHandler(), this, activity, handler -> {
             boolean framedToPlayer = false;
             try {
-                DimensionVector3<Float> playerPos = storage.getLocalPlayerPos(model.getHandler().getDataCompat(activity));
+                DimensionVector3<Float> playerPos = WorldHandlerKt.resolveLocalPlayerPos(handler, activity);
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
                     LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
@@ -671,12 +674,11 @@ public class MapFragment extends Fragment {
                 }
 
             } catch (Exception e) {
-                e.printStackTrace();
-                LogUtil.d(this, "Failed to place player marker. " + e);
+                LogUtil.d(this, "Failed to place player marker.", e);
             }
 
             try {
-                DimensionVector3<Integer> spawnPos = storage.getSpawnPos(model.getHandler().getDataCompat(activity));
+                DimensionVector3<Integer> spawnPos = WorldHandlerKt.resolveSpawnPoint(handler, activity);
                 spawnMarker = new AbstractMarker(spawnPos.x, spawnPos.y, spawnPos.z, spawnPos.dimension,
                         new CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false);
                 this.staticMarkers.add(spawnMarker);
@@ -1500,7 +1502,10 @@ public class MapFragment extends Fragment {
 
                             try {
                                 MapFragment fragment = this.owner.get();
-                                DimensionVector3<Float> playerPos = fragment.model.getHandler().getStorage().getMultiPlayerPos(playerKey);
+                                DimensionVector3<Float> playerPos = WorldHandlerKt.resolveMultiPlayerPos(fragment.model.getHandler(), playerKey);
+                                if (playerPos == null) {
+                                    throw new NullPointerException();
+                                }
 
                                 Snackbar.make(fragment.mBinding.tileView,
                                                 fragment.getString(R.string.something_at_xyz_dim_float,

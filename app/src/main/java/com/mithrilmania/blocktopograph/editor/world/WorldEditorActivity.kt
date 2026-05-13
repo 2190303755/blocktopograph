@@ -14,15 +14,19 @@ import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
+import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
 import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.renderer.MapType
-import com.mithrilmania.blocktopograph.nbt.old.EditableNBT
-import com.mithrilmania.blocktopograph.nbt.old.EditorFragment
-import com.mithrilmania.blocktopograph.nbt.old.LevelDat
+import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
+import com.mithrilmania.blocktopograph.nbt.io.LocalPlayerSource
+import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.io.NBTSource
+import com.mithrilmania.blocktopograph.storage.VirtualFile
+import com.mithrilmania.blocktopograph.storage.file
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
-import com.mithrilmania.blocktopograph.util.getAsEditableNBT
 import com.mithrilmania.blocktopograph.util.popAndTransit
 import com.mithrilmania.blocktopograph.util.toast
 import kotlinx.coroutines.Dispatchers
@@ -156,55 +160,36 @@ class WorldEditorActivity : WorldActivity() {
         drawer.closeDrawer(GravityCompat.START)
         return true
     }
-    /**
-     * Opens an editableNBT for just the subTag if it is not null.
-     * Opens the whole level.dat if subTag is null.
-     **/
-    fun prepareLevelDat(subTag: String? = null): EditableNBT? {
-        val root = this.model?.handler?.getDataCompat(this)?.deepCopy ?: return null
-        val tag = if (subTag == null) null
-        else (root.getChildTagByKey(subTag) ?: return null)
-        return object : LevelDat(root, tag) {
-            override fun save(): Boolean {
-                val activity = this@WorldEditorActivity
-                activity.lifecycleScope.launch(Dispatchers.IO) {
-                    activity.model?.handler?.save(activity, root)
-                }
-                return true
-            }
-        }
-    }
 
     /**
      * Loads local player data "~local-player" or level.dat>"Player" into an EditableNBT.
      */
     override fun openLocalPlayer() {
-        val db = this.model?.handler?.storage?.db
-        val activity = this
-        this.lifecycleScope.launch(Dispatchers.IO) {
-            val nbt = db?.getAsEditableNBT(SpecialDBEntryType.LOCAL_PLAYER)
-                ?: activity.prepareLevelDat("Player")
-            withContext(Dispatchers.Main) {
-                if (nbt === null) {
-                    this@WorldEditorActivity.toast(R.string.failed_to_find_or_edit_local_player_data)
-                    return@withContext
+        val handler = this.model?.handler ?: return
+        val db = handler.storage?.db
+        if (db !== null) {
+            this.lifecycleScope.launch(Dispatchers.IO) {
+                if (openIfPresent(db.file(SpecialDBEntryType.LOCAL_PLAYER))) return@launch
+                withContext(Dispatchers.Main) {
+                    checkAndOpenNBTEditor(
+                        LocalPlayerSource(handler.config),
+                        HeaderPresence.PRESENT
+                    )
                 }
-                this@WorldEditorActivity.checkAndOpenNBTEditor(nbt)
             }
+        } else {
+            this.checkAndOpenNBTEditor(
+                LocalPlayerSource(handler.config),
+                HeaderPresence.PRESENT
+            )
         }
     }
 
     override fun openLevelEditor() {
-        this.lifecycleScope.launch(Dispatchers.IO) {
-            val nbt = this@WorldEditorActivity.prepareLevelDat()
-            if (nbt === null) {
-                this@WorldEditorActivity.toast(R.string.error_general)
-                return@launch
-            }
-            withContext(Dispatchers.Main) {
-                this@WorldEditorActivity.checkAndOpenNBTEditor(nbt)
-            }
-        }
+        this.checkAndOpenNBTEditor(
+            this.model?.handler?.config ?: return,
+            HeaderPresence.PRESENT
+        )
     }
 
     override fun openCustomEntry() {
@@ -230,12 +215,8 @@ class WorldEditorActivity : WorldActivity() {
                 } else {
                     val db = this.model?.handler?.storage?.db ?: return@click
                     this.lifecycleScope.launch(Dispatchers.IO) {
-                        val nbt = db.getAsEditableNBT(key) {
-                            activity.notifyDBFailure(it)
-                        } ?: return@launch
-                        withContext(Dispatchers.Main) {
-                            activity.checkAndOpenNBTEditor(nbt)
-                        }
+                        if (activity.openIfPresent(db.file(key))) return@launch
+                        activity.notifyMissingKey(key)
                     }
                 }
             }.show()
@@ -246,12 +227,8 @@ class WorldEditorActivity : WorldActivity() {
         val db = this.model?.handler?.storage?.db ?: return
         val activity = this
         this.lifecycleScope.launch(Dispatchers.IO) {
-            val nbt = db.getAsEditableNBT(entry) {
-                activity.notifyDBFailure(it)
-            } ?: return@launch
-            withContext(Dispatchers.Main) {
-                activity.checkAndOpenNBTEditor(nbt)
-            }
+            if (activity.openIfPresent(db.file(entry))) return@launch
+            activity.notifyMissingKey(entry.keyName)
         }
     }
 
@@ -298,40 +275,48 @@ class WorldEditorActivity : WorldActivity() {
                     .setPositiveButton(R.string.open_nbt) click@{ dialog, _ ->
                         val player = players.getOrNull(spinner.selectedItemPosition) ?: return@click
                         activity.lifecycleScope.launch(Dispatchers.IO) {
-                            val nbt = storage.db.getAsEditableNBT(player) {
-                                activity.notifyDBFailure(it)
-                            } ?: return@launch
-                            withContext(Dispatchers.Main) {
-                                this@WorldEditorActivity.checkAndOpenNBTEditor(nbt)
-                            }
+                            if (activity.openIfPresent(storage.db.file(player))) return@launch
+                            activity.notifyMissingKey(player)
                         }
                     }.show()
             }
         }
     }
 
-    fun checkAndOpenNBTEditor(nbt: EditableNBT) {
+    suspend fun openIfPresent(file: VirtualFile): Boolean {
+        if (file.isPresent()) {
+            withContext(Dispatchers.Main) {
+                this@WorldEditorActivity.checkAndOpenNBTEditor(file)
+            }
+            return true
+        }
+        return false
+    }
+
+    fun checkAndOpenNBTEditor(
+        source: NBTSource,
+        header: HeaderPresence = HeaderPresence.UNCERTAIN
+    ) {
+        val importer = NBTImportModel(source, NBTFormat.LITTLE_ENDIAN, header)
         // confirmContentClose shouldn't be both used as boolean and as close-message,
         //  this is a bad pattern
         if (this.confirmContentClose === null) {
-            this.openNBTEditor(nbt)
+            this.openNBTEditor(importer)
             return
         }
         AlertDialog.Builder(this)
             .setMessage(this.confirmContentClose)
             .setCancelable(false)
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                this.openNBTEditor(nbt)
+                this.openNBTEditor(importer)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    fun openNBTEditor(nbt: EditableNBT) {
-        // see changeContentFragment(callback)
-        this.confirmContentClose = this.getString(R.string.confirm_close_nbt_editor)
+    fun openNBTEditor(importer: NBTImportModel) {
         this.supportFragmentManager.popAndTransit {
-            replace(R.id.world_content, EditorFragment(nbt))
+            replace(R.id.world_content, NBTEditorFragment(importer))
             addToBackStack(null)
         }
     }
@@ -342,5 +327,13 @@ class WorldEditorActivity : WorldActivity() {
             this.getString(R.string.failed_read_player_from_db_with_key_x, key),
             Snackbar.LENGTH_LONG
         ).setAction("Action", null).show()
+    }
+
+    fun notifyMissingKey(key: String) {
+        Snackbar.make(
+            this.mBinding?.root ?: return,
+            "Missing key: '$key'", // TODO i18n
+            Snackbar.LENGTH_LONG
+        ).show()
     }
 }
