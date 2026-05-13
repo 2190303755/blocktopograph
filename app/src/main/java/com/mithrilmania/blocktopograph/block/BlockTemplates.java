@@ -1685,10 +1685,7 @@ public class BlockTemplates {
     }
 
     public static Stream<BlockTemplate> getAll() {
-        var stream = Arrays.stream(new BlockTemplate[0]);
-        for (var templates : allTemplates.values())
-            stream = Stream.concat(stream, Arrays.stream(templates));
-        return stream;
+        return allTemplates.values().stream().flatMap(Arrays::stream);
     }
 
     @NonNull

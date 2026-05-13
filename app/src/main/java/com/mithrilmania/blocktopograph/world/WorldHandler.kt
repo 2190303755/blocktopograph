@@ -7,64 +7,25 @@ import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
-import com.mithrilmania.blocktopograph.nbt.io.readNBT
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
 import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
-import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3
 import com.mithrilmania.blocktopograph.util.toLDBKey
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import java.io.ByteArrayInputStream
-import java.io.IOException
 import com.mithrilmania.blocktopograph.nbt.CompoundTag as TagCompound
 
 abstract class WorldHandler(
-    val name: String,
-    val path: String
+    name: String,
+    config: File
 ) {
     var storage: WorldStorage? = null
         protected set
-    val plainName = this.name.replace("§.", "")
-    protected var dataCompat: CompoundTag? = null
-    fun getDataCompat(context: Context?): CompoundTag {
-        if (this.dataCompat != null) return this.dataCompat!!
-        if (context == null) return CompoundTag("", ArrayList())
-        this.loadCompat(context)
-        return this.dataCompat ?: CompoundTag("", ArrayList())
-    }
-
-    protected var data: TagCompound? = null
-    fun resolveData(context: Context?): TagCompound {
-        this.data?.let { return it }
-        if (context === null) return TagCompound()
-        this.load(context, NBTImportConfigImpl())
-        return this.data ?: TagCompound()
-    }
-
-    abstract val config: File
-
-    /**
-     * Read [CompoundTag] from `level.dat` and update [dataCompat]
-     */
-    abstract fun loadCompat(context: Context)
-
-    /**
-     * Read [CompoundTag] from `level.dat` and update [data]
-     */
-    fun load(context: Context, config: NBTImportConfig) {
-        try {
-            this.config.read(context) { it.readNBT(config) }?.let {
-                this.data = it.tag as? TagCompound
-            }
-        } catch (e: IOException) {
-            e.error("Failed to read level.dat at ${this.config}")
-        }
-    }
+    val plainName = name.replace(FORMATTER, "")
+    val config: WorldConfig = WorldConfig(config)
 
     /**
      * try open leveldb if [storage] is `null`
@@ -74,15 +35,29 @@ abstract class WorldHandler(
     /**
      * copy the changed leveldb into the world
      */
-    abstract fun sync(scope: CoroutineScope, context: Context)
+    abstract suspend fun sync(context: Context)
+
+    companion object {
+        @JvmField
+        val FORMATTER: Regex = Regex("§.")
+    }
 }
 
+suspend inline fun <T> Deferred<WorldStorage?>.await(
+    action: (WorldStorage) -> T
+): T? = try {
+    this.await()
+} catch (e: Exception) {
+    e.error("Failed to open world")
+    return null
+}?.let(action)
+
 fun WorldHandler.resolveSeed(context: Context?): Long {
-    return (this.resolveData(context)[KEY_RANDOM_SEED] as? NumericTag)?.toLong() ?: 0
+    return (this.config.getCached(context)[KEY_RANDOM_SEED] as? NumericTag)?.toLong() ?: 0
 }
 
 fun WorldHandler.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
-    val tag = this.resolveData(context)
+    val tag = this.config.getCached(context)
     val spawnX = tag["SpawnX"] as? NumericTag
     val spawnY = tag["SpawnY"] as? NumericTag
     val spawnZ = tag["SpawnZ"] as? NumericTag
@@ -106,7 +81,7 @@ fun WorldHandler.resolveLocalPlayerPos(context: Context?): DimensionVector3<Floa
     try {
         val data: ByteArray? = this.storage?.db?.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
         val player: BinaryTag? = if (data === null) {
-            this.resolveData(context)["Player"]
+            this.config.getCached(context)["Player"]
         } else {
             BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
         }

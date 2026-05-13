@@ -26,11 +26,11 @@ import com.mithrilmania.blocktopograph.util.ByteArrayMatcher
 import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
-import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.errorAndPop
 import com.mithrilmania.blocktopograph.util.lenientHexToByteArray
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldStorage
+import com.mithrilmania.blocktopograph.world.await
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -46,15 +46,13 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
         super.onCreate(bundle)
         val model = this.model
         var storage: Deferred<WorldStorage?> = CompletableDeferred(model.handler?.storage)
-        if (model.handler == null) {
-            try {
-                model.init(this, this.intent)
+        if (model.handler === null) {
+            if (model.init(this, this.intent)) {
                 storage = this.lifecycleScope.async(Dispatchers.IO) {
-                    model.handler!!.open(this@WorldTestActivity)
+                    this@WorldTestActivity.model.handler?.open(this@WorldTestActivity)
                 }
-            } catch (e: Throwable) {
-                Toast.makeText(this, "Failed to open world", Toast.LENGTH_SHORT).show()
-                e.error("Failed to open world")
+            } else {
+                Toast.makeText(this, "Invalid world", Toast.LENGTH_SHORT).show()
                 this.finish()
                 return
             }
@@ -82,7 +80,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
                 this@WorldTestActivity.lifecycleScope.launch(Dispatchers.Default) {
                     val display = ArrayList<String>()
                     val values = ArrayList<String>()
-                    val iterator = storage.await()?.db?.iterator() ?: return@launch
+                    val iterator = storage.await { it.db.iterator() } ?: return@launch
                     val failure = ByteArrayMatcher.computeFailure(pattern)
                     try {
                         iterator.seekToFirst()
@@ -128,7 +126,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
         binding.query.setOnClickListener {
             val key = this.getDBKey() ?: return@setOnClickListener
             this.lifecycleScope.launch(Dispatchers.Default) {
-                val db = storage.await()?.db ?: return@launch
+                val db = storage.await(WorldStorage::db) ?: return@launch
                 val value: String
                 try {
                     value = db[key]?.toHexString() ?: return@launch
@@ -150,7 +148,7 @@ class WorldTestActivity : BaseActivity(), TextWatcher {
             if (uri == null) return@registerForActivityResult
             val key = this.getDBKey() ?: return@registerForActivityResult
             this.lifecycleScope.launch(Dispatchers.IO) {
-                val db = storage.await()?.db ?: return@launch
+                val db = storage.await(WorldStorage::db) ?: return@launch
                 val stream = this@WorldTestActivity.contentResolver.openOutputStream(uri)
                     ?: return@launch
                 try {

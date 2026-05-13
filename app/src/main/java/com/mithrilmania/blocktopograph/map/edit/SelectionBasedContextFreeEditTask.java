@@ -72,7 +72,7 @@ public class SelectionBasedContextFreeEditTask extends
             }
             case SNR: {
                 Serializable ser;
-                if (mArgs == null || !((ser = mArgs.getSerializable(SearchAndReplaceFragment.CONFIG)) instanceof SnrConfig))
+                if (mArgs == null || !((ser = mArgs.getSerializable(SearchAndReplaceDialogFragment.CONFIG)) instanceof SnrConfig))
                     return EditResultCode.GENERAL_FAILURE;
                 return doSnr((SnrConfig) ser, editTargets);
             }

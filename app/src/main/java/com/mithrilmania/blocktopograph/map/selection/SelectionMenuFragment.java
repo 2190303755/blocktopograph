@@ -23,7 +23,7 @@ import com.mithrilmania.blocktopograph.databinding.FragSelMenuBinding;
 import com.mithrilmania.blocktopograph.map.FloatPaneFragment;
 import com.mithrilmania.blocktopograph.map.edit.ChBiomeFragment;
 import com.mithrilmania.blocktopograph.map.edit.EditFunction;
-import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceFragment;
+import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceDialogFragment;
 import com.mithrilmania.blocktopograph.util.UiUtil;
 
 import java.lang.ref.WeakReference;
@@ -122,9 +122,7 @@ public class SelectionMenuFragment extends FloatPaneFragment {
     }
 
     private void onChooseSnr(View view) {
-        SearchAndReplaceFragment fragment = SearchAndReplaceFragment.newInstance(registry, mEditFunctionEntry);
-        FragmentManager fragmentManager = getMeowFragmentManager();
-        fragment.show(fragmentManager, TAG_SNR);
+        new SearchAndReplaceDialogFragment(mEditFunctionEntry).show(getMeowFragmentManager(), TAG_SNR);
     }
 
     private void onChooseDchunk(View view) {

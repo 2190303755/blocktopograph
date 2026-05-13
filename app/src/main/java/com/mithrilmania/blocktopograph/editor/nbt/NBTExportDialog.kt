@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.dialog
+package com.mithrilmania.blocktopograph.editor.nbt
 
 import android.content.Context
 import androidx.activity.result.ActivityResultLauncher

@@ -10,13 +10,12 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel
 import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import kotlinx.coroutines.launch
 
-class NBTEditorFragment(
-    val initial: NBTImportModel?
+class NBTEditorFragment @JvmOverloads constructor(
+    val initial: NBTImportModel? = null
 ) : Fragment() {
     val viewModel by viewModels<NBTEditorModel>()
     override fun onCreateView(
@@ -25,7 +24,7 @@ class NBTEditorFragment(
         savedInstanceState: Bundle?
     ): ComposeView {
         val context = this.requireContext()
-        val view = ComposeView(this.requireContext())
+        val view = ComposeView(context)
         // Dispose of the Composition when the view's LifecycleOwner is destroyed
         view.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         view.setContent {

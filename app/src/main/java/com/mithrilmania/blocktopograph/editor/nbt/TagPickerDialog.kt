@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.dialog
+package com.mithrilmania.blocktopograph.editor.nbt
 
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column

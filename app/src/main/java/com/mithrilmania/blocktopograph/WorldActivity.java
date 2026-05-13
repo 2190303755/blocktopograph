@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,19 +20,15 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.navigation.NavigationView;
-import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
-import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.WorldHandler;
 import com.mithrilmania.blocktopograph.world.WorldHandlerKt;
-
-import java.util.List;
 
 public abstract class WorldActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
@@ -313,7 +308,7 @@ public abstract class WorldActivity extends AppCompatActivity
      * Open a dialog; user chooses chunk-type -> open editor for this type
      **/
     public void openChunkNBTEditor(final int chunkX, final int chunkZ, final NBTChunkData nbtChunkData, final ViewGroup viewGroup) {
-        if (nbtChunkData == null) {
+        /*if (nbtChunkData == null) {
             //should never happen
             Log.e(TAG, "User tried to open null chunkData in the nbt-editor!!!");
             return;
@@ -357,7 +352,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
 
         //open nbt editor for entity data
-        /*changeContentFragment(() -> {
+        changeContentFragment(() -> {
 
             //make a copy first, the user might not want to save changed tags.
             final List<Tag> workCopy = new ArrayList<>();

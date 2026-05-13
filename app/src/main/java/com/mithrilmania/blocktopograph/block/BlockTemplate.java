@@ -1,8 +1,8 @@
 package com.mithrilmania.blocktopograph.block;
 
+import androidx.annotation.Nullable;
+
 import com.mithrilmania.blocktopograph.block.icon.BlockIcon;
-import com.mithrilmania.blocktopograph.block.icon.NoBlockIcon;
-import com.mithrilmania.blocktopograph.block.icon.TexPathBlockIcon;
 
 import java.io.Serializable;
 
@@ -26,6 +26,7 @@ public class BlockTemplate implements Serializable {
         this.hasBiomeShading = hasBiomeShading;
     }
 
+    @Nullable
     public String getSubName() {
         return subName;
     }

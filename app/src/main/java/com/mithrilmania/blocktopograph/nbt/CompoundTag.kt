@@ -8,7 +8,6 @@ import com.mithrilmania.blocktopograph.nbt.util.boxed
 import java.io.DataInput
 import java.io.DataOutput
 
-
 @JvmInline
 value class CompoundTag(
     @JvmField val tags: MutableMap<String, BinaryTag> = hashMapOf()

@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.nbt.io
 import android.content.Context
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
-import com.mithrilmania.blocktopograph.storage.File
 
 interface NBTSource {
     fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta?
@@ -12,7 +11,7 @@ interface NBTSource {
 }
 
 class LocalPlayerSource(
-    val dat: File
+    val dat: NBTSource
 ) : NBTSource, NBTImportConfig {
     override var format: NBTFormat = NBTFormat.LITTLE_ENDIAN
     override var header: HeaderPresence = HeaderPresence.PRESENT

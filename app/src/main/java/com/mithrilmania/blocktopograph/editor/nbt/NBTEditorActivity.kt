@@ -12,7 +12,6 @@ import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
 import com.mithrilmania.blocktopograph.EXTRA_PATH
-import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.storage.SAFFile

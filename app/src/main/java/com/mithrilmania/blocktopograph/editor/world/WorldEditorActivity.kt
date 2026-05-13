@@ -14,8 +14,8 @@ import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
-import com.mithrilmania.blocktopograph.editor.dialog.NBTImportModel
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
+import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
 import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.renderer.MapType
