@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
@@ -21,17 +22,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuBoxScope
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -163,33 +165,73 @@ fun <T> DropdownMenuChip(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    namer: @Composable (T) -> String,
+    namer: @Composable (T) -> String
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val effectiveExpanded = remember {
-        derivedStateOf { enabled && expanded }
-    }.value
-    ExposedDropdownMenuBox(
-        expanded = effectiveExpanded,
-        onExpandedChange = { expanded = it && enabled }) {
+    ExposedDropdownMenu(options, selected, onSelect, modifier, namer) { expanded ->
         val minSize = LocalMinimumInteractiveComponentSize.current
         AssistChip(
             onClick = {},
             enabled = enabled,
-            label = {
-                Text(text = namer(selected))
-            },
+            label = { Text(namer(selected)) },
             trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = effectiveExpanded)
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            modifier = modifier
+            modifier = Modifier
+                .fillMaxWidth()
                 .defaultMinSize(minHeight = minSize, minWidth = minSize)
-                .menuAnchor(
-                    ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                )
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun <T> DropdownMenuField(
+    options: Collection<T>,
+    label: String,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    namer: @Composable (T) -> String
+) {
+    ExposedDropdownMenu(options, selected, onSelect, modifier, namer) { expanded ->
+        OutlinedTextField(
+            value = namer(selected),
+            onValueChange = {},
+            enabled = enabled,
+            readOnly = true,
+            maxLines = 1,
+            label = { Text(label) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+        )
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun <T> ExposedDropdownMenu(
+    options: Collection<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier,
+    namer: @Composable (T) -> String,
+    host: @Composable ExposedDropdownMenuBoxScope.(Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        host(expanded)
         ExposedDropdownMenu(
-            expanded = effectiveExpanded,
+            expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = MenuDefaults.groupStandardContainerColor,
             shape = MenuDefaults.standaloneGroupShape,

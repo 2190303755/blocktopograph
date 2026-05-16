@@ -1,9 +1,6 @@
-package com.mithrilmania.blocktopograph.flat
+package com.mithrilmania.blocktopograph.ui
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -34,7 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -43,7 +43,6 @@ import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
-import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
@@ -55,6 +54,7 @@ fun BlockStatePreview(
     state: BlockTemplate,
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
+    shape: Shape = MaterialTheme.shapes.small,
     onSelect: (BlockTemplate) -> Unit
 ) {
     InfoBar(
@@ -75,7 +75,11 @@ fun BlockStatePreview(
         },
         modifier = modifier
             .clickable { onSelect(state) }
-            .background(Color(ColorUtils.blendARGB(state.color, 0x7f7f7f7f, 0.5f)))
+            .background(
+                Color(ColorUtils.blendARGB(state.color, 0x7f7f7f7f, 0.5f)),
+                shape
+            )
+            .clip(shape)
             .applyInfoBarPadding()
     )
 }
@@ -136,23 +140,7 @@ fun BlockPicker(
                 items = templates,
                 key = { it.block.name + it.block.hashCode() }
             ) {
-                BlockStatePreview(it, Modifier.animateItem(), context, onSelect)
-            }
-        }
-    }
-}
-
-
-fun ComponentActivity.setupBlockPicker() {
-    this.setResult(Activity.RESULT_CANCELED)
-    this.setThemedContent {
-        Column {
-            BlockPicker {
-                setResult(
-                    Activity.RESULT_OK,
-                    Intent().putExtra(PickBlockActivity.EXTRA_KEY_BLOCK, it)
-                )
-                finish()
+                BlockStatePreview(it, Modifier.animateItem(), context, RectangleShape, onSelect)
             }
         }
     }

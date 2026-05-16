@@ -5,13 +5,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +18,7 @@ import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
+import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
@@ -59,8 +56,7 @@ fun NBTImportDialog(
                 DropdownMenuChip(
                     options = NBTFormat.entries,
                     selected = importer.format,
-                    onSelect = { importer.format = it },
-                    modifier = Modifier.fillMaxWidth()
+                    onSelect = { importer.format = it }
                 ) {
                     when (it) {
                         NBTFormat.STRINGIFIED -> "SNBT"
@@ -79,8 +75,7 @@ fun NBTImportDialog(
                     options = HeaderPresence.entries,
                     selected = if (importer.format.isHeaderAvailable) importer.header else HeaderPresence.ABSENT,
                     onSelect = { importer.header = it },
-                    enabled = importer.format.isHeaderAvailable,
-                    modifier = Modifier.fillMaxWidth()
+                    enabled = importer.format.isHeaderAvailable
                 ) {
                     when (it) {
                         HeaderPresence.ABSENT -> "不存在"
@@ -89,17 +84,13 @@ fun NBTImportDialog(
                     }
                 }
             }
-            OutlinedButton(
-                onClick = onImport,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
+            BottomSheetActionButton(
+                text = "导入",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-            ) {
-                Text("导入")
-            }
+                    .padding(horizontal = 32.dp),
+                onClick = onImport
+            )
         }
     }
 }

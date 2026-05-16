@@ -38,14 +38,7 @@
         <activity
             android:name=".editor.world.CreateWorldActivity"
             android:label="@string/create_world_title"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
-            android:name=".flat.EditLayerDialog"
-            android:theme="@style/AppTheme.Dialog" />
-        <activity
-            android:name=".flat.PickBlockActivity"
-            android:label="@string/pick_block_title"
-            android:theme="@style/AppTheme.Dialog" />
+            android:theme="@style/ComposeTheme" />
         <activity
             android:name=".test.WorldTestActivity"
             android:label="@string/title_test_page"

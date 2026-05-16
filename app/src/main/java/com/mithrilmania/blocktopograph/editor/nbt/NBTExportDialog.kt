@@ -9,14 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -34,6 +30,7 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.storage.SAFFile
+import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
@@ -100,8 +97,7 @@ fun NBTExportDialog(
                 DropdownMenuChip(
                     options = booleans,
                     selected = exporter.stringify,
-                    onSelect = { exporter.stringify = it },
-                    modifier = Modifier.fillMaxWidth()
+                    onSelect = { exporter.stringify = it }
                 ) { if (it) "SNBT" else "NBT" }
             }
             AnimatedContent(
@@ -148,8 +144,7 @@ fun NBTExportDialog(
                             DropdownMenuChip(
                                 options = booleans,
                                 selected = exporter.littleEndian,
-                                onSelect = { exporter.littleEndian = it },
-                                modifier = Modifier.fillMaxWidth()
+                                onSelect = { exporter.littleEndian = it }
                             ) {
                                 stringResource(
                                     if (it) {
@@ -196,23 +191,18 @@ fun NBTExportDialog(
                 }
             }
             val context = LocalContext.current
-            OutlinedButton(
-                onClick = {
-                    val file = exporter.source
-                    if (exporter.repick || file == null) {
-                        creator.launch(exporter.buildOptions(context))
-                    } else {
-                        onExport(file)
-                    }
-                },
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
+            BottomSheetActionButton(
+                text = stringResource(R.string.action_export),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 32.dp),
             ) {
-                Text(stringResource(R.string.action_export))
+                val file = exporter.source
+                if (exporter.repick || file == null) {
+                    creator.launch(exporter.buildOptions(context))
+                } else {
+                    onExport(file)
+                }
             }
         }
     }

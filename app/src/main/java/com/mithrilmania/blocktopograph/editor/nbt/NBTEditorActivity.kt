@@ -5,8 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
@@ -23,7 +21,6 @@ import kotlinx.coroutines.launch
 class NBTEditorActivity : ComponentActivity() {
     private val viewModel by viewModels<NBTEditorModel>()
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()

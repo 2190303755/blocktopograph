@@ -50,7 +50,7 @@ dependencies {
     val composeBoM = "2026.05.00"
     implementation(platform("androidx.compose:compose-bom:$composeBoM"))
     implementation("androidx.activity:activity-compose:1.12.4")
-    implementation("androidx.compose.material3:material3:1.5.0-alpha18")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha19")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -60,8 +60,6 @@ dependencies {
     implementation(project(":tileview"))
     implementation(project(":libs:hivemc:leveldb"))
     implementation("com.github.clans:fab:1.6.4")
-    implementation("com.github.woxthebox:draglistview:1.7.2")
-    implementation("com.andreabaccega:android-edittext-validator:1.3.5")
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
@@ -83,6 +81,7 @@ dependencies {
     implementation("androidx.window:window:1.5.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("sh.calvin.reorderable:reorderable:3.1.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

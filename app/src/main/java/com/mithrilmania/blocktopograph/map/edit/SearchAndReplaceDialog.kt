@@ -32,8 +32,8 @@ import androidx.lifecycle.ViewModel
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
-import com.mithrilmania.blocktopograph.flat.BlockStatePreview
-import com.mithrilmania.blocktopograph.flat.PickBlockDialog
+import com.mithrilmania.blocktopograph.ui.BlockStatePreview
+import com.mithrilmania.blocktopograph.ui.PickBlockDialog
 
 enum class SearchMode(@param:StringRes val text: Int) {
     BACKGROUND(R.string.map_edit_snr_bg),

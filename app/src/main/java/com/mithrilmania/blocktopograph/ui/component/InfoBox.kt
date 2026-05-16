@@ -109,8 +109,7 @@ fun Modifier.applyInfoBoxPadding(
     padding: Dp = 16.dp
 ): Modifier = this.padding(padding)
 
-@JvmInline
-internal value class InfoRowMeasurePolicy(val spacing: Dp) : MeasurePolicy {
+internal class InfoRowMeasurePolicy(val spacing: Dp) : MeasurePolicy {
     override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
