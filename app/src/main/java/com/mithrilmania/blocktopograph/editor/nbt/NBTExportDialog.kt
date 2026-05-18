@@ -190,19 +190,19 @@ fun NBTExportDialog(
                     }
                 }
             }
-            val context = LocalContext.current
-            BottomSheetActionButton(
-                text = stringResource(R.string.action_export),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-            ) {
-                val file = exporter.source
-                if (exporter.repick || file == null) {
-                    creator.launch(exporter.buildOptions(context))
-                } else {
-                    onExport(file)
-                }
+        }
+        val context = LocalContext.current
+        BottomSheetActionButton(
+            text = stringResource(R.string.action_export),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+        ) {
+            val file = exporter.source
+            if (exporter.repick || file == null) {
+                creator.launch(exporter.buildOptions(context))
+            } else {
+                onExport(file)
             }
         }
     }

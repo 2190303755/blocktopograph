@@ -18,18 +18,18 @@ import androidx.viewpager.widget.ViewPager;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.databinding.FragMapGotoBinding;
 import com.mithrilmania.blocktopograph.map.FloatPaneFragment;
-import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.lang.ref.WeakReference;
 
 public final class AdvancedLocatorFragment extends FloatPaneFragment {
 
     public static final String PREF_KEY_LOCATOR_PAGE = "locator_page";
-    private WorldHandler mWorld;
+    private World mWorld;
     private LocatorPageFragment.CameraMoveCallback mCameraMoveCallback;
     private LocatorPagerAdapter mAdapter;
 
-    public static AdvancedLocatorFragment create(WorldHandler world, LocatorPageFragment.CameraMoveCallback cameraMoveCallback) {
+    public static AdvancedLocatorFragment create(World world, LocatorPageFragment.CameraMoveCallback cameraMoveCallback) {
         AdvancedLocatorFragment ret = new AdvancedLocatorFragment();
         ret.mWorld = world;
         ret.mCameraMoveCallback = cameraMoveCallback;

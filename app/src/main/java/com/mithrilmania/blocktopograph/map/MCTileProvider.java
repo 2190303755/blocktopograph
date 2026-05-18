@@ -12,6 +12,7 @@ import android.text.TextPaint;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
+import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.qozix.tileview.graphics.BitmapProvider;
 import com.qozix.tileview.tiles.Tile;
@@ -32,9 +33,11 @@ public class MCTileProvider implements BitmapProvider {
             viewSizeL = worldSizeInBlocks * TILESIZE / Dimension.OVERWORLD.chunkL;
 
     public final WorldMapModel world;
+    public final WorldModel worldModel;
 
-    public MCTileProvider(WorldMapModel world) {
+    public MCTileProvider(WorldMapModel world, WorldModel worldModel) {
         this.world = world;
+        this.worldModel = worldModel;
     }
 
     public static Bitmap drawText(String text, Bitmap b, int textColor, int bgColor) {
@@ -68,7 +71,7 @@ public class MCTileProvider implements BitmapProvider {
     @Override
     public Bitmap getBitmap(Tile tile, Context context) {
 
-        WorldStorage storage = this.world.getHandler().getStorage();
+        WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return null;
         Dimension dimension = this.world.getDimension();
         MapType mapType = (MapType) tile.getDetailLevel().getLevelType();
@@ -150,7 +153,7 @@ public class MCTileProvider implements BitmapProvider {
             //load all those markers with an async task, this task publishes its progress,
             // the UI thread picks it up and renders the markers
             if (this.world.getShowMarkers().getValue())
-                new MarkerAsyncTask(this.world, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension).execute();
+                new MarkerAsyncTask(this.world, this.worldModel, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension).execute();
 
 
             //draw the grid

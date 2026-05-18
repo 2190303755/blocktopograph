@@ -5,6 +5,7 @@ import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
+import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
@@ -16,16 +17,13 @@ import com.mithrilmania.blocktopograph.util.math.DimensionVector3
 import com.mithrilmania.blocktopograph.util.toLDBKey
 import kotlinx.coroutines.Deferred
 import java.io.ByteArrayInputStream
-import com.mithrilmania.blocktopograph.nbt.CompoundTag as TagCompound
+import java.io.Closeable
 
-abstract class WorldHandler(
-    name: String,
-    config: File
-) {
+abstract class World(name: String?, config: File) : Closeable {
+    val plainName = name?.replace(FORMATTER, "") ?: "My World"
+    val config: WorldConfig = WorldConfig(config)
     var storage: WorldStorage? = null
         protected set
-    val plainName = name.replace(FORMATTER, "")
-    val config: WorldConfig = WorldConfig(config)
 
     /**
      * try open leveldb if [storage] is `null`
@@ -36,6 +34,10 @@ abstract class WorldHandler(
      * copy the changed leveldb into the world
      */
     abstract suspend fun sync(context: Context)
+
+    override fun close() {
+        this.storage?.close()
+    }
 
     companion object {
         @JvmField
@@ -52,11 +54,11 @@ suspend inline fun <T> Deferred<WorldStorage?>.await(
     return null
 }?.let(action)
 
-fun WorldHandler.resolveSeed(context: Context?): Long {
+fun World.resolveSeed(context: Context?): Long {
     return (this.config.getCached(context)[KEY_RANDOM_SEED] as? NumericTag)?.toLong() ?: 0
 }
 
-fun WorldHandler.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
+fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
     val tag = this.config.getCached(context)
     val spawnX = tag["SpawnX"] as? NumericTag
     val spawnY = tag["SpawnY"] as? NumericTag
@@ -77,7 +79,7 @@ fun WorldHandler.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
 }
 
 
-fun WorldHandler.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
+fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
     try {
         val data: ByteArray? = this.storage?.db?.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
         val player: BinaryTag? = if (data === null) {
@@ -85,7 +87,7 @@ fun WorldHandler.resolveLocalPlayerPos(context: Context?): DimensionVector3<Floa
         } else {
             BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
         }
-        if (player !is TagCompound) {
+        if (player !is CompoundTag) {
             LogUtil.d(this, "No local player. A server world?")
             return null
         }
@@ -96,10 +98,10 @@ fun WorldHandler.resolveLocalPlayerPos(context: Context?): DimensionVector3<Floa
     }
 }
 
-fun WorldHandler.resolveMultiPlayerPos(key: String): DimensionVector3<Float>? {
+fun World.resolveMultiPlayerPos(key: String): DimensionVector3<Float>? {
     try {
         return this.storage?.db?.get(key.toLDBKey())?.let {
-            BedrockNBTInput(ByteArrayInputStream(it)).readNamedTag().second as? TagCompound
+            BedrockNBTInput(ByteArrayInputStream(it)).readNamedTag().second as? CompoundTag
         }?.extractPlayerPos()
     } catch (e: Exception) {
         LogUtil.d(this, e)
@@ -107,8 +109,7 @@ fun WorldHandler.resolveMultiPlayerPos(key: String): DimensionVector3<Float>? {
     }
 }
 
-
-fun TagCompound.extractPlayerPos(): DimensionVector3<Float>? {
+fun CompoundTag.extractPlayerPos(): DimensionVector3<Float>? {
     val dimensionId = this["DimensionId"] as? NumericTag
     val dimension: Dimension = if (dimensionId === null) {
         Dimension.OVERWORLD

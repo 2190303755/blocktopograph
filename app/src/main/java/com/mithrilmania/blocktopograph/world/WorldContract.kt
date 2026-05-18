@@ -12,7 +12,7 @@ const val KEY_LAST_PLAYED_TIME = "LastPlayed"
 const val KEY_LAST_PLAYED_VERSION = "lastOpenedWithVersion"
 const val KEY_FLAT_WORLD_LAYERS = "FlatWorldLayers"
 const val DEFAULT_WORLD_PATH =
-    "/storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/"
+    "/sdcard/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/"
 
 /*
     public static final String ARG_WORLD_SERIALIZED = "world_ser";

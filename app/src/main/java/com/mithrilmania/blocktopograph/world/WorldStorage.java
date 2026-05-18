@@ -22,6 +22,7 @@ import org.iq80.leveldb.env.Env;
 import org.iq80.leveldb.fileenv.EnvImpl;
 import org.iq80.leveldb.impl.DbImpl;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -34,7 +35,7 @@ import kotlin.io.FilesKt;
 /**
  * Wrapper around level.dat world spec en levelDB database.
  */
-public class WorldStorage {
+public class WorldStorage implements Closeable {
     private static final Env LEVEL_DB_ENV = EnvImpl.createEnv();//TODO: redirect temp dir
     private final LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
     public final OldBlockRegistry mOldBlockRegistry;
@@ -197,6 +198,7 @@ public class WorldStorage {
         }
     }
 
+    @Override
     public void close() {
         try {
             this.db.close();

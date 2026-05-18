@@ -177,7 +177,7 @@ fun <T> DropdownMenuChip(
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.5F)
                 .defaultMinSize(minHeight = minSize, minWidth = minSize)
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
         )

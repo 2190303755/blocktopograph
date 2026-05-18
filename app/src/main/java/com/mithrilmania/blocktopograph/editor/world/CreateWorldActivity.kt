@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.background
@@ -28,7 +29,6 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Add
@@ -89,6 +89,7 @@ import com.mithrilmania.blocktopograph.nbt.io.writeNBTWithHeader
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
+import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuField
 import com.mithrilmania.blocktopograph.ui.component.HorizontalPadding
@@ -98,7 +99,6 @@ import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.ui.component.showSnackbar
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
-import com.mithrilmania.blocktopograph.util.FolderPicker
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.KEY_FLAT_WORLD_LAYERS
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
@@ -127,15 +127,7 @@ class CreateWorldActivity : ComponentActivity() {
                         title = {
                             Text(stringResource(R.string.create_world_title))
                         },
-                        navigationIcon = {
-                            TooltipBox("back") { tooltip ->
-                                IconButton(
-                                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                                    tooltip = tooltip,
-                                    onClick = this::finish
-                                )
-                            }
-                        },
+                        navigationIcon = ::AppBarNavigationButton,
                         actions = {
                             val tooltipState = rememberTooltipState()
                             TooltipBox(
@@ -162,7 +154,9 @@ class CreateWorldActivity : ComponentActivity() {
                 snackbarHost = { SnackbarHost(viewModel.snackbar) },
                 floatingActionButton = {
                     TooltipBox(stringResource(R.string.create)) { tooltip ->
-                        val picker = rememberLauncherForActivityResult(FolderPicker) { folder ->
+                        val picker = rememberLauncherForActivityResult(
+                            ActivityResultContracts.OpenDocumentTree()
+                        ) { folder ->
                             if (folder == null) return@rememberLauncherForActivityResult
                             val activity = this
                             viewModel.viewModelScope.launch(Dispatchers.IO) {
@@ -254,12 +248,15 @@ class CreateWorldActivity : ComponentActivity() {
                         }
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }
-                    Row(modifier = spacing, verticalAlignment = Alignment.Bottom) {
+                    Row(
+                        modifier = spacing,
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text(
                             text = stringResource(R.string.create_world_layers),
                             style = MaterialTheme.typography.labelMedium
                         )
-                        Spacer(Modifier.weight(1.0F))
                         FilledTonalButton(
                             onClick = {
                                 viewModel.snackbar.currentSnackbarData?.dismiss()
@@ -359,13 +356,6 @@ class CreateWorldActivity : ComponentActivity() {
                                                 )
                                             }
                                         },
-                                        indicator = {
-                                            Icon(
-                                                imageVector = Icons.Filled.DragHandle,
-                                                contentDescription = null,
-                                                modifier = handle
-                                            )
-                                        },
                                         modifier = Modifier
                                             .clickable {
                                                 viewModel.selected = layer
@@ -373,7 +363,13 @@ class CreateWorldActivity : ComponentActivity() {
                                             }
                                             .padding(inset)
                                             .applyInfoBarPadding()
-                                    )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.DragHandle,
+                                            contentDescription = null,
+                                            modifier = handle
+                                        )
+                                    }
                                 }
                             }
                         }

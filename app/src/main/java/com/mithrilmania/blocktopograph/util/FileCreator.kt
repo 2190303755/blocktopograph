@@ -17,7 +17,7 @@ object FileCreator : ActivityResultContract<Options?, Uri?>() {
     }
 
     override fun parseResult(resultCode: Int, intent: Intent?) =
-        if (resultCode == RESULT_OK) intent?.data else null
+        intent.takeIf { resultCode == RESULT_OK }?.data
 
     class Options(val mime: String, val location: Uri? = null, val name: String = "") {
         fun applyTo(intent: Intent): Intent {

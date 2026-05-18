@@ -6,18 +6,18 @@ import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.util.copyFolderTo
 import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.findChild
-import com.mithrilmania.blocktopograph.world.WorldHandler
+import com.mithrilmania.blocktopograph.world.World
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import org.iq80.leveldb.Options
 import java.io.File
 import java.io.IOException
 import java.util.UUID
 
-class SAFWorldHandler(
+class SAFWorld(
     val root: Uri,
     config: Uri,
-    name: String
-) : WorldHandler(
+    name: String?
+) : World(
     name,
     SAFFile(config)
 ) {

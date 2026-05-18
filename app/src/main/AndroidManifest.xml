@@ -19,9 +19,9 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
         <activity
-            android:name=".worldlist.WorldListActivity"
+            android:name=".world.WorldListActivity"
             android:exported="true"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/ComposeTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -33,7 +33,7 @@
             android:name=".editor.world.WorldEditorActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_world"
-            android:parentActivityName=".worldlist.WorldListActivity"
+            android:parentActivityName=".world.WorldListActivity"
             android:theme="@style/World" />
         <activity
             android:name=".editor.world.CreateWorldActivity"
@@ -42,7 +42,7 @@
         <activity
             android:name=".test.WorldTestActivity"
             android:label="@string/title_test_page"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/ComposeTheme" />
         <activity
             android:name=".editor.nbt.NBTEditorActivity"
             android:exported="true"
@@ -62,10 +62,6 @@
             android:name=".BiomeSelectDialog"
             android:label="@string/biome_pick_title"
             android:theme="@style/AppTheme.Dialog" />
-        <activity
-            android:name=".UnsatisfiedLinkErrorActivity"
-            android:label="@string/some_thing_went_wrong" />
-        <activity android:name=".test.VisualizationActivity" />
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

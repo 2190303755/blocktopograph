@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -87,7 +88,6 @@ import com.mithrilmania.blocktopograph.ui.component.TopAppBar
 import com.mithrilmania.blocktopograph.ui.component.cascadingMenu
 import com.mithrilmania.blocktopograph.ui.component.clickableItem
 import com.mithrilmania.blocktopograph.util.FileCreator
-import com.mithrilmania.blocktopograph.util.FilePicker
 import com.mithrilmania.blocktopograph.util.collectText
 import com.mithrilmania.blocktopograph.util.setPrimaryClip
 import com.mithrilmania.blocktopograph.util.toast
@@ -122,10 +122,11 @@ fun NBTEditor(
     editor: NBTEditorModel = viewModel(),
     onExit: () -> Unit
 ) {
-    val picker = rememberLauncherForActivityResult(FilePicker) callback@{
+    val picker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) callback@{
         editor.importer = NBTImportModel(SAFFile(it ?: return@callback))
     }
-
     val onConfirm: (ConfirmationRequest?) -> Unit = onConfirm@{
         editor.confirmation = null
         when (it) {
@@ -149,11 +150,10 @@ fun NBTEditor(
                 )
             }
 
-            ConfirmationRequest.OPEN -> picker.launch(null)
+            ConfirmationRequest.OPEN -> picker.launch("*/*")
             else -> {}
         }
     }
-
     val context = LocalContext.current
     val creator = rememberLauncherForActivityResult(FileCreator) callback@{
         val file = SAFFile(it ?: return@callback)

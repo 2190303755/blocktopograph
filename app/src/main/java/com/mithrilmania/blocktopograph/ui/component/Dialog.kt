@@ -150,10 +150,10 @@ fun AlertDialog(
 @Composable
 fun PastableDialog(
     title: String,
-    isValid: Boolean,
     onPaste: (ClipData?) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
+    isValid: Boolean = true,
     properties: DialogProperties = DialogProperties(),
     content: @Composable BoxScope.() -> Unit
 ) {
@@ -189,7 +189,6 @@ fun <T : Any> AnimatedBottomSheetDialog(
     skipPartiallyExpanded: Boolean = false,
     content: @Composable (SheetState, T) -> Unit
 ) {
-
     val coroutineScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded)
     var effectiveState by remember { mutableStateOf(targetState) }

@@ -4,9 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +50,10 @@ class SearchAndReplaceDialogFragment @JvmOverloads constructor(
                         style = MaterialTheme.typography.titleMedium
                     )
                     SearchAndReplaceLayout(model)
-                    Row(Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         val tooltipState = rememberTooltipState()
                         TooltipBox(
                             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
@@ -66,7 +69,6 @@ class SearchAndReplaceDialogFragment @JvmOverloads constructor(
                                 scope.launch { tooltipState.show(MutatePriority.UserInput) }
                             }
                         }
-                        Spacer(modifier = Modifier.weight(1.0F))
                         TextButton(stringResource(android.R.string.ok)) {
                             val bundle = Bundle()
                             bundle.putSerializable(CONFIG, model.buildConfig())

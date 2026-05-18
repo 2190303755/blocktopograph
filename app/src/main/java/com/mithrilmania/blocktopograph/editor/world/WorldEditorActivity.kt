@@ -29,6 +29,8 @@ import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.popAndTransit
 import com.mithrilmania.blocktopograph.util.toast
+import com.mithrilmania.blocktopograph.world.WorldStorage
+import com.mithrilmania.blocktopograph.world.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -165,29 +167,22 @@ class WorldEditorActivity : WorldActivity() {
      * Loads local player data "~local-player" or level.dat>"Player" into an EditableNBT.
      */
     override fun openLocalPlayer() {
-        val handler = this.model?.handler ?: return
-        val db = handler.storage?.db
-        if (db !== null) {
-            this.lifecycleScope.launch(Dispatchers.IO) {
-                if (openIfPresent(db.file(SpecialDBEntryType.LOCAL_PLAYER))) return@launch
-                withContext(Dispatchers.Main) {
-                    checkAndOpenNBTEditor(
-                        LocalPlayerSource(handler.config),
-                        HeaderPresence.PRESENT
-                    )
-                }
+        val model = this.worldModel ?: return
+        this.lifecycleScope.launch(Dispatchers.IO) {
+            val db = model.storage.await(WorldStorage::db) ?: return@launch
+            if (openIfPresent(db.file(SpecialDBEntryType.LOCAL_PLAYER))) return@launch
+            withContext(Dispatchers.Main) {
+                checkAndOpenNBTEditor(
+                    LocalPlayerSource(model.world.config),
+                    HeaderPresence.PRESENT
+                )
             }
-        } else {
-            this.checkAndOpenNBTEditor(
-                LocalPlayerSource(handler.config),
-                HeaderPresence.PRESENT
-            )
         }
     }
 
     override fun openLevelEditor() {
         this.checkAndOpenNBTEditor(
-            this.model?.handler?.config ?: return,
+            this.worldModel?.world?.config ?: return,
             HeaderPresence.PRESENT
         )
     }
@@ -213,8 +208,9 @@ class WorldEditorActivity : WorldActivity() {
                         Snackbar.LENGTH_LONG
                     ).setAction("Action", null).show();
                 } else {
-                    val db = this.model?.handler?.storage?.db ?: return@click
                     this.lifecycleScope.launch(Dispatchers.IO) {
+                        val db = activity.worldModel?.storage?.await(WorldStorage::db)
+                            ?: return@launch
                         if (activity.openIfPresent(db.file(key))) return@launch
                         activity.notifyMissingKey(key)
                     }
@@ -224,24 +220,34 @@ class WorldEditorActivity : WorldActivity() {
 
     override fun openSpecialDBEntry(entry: SpecialDBEntryType?) {
         if (entry === null) return
-        val db = this.model?.handler?.storage?.db ?: return
         val activity = this
         this.lifecycleScope.launch(Dispatchers.IO) {
+            val db = activity.worldModel?.storage?.await(WorldStorage::db)
+                ?: return@launch
             if (activity.openIfPresent(db.file(entry))) return@launch
             activity.notifyMissingKey(entry.keyName)
         }
     }
 
     override fun openMultiplayerEditor() {
-        val storage = this.model?.handler?.storage ?: return
-        val activity = this
         val dialog = AlertDialog.Builder(this)
             .setCancelable(false)
-            .setView(ProgressBar(activity).apply {
+            .setView(ProgressBar(this).apply {
                 isIndeterminate = true
             })
             .show()
+        val activity = this
         this.lifecycleScope.launch(Dispatchers.IO) {
+            val storage = try {
+                activity.worldModel?.storage?.await() ?: return@launch
+            } catch (e: Exception) {
+                Log.e(LEVEL_DB_TAG, "Failed to open world", e)
+                withContext(Dispatchers.Main) {
+                    activity.toast(R.string.error_general)
+                    dialog.dismiss()
+                }
+                return@launch
+            }
             val players: List<String> = try {
                 storage.networkPlayerNameList
             } catch (e: Exception) {

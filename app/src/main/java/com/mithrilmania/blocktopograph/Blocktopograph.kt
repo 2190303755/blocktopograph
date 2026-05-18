@@ -10,14 +10,12 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
-import com.mithrilmania.blocktopograph.storage.FileServiceClient
-import com.mithrilmania.blocktopograph.storage.FileServiceServer
+import com.mithrilmania.blocktopograph.storage.FileService
 import com.mithrilmania.blocktopograph.util.error
 import rikka.shizuku.Shizuku
 import rikka.shizuku.Shizuku.OnBinderDeadListener
 import rikka.shizuku.Shizuku.OnBinderReceivedListener
 import rikka.shizuku.Shizuku.OnRequestPermissionResultListener
-import rikka.sui.Sui
 import java.io.File
 
 class Blocktopograph : Application(),
@@ -27,7 +25,6 @@ class Blocktopograph : Application(),
     OnRequestPermissionResultListener,
     Thread.UncaughtExceptionHandler {
     companion object {
-        val isSui: Boolean = Sui.init(BuildConfig.APPLICATION_ID)
         lateinit var instance: Blocktopograph
             private set
         var fileService: IFileService? = null
@@ -51,12 +48,12 @@ class Blocktopograph : Application(),
         private set
 
     override fun onBinderReceived() {
-        unbound = false
         if (Shizuku.isPreV11() || Shizuku.checkSelfPermission() != PERMISSION_GRANTED) return
         Shizuku.bindUserService(fileServiceArgs, fileServiceConnection)
     }
 
     override fun onBinderDead() {
+        fileService = null
         unbound = true
     }
 
@@ -77,18 +74,12 @@ class Blocktopograph : Application(),
         Shizuku.addBinderDeadListener(this)
         Shizuku.addRequestPermissionResultListener(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-        FileServiceClient.start()
-    }
-
-    override fun onCreate(owner: LifecycleOwner) {
-        DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
         Shizuku.removeBinderReceivedListener(this)
         Shizuku.removeBinderDeadListener(this)
         Shizuku.removeRequestPermissionResultListener(this)
-        FileServiceClient.quitSafely()
     }
 
     private val fileServiceConnection = object : ServiceConnection {
@@ -107,7 +98,7 @@ class Blocktopograph : Application(),
     private val fileServiceArgs = Shizuku.UserServiceArgs(
         ComponentName(
             BuildConfig.APPLICATION_ID,
-            FileServiceServer::class.java.name
+            FileService::class.java.name
         )
     ).daemon(false)
         .processNameSuffix("service")
@@ -116,6 +107,7 @@ class Blocktopograph : Application(),
 
     override fun onCreate() {
         super<Application>.onCreate()
+        DynamicColors.applyToActivitiesIfAvailable(this)
         this.exceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)
     }

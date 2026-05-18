@@ -84,13 +84,13 @@ fun NBTImportDialog(
                     }
                 }
             }
-            BottomSheetActionButton(
-                text = "导入",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                onClick = onImport
-            )
         }
+        BottomSheetActionButton(
+            text = "导入",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            onClick = onImport
+        )
     }
 }

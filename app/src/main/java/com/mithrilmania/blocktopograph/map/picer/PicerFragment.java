@@ -39,7 +39,7 @@ import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.OpenLongPressMenuHandler;
 import com.mithrilmania.blocktopograph.util.ConvertUtil;
 import com.mithrilmania.blocktopograph.util.UiUtil;
-import com.mithrilmania.blocktopograph.world.WorldHandler;
+import com.mithrilmania.blocktopograph.world.World;
 
 import java.io.File;
 
@@ -51,14 +51,14 @@ public final class PicerFragment extends DialogFragment {
     private FragPicerBinding mBinding;
     Rect mRange;
 
-    WorldHandler mWorld;
+    World mWorld;
     Dimension mDimension;
     AsyncTask mOngoingTask;
     private int stage = 0;
     GenerateThread mOngoingThread;
     private OpenLongPressMenuHandler mOpenLongPressMenuHandler;
 
-    public static PicerFragment create(@NonNull WorldHandler world, @NonNull Dimension dimension,
+    public static PicerFragment create(@NonNull World world, @NonNull Dimension dimension,
                                        @Nullable Rect range, @Nullable OpenLongPressMenuHandler openLongPressMenuHandler) {
         PicerFragment ret = new PicerFragment();
         ret.mWorld = world;

@@ -27,8 +27,10 @@ import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
-import com.mithrilmania.blocktopograph.world.WorldHandler;
-import com.mithrilmania.blocktopograph.world.WorldHandlerKt;
+import com.mithrilmania.blocktopograph.world.World;
+import com.mithrilmania.blocktopograph.world.WorldKt;
+import com.mithrilmania.blocktopograph.world.WorldModel;
+import com.mithrilmania.blocktopograph.world.WorldModelKt;
 
 public abstract class WorldActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
@@ -37,6 +39,7 @@ public abstract class WorldActivity extends AppCompatActivity
     private static final String TAG = WorldActivity.class.getSimpleName();
     protected ActivityWorldBinding mBinding;
     protected WorldMapModel model;
+    protected WorldModel worldModel;
     protected MapFragment mapFragment;
 
     @Override
@@ -52,25 +55,24 @@ public abstract class WorldActivity extends AppCompatActivity
         Retrieve world from previous state or intent
          */
         LogUtil.d(this, "World activity creating...");
-        WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
-        if (model.getHandler() == null) {
-            try {
-                if (!model.init(this, this.getIntent())) {
-                    Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
-                    this.finish();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to open world", e);
-                Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
-                //WTF, try going back to the previous screen by finishing this hopeless activity...
-                this.finish();
-                //Finish does not guarantee codes below won't be executed!
-                //Shit
-                return;
-            }
+        WorldModel worldModel;
+        try {
+            worldModel = WorldModelKt.getOrCreateWorldModel(this);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to open world", e);
+            Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show();
+            //WTF, try going back to the previous screen by finishing this hopeless activity...
+            this.finish();
+            //Finish does not guarantee codes below won't be executed!
+            //Shit
+            return;
         }
+        World handler = worldModel.getWorld();
+        worldModel.open(this);
+        this.worldModel = worldModel;
+
+        WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
         this.model = model;
-        WorldHandler handler = model.getHandler();
         model.getShowMarkers().setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
 
         /*
@@ -125,7 +127,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
             *link to results will be included here for reference when @mithrilmania is done*
          */
-        subtitle.setText(String.valueOf(WorldHandlerKt.resolveSeed(handler, this)));
+        subtitle.setText(String.valueOf(WorldKt.resolveSeed(handler, this)));
 
         // Open the world-map as default content
         openWorldMap();

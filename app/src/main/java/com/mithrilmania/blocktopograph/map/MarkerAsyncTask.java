@@ -15,6 +15,7 @@ import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
 import com.mithrilmania.blocktopograph.nbt.old.tags.ListTag;
 import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
 import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
+import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.util.List;
@@ -25,12 +26,13 @@ import java.util.List;
 public class MarkerAsyncTask extends AsyncTask<Void, AbstractMarker, Void> {
 
     private final WorldMapModel world;
+    private final WorldModel worldModel;
 
     private final int minChunkX, minChunkZ, maxChunkX, maxChunkZ;
     private final Dimension dimension;
 
 
-    public MarkerAsyncTask(WorldMapModel model, int minChunkX, int minChunkZ,
+    public MarkerAsyncTask(WorldMapModel model, WorldModel worldModel, int minChunkX, int minChunkZ,
                            int maxChunkX, int maxChunkZ, Dimension dimension) {
         this.minChunkX = minChunkX;
         this.minChunkZ = minChunkZ;
@@ -39,11 +41,12 @@ public class MarkerAsyncTask extends AsyncTask<Void, AbstractMarker, Void> {
         this.dimension = dimension;
 
         this.world = model;
+        this.worldModel = worldModel;
     }
 
     @Override
     protected Void doInBackground(Void... v) {
-        WorldStorage storage = this.world.getHandler().getStorage();
+        WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return null;
         Dimension dimension = this.dimension;
         int cX, cZ;

@@ -5,15 +5,15 @@ import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.storage.ShizukuFile
 import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
-import com.mithrilmania.blocktopograph.world.WorldHandler
+import com.mithrilmania.blocktopograph.world.World
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import org.iq80.leveldb.Options
 import java.io.IOException
 
-class ShizukuWorldHandler(
+class ShizukuWorld(
     val root: String,
-    name: String
-) : WorldHandler(name, ShizukuFile("$root/$FILE_LEVEL_DAT")) {
+    name: String?
+) : World(name, ShizukuFile("$root/$FILE_LEVEL_DAT")) {
     override suspend fun open(context: Context): WorldStorage? {
         if (this.storage != null) return this.storage
         try {

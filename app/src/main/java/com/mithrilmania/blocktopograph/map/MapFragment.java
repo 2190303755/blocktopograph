@@ -64,7 +64,9 @@ import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
-import com.mithrilmania.blocktopograph.world.WorldHandlerKt;
+import com.mithrilmania.blocktopograph.world.WorldKt;
+import com.mithrilmania.blocktopograph.world.WorldModel;
+import com.mithrilmania.blocktopograph.world.WorldModelKt;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import java.io.IOException;
@@ -120,6 +122,7 @@ public class MapFragment extends Fragment {
     private int proceduralMarkersInterval = 0;
     private volatile AsyncTask shrinkProceduralMarkersTask;
     private WorldMapModel model;
+    private WorldModel worldModel;
 
     /**
      * Only one floating fragment is allowed at the same time.
@@ -145,7 +148,7 @@ public class MapFragment extends Fragment {
         super.onStart();
         FragmentActivity activity = getActivity();
         if (activity == null) return;
-        activity.setTitle(model.getHandler().getPlainName());
+        activity.setTitle(worldModel.getWorld().getPlainName());
     }
 
     @Override
@@ -164,7 +167,7 @@ public class MapFragment extends Fragment {
     }
 
     public void closeChunks() {
-        WorldStorage storage = this.model.getHandler().getStorage();
+        WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return;
         storage.resetCache();
     }
@@ -210,12 +213,11 @@ public class MapFragment extends Fragment {
 //            return;
 //        }
         try {
-            var handler = this.model.getHandler();
-            if (handler == null) return;
             Activity activity = getActivity();
             if (activity == null) return;
+            var handler = this.worldModel.getWorld();
 
-            DimensionVector3<Float> playerPos = WorldHandlerKt.resolveLocalPlayerPos(handler, activity);
+            DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPos(handler, activity);
 
             if (playerPos == null) return;
             Snackbar.make(mBinding.tileView,
@@ -250,12 +252,11 @@ public class MapFragment extends Fragment {
     @UiThread
     private void moveCameraToSpawn(View view) {
         try {
-            var handler = this.model.getHandler();
-            if (handler == null) return;
             Activity activity = getActivity();
             if (activity == null) return;
+            var handler = this.worldModel.getWorld();
 
-            DimensionVector3<Integer> spawnPos = WorldHandlerKt.resolveSpawnPoint(handler, activity);
+            DimensionVector3<Integer> spawnPos = WorldKt.resolveSpawnPoint(handler, activity);
 
             Snackbar.make(mBinding.tileView,
                     getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn),
@@ -280,7 +281,7 @@ public class MapFragment extends Fragment {
     @UiThread
     private void closeFloatPane() {
         if (mFloatingFragment != null) {
-            WorldStorage storage = this.model.getHandler().getStorage();
+            WorldStorage storage = this.worldModel.getWorld().getStorage();
             if (storage == null) return;
             FragmentManager fm = getChildFragmentManager();
             FragmentTransaction trans = fm.beginTransaction();
@@ -306,9 +307,9 @@ public class MapFragment extends Fragment {
         if (mFloatingFragment != null) {
             FloatPaneFragment fragment;
             if (mFloatingFragment instanceof AdvancedLocatorFragment) {
-                fragment = AdvancedLocatorFragment.create(model.getHandler(), this::frameTo);
+                fragment = AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo);
             } else if (mFloatingFragment instanceof SelectionMenuFragment) {
-                WorldStorage storage = this.model.getHandler().getStorage();
+                WorldStorage storage = this.worldModel.getWorld().getStorage();
                 if (storage == null) return;
                 fragment = SelectionMenuFragment
                         .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry,
@@ -386,6 +387,8 @@ public class MapFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         FragmentActivity activity = this.requireActivity();
+        WorldModel worldModel = WorldModelKt.getOrCreateWorldModel(activity);
+        this.worldModel = worldModel;
         WorldMapModel model = new ViewModelProvider(activity).get(WorldMapModel.class);
 
         mBinding = DataBindingUtil.inflate(
@@ -429,12 +432,12 @@ public class MapFragment extends Fragment {
 
         // Display a menu allowing user to move camera to many places.
         mBinding.fabMenuGpsOthers.setOnClickListener(unusedView ->
-                openFloatPane(AdvancedLocatorFragment.create(model.getHandler(), this::frameTo)));
+                openFloatPane(AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo)));
         mBinding.fabMenuGpsOthers.setImageDrawable(
                 VectorDrawableCompat.create(resources, R.drawable.ic_action_search, null));
 
         mBinding.fabMenuGpsPicer.setOnClickListener(unusedView -> {
-            DialogFragment fragment = PicerFragment.create(model.getHandler(),
+            DialogFragment fragment = PicerFragment.create(worldModel.getWorld(),
                     model.getDimension(), null, this::triggerLongPressAtCenter);
             fragment.show(getChildFragmentManager(), TAG_PICER);
         });
@@ -471,7 +474,7 @@ public class MapFragment extends Fragment {
         /*
         Create tile(=bitmap) provider
          */
-        this.minecraftTileProvider = new MCTileProvider(model);
+        this.minecraftTileProvider = new MCTileProvider(model, worldModel);
 
 
 
@@ -654,10 +657,10 @@ public class MapFragment extends Fragment {
                 //resetTileView();
             }
         });
-        AsyncKt.openDB(model.getHandler(), this, activity, handler -> {
+        AsyncKt.openDB(worldModel, this, handler -> {
             boolean framedToPlayer = false;
             try {
-                DimensionVector3<Float> playerPos = WorldHandlerKt.resolveLocalPlayerPos(handler, activity);
+                DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPos(handler, activity);
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
                     LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
@@ -678,7 +681,7 @@ public class MapFragment extends Fragment {
             }
 
             try {
-                DimensionVector3<Integer> spawnPos = WorldHandlerKt.resolveSpawnPoint(handler, activity);
+                DimensionVector3<Integer> spawnPos = WorldKt.resolveSpawnPoint(handler, activity);
                 spawnMarker = new AbstractMarker(spawnPos.x, spawnPos.y, spawnPos.z, spawnPos.dimension,
                         new CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false);
                 this.staticMarkers.add(spawnMarker);
@@ -736,7 +739,7 @@ public class MapFragment extends Fragment {
             case LAMPSHADE:
             case CHBIOME:
             case DCHUNK:
-                WorldStorage storage = this.model.getHandler().getStorage();
+                WorldStorage storage = this.worldModel.getWorld().getStorage();
                 if (storage == null) return;
                 new SelectionBasedContextFreeEditTask(func, args, this, storage.mOldBlockRegistry).execute(
                         new RectEditTarget(
@@ -747,7 +750,7 @@ public class MapFragment extends Fragment {
                 break;
             case PICER: {
                 PicerFragment fragment = PicerFragment.create(
-                        model.getHandler(), this.model.getDimension(),
+                        worldModel.getWorld(), this.model.getDimension(),
                         mBinding.selectionBoard.getSelection(), null
                 );
                 fragment.show(activity.getSupportFragmentManager(), TAG_PICER);
@@ -966,7 +969,7 @@ public class MapFragment extends Fragment {
             if (mFloatingFragment instanceof SelectionMenuFragment) closeFloatPane();
         } else {
             mBinding.selectionBoard.beginSelection(worldX, worldZ);
-            WorldStorage storage = this.model.getHandler().getStorage();
+            WorldStorage storage = this.worldModel.getWorld().getStorage();
             if (storage == null) return;
             SelectionMenuFragment fragment = SelectionMenuFragment
                     .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry, this::doSelectionBasedEdit);
@@ -981,7 +984,7 @@ public class MapFragment extends Fragment {
     }
 
     private void onChooseEditEntitiesOrTileEntities(Dimension dim, int chunkXint, int chunkZint, View container, boolean isEntity) {
-        WorldStorage storage = this.model.getHandler().getStorage();
+        WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return;
         final Chunk chunk;
         try {
@@ -1456,7 +1459,7 @@ public class MapFragment extends Fragment {
 
         @Override
         protected List<String> doInBackground(Void... arg0) {
-            WorldStorage storage = owner.get().model.getHandler().getStorage();
+            WorldStorage storage = owner.get().worldModel.getWorld().getStorage();
             if (storage == null) return null;
             try {
                 return storage.getNetworkPlayerNameList();
@@ -1502,7 +1505,7 @@ public class MapFragment extends Fragment {
 
                             try {
                                 MapFragment fragment = this.owner.get();
-                                DimensionVector3<Float> playerPos = WorldHandlerKt.resolveMultiPlayerPos(fragment.model.getHandler(), playerKey);
+                                DimensionVector3<Float> playerPos = WorldKt.resolveMultiPlayerPos(fragment.worldModel.getWorld(), playerKey);
                                 if (playerPos == null) {
                                     throw new NullPointerException();
                                 }

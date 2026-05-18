@@ -48,6 +48,7 @@ android {
 
 dependencies {
     val composeBoM = "2026.05.00"
+    val paging = "3.4.2"
     implementation(platform("androidx.compose:compose-bom:$composeBoM"))
     implementation("androidx.activity:activity-compose:1.12.4")
     implementation("androidx.compose.material3:material3:1.5.0-alpha19")
@@ -82,6 +83,8 @@ dependencies {
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("sh.calvin.reorderable:reorderable:3.1.0")
+    implementation("androidx.paging:paging-common:$paging")
+    implementation("androidx.paging:paging-compose:$paging")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

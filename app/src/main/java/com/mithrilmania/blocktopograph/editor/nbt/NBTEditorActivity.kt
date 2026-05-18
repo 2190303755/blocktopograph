@@ -41,7 +41,7 @@ class NBTEditorActivity : ComponentActivity() {
                     ?.uppercase()
                     .toEnum(NBTFormat.UNKNOWN)
                 val importer = NBTImportModel(
-                    if (uri == null) {
+                    source = if (uri == null) {
                         ShizukuFile(intent.getStringExtra(EXTRA_PATH) ?: return)
                     } else {
                         SAFFile(uri)

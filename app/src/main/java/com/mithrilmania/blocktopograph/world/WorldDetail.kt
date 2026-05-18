@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.Intent.EXTRA_TITLE
 import android.graphics.Bitmap
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.ListTag
@@ -27,71 +31,78 @@ class WorldDetail(
     val version: String,
     val tag: String
 ) {
-    val path: String = location.location
-    var behavior: Int = 0
-    var resource: Int = 0
-    var icon: Bitmap? = null
-    var size: String? = null
+    var behaviors: Int by mutableIntStateOf(0)
+    var resources: Int by mutableIntStateOf(0)
+    var icon: Bitmap? by mutableStateOf(null)
+    var size: String? by mutableStateOf(null)
 
     fun applyTo(intent: Intent) = this.location.applyTo(intent)
         .putExtra(EXTRA_TITLE, this.name)
 }
+
+class WorldStatistics(
+    val behaviors: Int,
+    val resources: Int,
+    val size: Long
+)
 
 fun InputStream.extractDetail(
     location: Location,
     config: Location,
     context: Context,
     tag: String = ""
-): WorldDetail {
-    val input = BedrockNBTInput(this.buffered())
-    input.skipBytes(8)
+): WorldDetail? {
     var name: String? = null
     var mode: String? = null
     var time = 0L
     var seed: String? = null
     var version: String? = null
-    var unknown: String? = null
-    if (input.readByte() == TAG_COMPOUND) {
-        input.skipString()
-        val compound = FilteredCompound {
-            putSimpleFilter(StringTag.Type, KEY_LEVEL_NAME)
-            putSimpleFilter(IntTag.Type, KEY_GAME_MODE)
-            putSimpleFilter(LongTag.Type, KEY_LAST_PLAYED_TIME, KEY_RANDOM_SEED)
-            putSimpleFilter(ListTag.Type, KEY_LAST_PLAYED_VERSION)
-        }.read(input)
-        (compound[KEY_LEVEL_NAME] as? StringTag)?.let {
-            name = it.value
-        }
-        (compound[KEY_GAME_MODE] as? IntTag)?.let {
-            mode = when (it.value) {
-                0 -> context.getString(R.string.game_mode_survival)
-                1 -> context.getString(R.string.game_mode_creative)
-                2 -> context.getString(R.string.game_mode_adventure)
-                6 -> context.getString(R.string.game_mode_spectator)
-                else -> context.getString(R.string.game_mode_unknown, it.toString())
+    try {
+        BedrockNBTInput(this.buffered()).use { input ->
+            input.skipBytes(8)
+            if (input.readByte() == TAG_COMPOUND) {
+                input.skipString()
+                val compound = FilteredCompound {
+                    putSimpleFilter(StringTag.Type, KEY_LEVEL_NAME)
+                    putSimpleFilter(IntTag.Type, KEY_GAME_MODE)
+                    putSimpleFilter(LongTag.Type, KEY_LAST_PLAYED_TIME, KEY_RANDOM_SEED)
+                    putSimpleFilter(ListTag.Type, KEY_LAST_PLAYED_VERSION)
+                }.read(input)
+                (compound[KEY_LEVEL_NAME] as? StringTag)?.let {
+                    name = it.value
+                }
+                (compound[KEY_GAME_MODE] as? IntTag)?.let {
+                    mode = when (it.value) {
+                        0 -> context.getString(R.string.game_mode_survival)
+                        1 -> context.getString(R.string.game_mode_creative)
+                        2 -> context.getString(R.string.game_mode_adventure)
+                        6 -> context.getString(R.string.game_mode_spectator)
+                        else -> context.getString(R.string.game_mode_unknown, it.toString())
+                    }
+                }
+                (compound[KEY_LAST_PLAYED_TIME] as? LongTag)?.let {
+                    time = it.toLong() * 1000L
+                }
+                (compound[KEY_RANDOM_SEED] as? LongTag)?.let {
+                    seed = it.toLong().toString()
+                }
+                (compound[KEY_LAST_PLAYED_VERSION] as? ListTag)?.let {
+                    version = it.joinToString(separator = ".")
+                }
             }
         }
-        (compound[KEY_LAST_PLAYED_TIME] as? LongTag)?.let {
-            time = it.toLong() * 1000L
-        }
-        (compound[KEY_RANDOM_SEED] as? LongTag)?.let {
-            seed = it.toLong().toString()
-        }
-        (compound[KEY_LAST_PLAYED_VERSION] as? ListTag)?.let {
-            version = it.joinToString(separator = ".")
-        }
+    } catch (_: Exception) {
+        return null
     }
-    input.close()
+    val unknown by lazy { context.getString(R.string.generic_unknown) }
     return WorldDetail(
         location,
         config,
         name ?: location.queryName(context),
-        mode ?: context.getString(R.string.generic_unknown).also { unknown = it },
+        mode ?: unknown,
         time,
-        seed ?: unknown ?: context.getString(R.string.generic_unknown)
-            .also { unknown = it },
-        version ?: unknown ?: context.getString(R.string.generic_unknown)
-            .also { unknown = it },
+        seed ?: unknown,
+        version ?: unknown,
         tag
     )
 }
