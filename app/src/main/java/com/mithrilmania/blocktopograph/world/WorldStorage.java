@@ -7,7 +7,6 @@ import android.util.LruCache;
 import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.LogUtil;
-import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.chunk.Version;
@@ -38,12 +37,10 @@ import kotlin.io.FilesKt;
 public class WorldStorage implements Closeable {
     private static final Env LEVEL_DB_ENV = EnvImpl.createEnv();//TODO: redirect temp dir
     private final LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
-    public final OldBlockRegistry mOldBlockRegistry;
     public final DB db;
     public final String path;
 
     public WorldStorage(String path, Options options) throws IOException {
-        this.mOldBlockRegistry = new OldBlockRegistry(2048);
         LogUtil.d(this, "[Open DB]" + path);
         this.path = path;
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);

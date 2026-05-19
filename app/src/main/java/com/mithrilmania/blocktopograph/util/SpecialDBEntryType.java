@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.util;
 
-import com.mithrilmania.blocktopograph.nbt.old.convert.NBTConstants;
+import java.nio.charset.StandardCharsets;
 
 public enum SpecialDBEntryType {
 
@@ -21,6 +21,6 @@ public enum SpecialDBEntryType {
 
     SpecialDBEntryType(String keyName) {
         this.keyName = keyName;
-        this.keyBytes = keyName.getBytes(NBTConstants.CHARSET);
+        this.keyBytes = keyName.getBytes(StandardCharsets.UTF_8);
     }
 }

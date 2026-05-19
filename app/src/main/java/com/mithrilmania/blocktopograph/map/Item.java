@@ -6,9 +6,9 @@ import android.graphics.BitmapFactory;
 import android.util.SparseArray;
 
 import androidx.annotation.NonNull;
+import androidx.compose.ui.graphics.Color;
 
 import com.mithrilmania.blocktopograph.LogUtil;
-import com.mithrilmania.blocktopograph.util.ColorWrapper;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
@@ -262,7 +262,7 @@ public enum Item implements NamedBitmapProviderHandle, NamedBitmapProvider {
     public final int id, subId;
     public final String str, subName, displayName, identifier;
     public final String texPath;
-    public final ColorWrapper color;
+    public final Color color;
     public final boolean hasBiomeShading;
     public Bitmap bitmap;
 

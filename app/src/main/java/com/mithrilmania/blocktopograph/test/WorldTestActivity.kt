@@ -97,7 +97,6 @@ import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
 import com.mithrilmania.blocktopograph.util.errorAndPop
 import com.mithrilmania.blocktopograph.util.upcoming
-import com.mithrilmania.blocktopograph.world.WorldModel
 import com.mithrilmania.blocktopograph.world.WorldModelFactory
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.await
@@ -112,11 +111,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WorldTestActivity : ComponentActivity() {
-    private val worldModel by viewModels<WorldModel>(
-        this::collectWorldCreationExtras,
-        { WorldModelFactory(::WorldModel) }
-    )
-    private val majorModel by viewModels<WorldTestModel>()
+    private val majorModel by viewModels<WorldTestModel>(
+        this::collectWorldCreationExtras
+    ) { WorldModelFactory(::WorldTestModel) }
     private val editor by viewModels<NBTEditorModel>()
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -125,7 +122,7 @@ class WorldTestActivity : ComponentActivity() {
         this.enableEdgeToEdge()
         val majorModel = this.majorModel
         try {
-            this.worldModel.open(this)
+            this.majorModel.open(this)
         } catch (e: Exception) {
             this.finish()
         }
@@ -206,7 +203,7 @@ class WorldTestActivity : ComponentActivity() {
                                                     }
                                                     majorModel.entries.clear()
                                                     scope.launch {
-                                                        worldModel.storage.collectMatches(
+                                                        majorModel.storage.collectMatches(
                                                             pattern,
                                                             majorModel.entries
                                                         )
@@ -232,7 +229,7 @@ class WorldTestActivity : ComponentActivity() {
                                                     }
                                                     majorModel.entries.clear()
                                                     scope.launch {
-                                                        worldModel.storage.collectMatches(
+                                                        majorModel.storage.collectMatches(
                                                             pattern,
                                                             majorModel.entries
                                                         )

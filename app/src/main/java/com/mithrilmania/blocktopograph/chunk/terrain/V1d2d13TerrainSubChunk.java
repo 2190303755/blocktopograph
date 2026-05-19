@@ -1,27 +1,19 @@
 package com.mithrilmania.blocktopograph.chunk.terrain;
 
-import static com.mithrilmania.blocktopograph.util.ConvertUtilKt.serializeState;
-import static com.mithrilmania.blocktopograph.util.Unchecked.cast;
-
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
 
-import com.google.common.collect.Lists;
 import com.mithrilmania.blocktopograph.BuildConfig;
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.block.Block;
+import com.mithrilmania.blocktopograph.block.BlockKt;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.BlockType;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.map.Dimension;
-import com.mithrilmania.blocktopograph.nbt.old.convert.NBTInputStream;
-import com.mithrilmania.blocktopograph.nbt.old.convert.NBTOutputStream;
-import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
-import com.mithrilmania.blocktopograph.util.LittleEndianOutputStream;
+import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput;
+import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import org.iq80.leveldb.DBException;
@@ -162,27 +154,27 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
         if (mIsError) return;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        LittleEndianOutputStream leos = new LittleEndianOutputStream(baos);
+        BedrockNBTOutput output = new BedrockNBTOutput(baos);
 
         int storageCount = mIsDualStorageSupported ? (mStorages[1] == null ? 1 : 2) : 1;
 
         if (mIsDualStorageSupported) {
-            leos.write(8);
-            leos.write(storageCount);
-            mStorages[0].write(leos);
-            if (storageCount == 2) mStorages[1].write(leos);
+            output.write(8);
+            output.write(storageCount);
+            mStorages[0].write(output);
+            if (storageCount == 2) mStorages[1].write(output);
         } else {
-            leos.write(1);
-            mStorages[0].write(leos);
+            output.write(1);
+            mStorages[0].write(output);
         }
-        leos.flush();
+        output.close();
 
         byte[] arr = baos.toByteArray();
         storage.writeChunkData(chunkX, chunkZ, ChunkTag.TERRAIN, dimension, (byte) which, true, arr);
 
     }
 
-    private static class BlockStorage {
+    public static class BlockStorage {
         public static final String PALETTE_KEY_ROOT = "";
         public static final String PALETTE_KEY_NAME = "name";
         public static final String PALETTE_KEY_STATES = "states";
@@ -247,19 +239,22 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
             renderPalette = new ArrayList<>(16);
 
             //NBT reader requires a stream.
-            var bais = new ByteArrayInputStream(buffer.array());
+            var bytes = buffer.array();
+            var bais = new ByteArrayInputStream(bytes);
 
             // Skip for byte array would not fail.
             //noinspection ResultOfMethodCallIgnored
             bais.skip(buffer.position());
 
             //Wrap it.
-            var nis = new NBTInputStream(bais, false);
-            for (int i = 0; i < psize; i++)
+            var input = new BedrockNBTInput(bais);
+            for (int i = 0; i < psize; i++) {
                 //Read a piece of nbt data, represented by a root CompoundTag.
-                addToPalette(deserializeBlock((CompoundTag) nis.readTag()));
+                addToPalette(BlockKt.readBlockFormV1d2d13TerrainSubChunk(input));
+            }
+            input.close();
             //If one day we need to read more BlockStorage's, this line helps.
-            buffer.position(buffer.position() + nis.getReadCount());
+            buffer.position(bytes.length - bais.available());
         }
 
         private BlockStorage(@NonNull BlockStorage old) {
@@ -368,53 +363,22 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
             return new Pair<>(palette.get(ind), renderPalette.get(ind));
         }
 
-        private void write(@NonNull LittleEndianOutputStream stream) throws IOException {
+        private void write(@NonNull BedrockNBTOutput output) throws IOException {
 
             // Code length.
-            stream.write(blockCodeLenth << 1);
+            output.write(blockCodeLenth << 1);
 
             // Int32s.
-            stream.write(raw);
+            output.write(raw);
 
             // Palette size.
             int size = palette.size();
-            stream.writeInt(size);
+            output.writeInt(size);
 
-            // Palettes.
-            NBTOutputStream nos = new NBTOutputStream(stream, false, true);
 
-            for (int j = 0; j < size; j++)
-                nos.writeTag(serializeBlock(palette.get(j)));
-        }
-
-        private static CompoundTag serializeBlock(@NonNull Block block) {
-            return new CompoundTag(PALETTE_KEY_ROOT, Lists.newArrayList(
-                    new StringTag(PALETTE_KEY_NAME, block.getName()),
-                    new CompoundTag(PALETTE_KEY_STATES, cast(serializeState(block))),
-                    new IntTag(PALETTE_KEY_VERSION, 2012)
-            ));
-        }
-
-        private static Block deserializeBlock(@NonNull CompoundTag tag) {
-            var name = ((StringTag) tag.getChildTagByKey(PALETTE_KEY_NAME)).getValue();
-            var blockType = BlockType.get(name);
-            var builder = (blockType == null ? new Block.Builder(name) : new Block.Builder(blockType));
-            var states = tag.getChildTagByKey(PALETTE_KEY_STATES);
-            if (states instanceof CompoundTag) {
-                for (var state : ((CompoundTag) states).getValue()) {
-                    builder.setProperty(state);
-                }
+            for (int j = 0; j < size; j++) {
+                BlockKt.writeBlockIntoV1d2d13TerrainSubChunk(output, palette.get(j));
             }
-            var version = tag.getChildTagByKey(PALETTE_KEY_VERSION);
-            if (version != null) {
-                var value = version.getValue().toString();
-                if (!VERSIONS.contains(value)) {
-                    LogUtil.d(BlockStorage.class, "fuckfuckversion:" + value);
-                    VERSIONS.add(value);
-                }
-            }
-            return builder.build();
         }
-
     }
 }

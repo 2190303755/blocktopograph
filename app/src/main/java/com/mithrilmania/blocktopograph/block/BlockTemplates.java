@@ -1663,13 +1663,13 @@ public class BlockTemplates {
 
     @NonNull
     public static BlockTemplate getBest(@NonNull Block block) {
-        var type = block.getType();
+        var type = block.type;
         if (type == null) return getUnknownBlockTemplate();
         List<BlockTemplate> candidates = Arrays.asList(Objects.requireNonNull(getOfType(type.getName())));
-        for (int i = 0, limit = block.getType().getKnownProperties().length; i < limit; i++) {
+        for (int i = 0, limit = block.type.getKnownProperties().length; i < limit; i++) {
             List<BlockTemplate> newCandidates = new ArrayList<>();
             for (var template : candidates) {
-                if (Objects.equals(template.getBlock().getKnownProperties()[i], block.getKnownProperties()[i]))
+                if (Objects.equals(template.getBlock().knownProperties[i], block.knownProperties[i]))
                     newCandidates.add(template);
             }
             switch (newCandidates.size()) {

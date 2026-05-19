@@ -6,9 +6,9 @@ import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Biome;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class BiomeRenderer implements MapRenderer {
@@ -24,7 +24,7 @@ public class BiomeRenderer implements MapRenderer {
                 biomeID = chunk.getBiome(x, z) & 0xff;
                 biome = Biome.getBiome(biomeID);
 
-                color = biome == null ? 0xff000000 : (biome.color.red << 16) | (biome.color.green << 8) | (biome.color.blue) | 0xff000000;
+                color = biome == null ? 0xff000000 : biome.color;
 
                 paint.setColor(color);
                 canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);

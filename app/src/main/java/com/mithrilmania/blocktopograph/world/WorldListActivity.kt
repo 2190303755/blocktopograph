@@ -314,7 +314,7 @@ class WorldListActivity : ComponentActivity() {
             }
 
             if (openViaShizuku) {
-                val input = rememberTextFieldState(DEFAULT_WORLD_PATH)
+                val input = rememberTextFieldState(defaultWorldPath())
                 PastableDialog(
                     title = "加载世界",
                     onCancel = { openViaShizuku = false },

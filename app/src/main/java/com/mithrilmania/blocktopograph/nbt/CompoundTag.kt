@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.nbt
 
-import com.mithrilmania.blocktopograph.nbt.io.increaseDepthOrThrow
-import com.mithrilmania.blocktopograph.nbt.io.readBinaryTags
+import com.mithrilmania.blocktopograph.nbt.io.readAsCompound
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
 import com.mithrilmania.blocktopograph.nbt.util.boxed
@@ -37,16 +36,10 @@ value class CompoundTag(
     companion object Type : TagType<CompoundTag> {
         override val typeId get() = TAG_COMPOUND
         override fun toString() = "TAG_Compound"
-        override fun read(input: DataInput, depth: Int): CompoundTag {
-            val child = depth.increaseDepthOrThrow()
-            val tags = HashMap<String, BinaryTag>()
-            input.readBinaryTags loop@{
-                if (it == TAG_END) return@loop false
-                tags[input.readUTF()] = it.toTagType().read(input, child)
-                return@loop true
-            }
-            return CompoundTag(tags)
-        }
+        override fun read(
+            input: DataInput,
+            depth: Int
+        ): CompoundTag = CompoundTag(input.readAsCompound(depth = depth))
 
         override fun transform(tag: BinaryTag) = when (tag) {
             EndTag -> CompoundTag()

@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.map.edit;
 import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.block.Block;
-import com.mithrilmania.blocktopograph.block.OldBlock;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 
 

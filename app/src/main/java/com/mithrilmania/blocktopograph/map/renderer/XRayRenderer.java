@@ -9,8 +9,8 @@ import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class XRayRenderer implements MapRenderer {
@@ -38,7 +38,7 @@ public class XRayRenderer implements MapRenderer {
 
                 for (int y = 0; y < chunk.getHeightLimit(); y++) {
                     blockTemplate = chunk.getBlockTemplate(x, y, z, 0);
-                    var blockName = blockTemplate.getBlock().getName();
+                    var blockName = blockTemplate.getBlock().name;
                     index2D = (z * rW) + x;
                     if (BlockTemplates.getAirTemplate().equals(blockTemplate)) continue;
                     else if ("minecraft:diamond_ore".equals(blockName)) {

@@ -291,7 +291,7 @@ public class MapFragment extends Fragment {
             if (mBinding.selectionBoard.hasSelection()) {
                 SelectionMenuFragment fragment = SelectionMenuFragment
                         .newInstance(mBinding.selectionBoard.getSelection(),
-                                storage.mOldBlockRegistry, this::doSelectionBasedEdit);
+                                this::doSelectionBasedEdit);
                 trans.add(R.id.float_window_container, fragment);
                 mFloatingFragment = fragment;
                 setUpSelectionMenu();
@@ -312,7 +312,7 @@ public class MapFragment extends Fragment {
                 WorldStorage storage = this.worldModel.getWorld().getStorage();
                 if (storage == null) return;
                 fragment = SelectionMenuFragment
-                        .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry,
+                        .newInstance(mBinding.selectionBoard.getSelection(),
                                 this::doSelectionBasedEdit);
             } else return;
             closeFloatPane();
@@ -741,7 +741,7 @@ public class MapFragment extends Fragment {
             case DCHUNK:
                 WorldStorage storage = this.worldModel.getWorld().getStorage();
                 if (storage == null) return;
-                new SelectionBasedContextFreeEditTask(func, args, this, storage.mOldBlockRegistry).execute(
+                new SelectionBasedContextFreeEditTask(func, args, this).execute(
                         new RectEditTarget(
                                 storage,
                                 mBinding.selectionBoard.getSelection(),
@@ -972,7 +972,7 @@ public class MapFragment extends Fragment {
             WorldStorage storage = this.worldModel.getWorld().getStorage();
             if (storage == null) return;
             SelectionMenuFragment fragment = SelectionMenuFragment
-                    .newInstance(mBinding.selectionBoard.getSelection(), storage.mOldBlockRegistry, this::doSelectionBasedEdit);
+                    .newInstance(mBinding.selectionBoard.getSelection(), this::doSelectionBasedEdit);
             openFloatPane(fragment);
             setUpSelectionMenu();
             Activity activity = getActivity();

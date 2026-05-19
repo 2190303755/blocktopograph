@@ -18,7 +18,6 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
 import com.mithrilmania.blocktopograph.databinding.FragSelMenuBinding;
 import com.mithrilmania.blocktopograph.map.FloatPaneFragment;
 import com.mithrilmania.blocktopograph.map.edit.ChBiomeFragment;
@@ -41,13 +40,11 @@ public class SelectionMenuFragment extends FloatPaneFragment {
 
     private EditFunctionEntry mEditFunctionEntry;
 
-    private OldBlockRegistry registry;
 
     public static SelectionMenuFragment newInstance(
-            @NonNull Rect initial, @NonNull OldBlockRegistry registry, @NonNull EditFunctionEntry editFunctionEntry) {
+            @NonNull Rect initial, @NonNull EditFunctionEntry editFunctionEntry) {
         SelectionMenuFragment fragment = new SelectionMenuFragment();
         fragment.mSelection.set(initial);
-        fragment.registry = registry;
         fragment.mEditFunctionEntry = editFunctionEntry;
         return fragment;
     }

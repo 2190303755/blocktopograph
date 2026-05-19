@@ -1,22 +1,12 @@
 package com.mithrilmania.blocktopograph.util
 
 import android.content.ClipData
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.core.content.IntentCompat
 import androidx.core.os.BundleCompat
-import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.Block
-import com.mithrilmania.blocktopograph.nbt.old.tags.ByteTag
-import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag
-import com.mithrilmania.blocktopograph.nbt.old.tags.ListTag
-import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag
-import com.mithrilmania.blocktopograph.nbt.old.tags.Tag
-import com.mithrilmania.blocktopograph.world.KEY_GAME_MODE
-import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_VERSION
 import java.io.InputStream
 import java.io.PushbackInputStream
 import java.io.Serializable
@@ -63,54 +53,6 @@ fun ClipData.collectText(): String? {
         list.add(this.getItemAt(i).text ?: continue)
     }
     return if (list.isEmpty()) null else list.joinToString("\n")
-}
-
-fun CompoundTag?.getGameMode(context: Context) = (this?.getChildTagByKey(
-    KEY_GAME_MODE
-) as? IntTag)?.value.let {
-    when (it) {
-        0 -> context.getString(R.string.game_mode_survival)
-        1 -> context.getString(R.string.game_mode_creative)
-        2 -> context.getString(R.string.game_mode_adventure)
-        6 -> context.getString(R.string.game_mode_spectator)
-        else -> context.getString(R.string.game_mode_unknown, it.toString())
-    }
-}
-
-val CompoundTag?.lastPlayedVersion: String
-    get() {
-        val list = (this?.getChildTagByKey(
-            KEY_LAST_PLAYED_VERSION
-        ) as? ListTag)?.value ?: return "Unknown"
-        val iterator = list.iterator()
-        if (!iterator.hasNext()) return "Unknown"
-        val builder = StringBuilder(iterator.next().value.toString())
-        while (iterator.hasNext()) {
-            builder.append('.').append(iterator.next().value)
-        }
-        return builder.toString()
-    }
-
-private fun Any?.wrap(key: String): Tag<*> = when (this) {
-    is Byte -> ByteTag(key, this)
-    is Int -> IntTag(key, this)
-    is String -> StringTag(key, this)
-    else -> throw RuntimeException("block state with unsupported type")
-}
-
-fun Block.serializeState(): ArrayList<Tag<*>> {
-    val props = this.type.knownProperties
-    val values = this.knownProperties
-    val custom = this.customProperties
-    val size = minOf(props.size, values.size)
-    val list = ArrayList<Tag<*>>(size + custom.size)
-    for (i in 0 until size) {
-        list += values[i].wrap(props[i].name)
-    }
-    custom.forEach { (key, value) ->
-        list += value.wrap(key)
-    }
-    return list
 }
 
 fun Block.isDifferentState(other: Block): Boolean {

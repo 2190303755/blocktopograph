@@ -53,10 +53,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -89,7 +92,6 @@ import com.mithrilmania.blocktopograph.ui.component.cascadingMenu
 import com.mithrilmania.blocktopograph.ui.component.clickableItem
 import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.collectText
-import com.mithrilmania.blocktopograph.util.setPrimaryClip
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
 import kotlinx.coroutines.launch
@@ -372,6 +374,8 @@ fun NBTEditor(
                                 }
                             }
                         )
+                        val coroutineScope = rememberCoroutineScope()
+                        val clipboard = LocalClipboard.current
                         DropdownMenu(
                             expanded = node.showContextMenu,
                             onDismissRequest = { node.showContextMenu = false },
@@ -382,8 +386,15 @@ fun NBTEditor(
                                 stringResource(R.string.edit_copy)
                             ) {
                                 node.showContextMenu = false
-                                context.setPrimaryClip {
-                                    ClipData.newPlainText("Copy", node.stringify())
+                                coroutineScope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(
+                                            ClipData.newPlainText(
+                                                null,
+                                                node.stringify()
+                                            )
+                                        )
+                                    )
                                 }
                             }
                             node.ContextMenu(editor)

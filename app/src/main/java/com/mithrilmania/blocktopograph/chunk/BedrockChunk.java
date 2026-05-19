@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.chunk;
 
+import android.graphics.Color;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -171,9 +173,10 @@ public final class BedrockChunk extends Chunk {
     public int getGrassColor(int x, int z) {
         Biome biome = Biome.getBiome(getBiome(x, z) & 0xff);
         int noise = getNoise(x, z);
-        int r = 30 + (biome.color.red / 5) + noise;
-        int g = 110 + (biome.color.green / 5) + noise;
-        int b = 30 + (biome.color.blue / 5) + noise;
+        int color = biome.color;
+        int r = 30 + (Color.red(color) / 5) + noise;
+        int g = 110 + (Color.green(color) / 5) + noise;
+        int b = 30 + (Color.blue(color) / 5) + noise;
         return ColorUtil.truncateRgb(r, g, b);
     }
 

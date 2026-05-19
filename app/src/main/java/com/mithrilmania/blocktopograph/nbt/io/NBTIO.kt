@@ -290,6 +290,19 @@ inline fun DataInput.readBinaryTags(action: (Byte) -> Boolean) {
     while (action(this.readByte())) continue
 }
 
+fun DataInput.readAsCompound(
+    destination: MutableMap<String, BinaryTag> = hashMapOf(),
+    depth: Int = 0
+): MutableMap<String, BinaryTag> {
+    val child = depth.increaseDepthOrThrow()
+    this.readBinaryTags loop@{
+        if (it == TAG_END) return@loop false
+        destination[this.readUTF()] = it.toTagType().read(this, child)
+        return@loop true
+    }
+    return destination
+}
+
 fun DataInput.readBinaryTag(): BinaryTag {
     val type = this.readByte()
     if (type == TAG_END) return EndTag

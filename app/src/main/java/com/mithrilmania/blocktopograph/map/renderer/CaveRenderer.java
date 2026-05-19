@@ -9,8 +9,8 @@ import android.graphics.Rect;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class CaveRenderer implements MapRenderer {
@@ -57,7 +57,7 @@ public class CaveRenderer implements MapRenderer {
                         // but avoid trees by skipping the first layer
                         if (intoSurface) cavyness++;
                     } else {
-                        var blockName = blockTemplate.getBlock().getName();
+                        var blockName = blockTemplate.getBlock().name;
                         if ("minecraft:rail".equals(blockName)) {//rail
                             if (b < 150) {
                                 b = 150;

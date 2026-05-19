@@ -59,10 +59,10 @@ public class SnrConfig implements Serializable {
         }
 
         public boolean matches(Block block) {
-            if (!examplar.getName().equals(block.getName())) return false;
+            if (!examplar.name.equals(block.name)) return false;
             if (isDifferentState(examplar, block)) return false;
-            var examplarCustomProperties = examplar.getCustomProperties();
-            var blockCustomProperties = block.getCustomProperties();
+            var examplarCustomProperties = examplar.customProperties;
+            var blockCustomProperties = block.customProperties;
             if (!allowExtraStates && blockCustomProperties.size() > examplarCustomProperties.size())
                 return false;
             for (var pair : examplarCustomProperties.entrySet())

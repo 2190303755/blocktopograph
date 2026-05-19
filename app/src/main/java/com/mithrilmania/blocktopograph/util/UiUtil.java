@@ -93,7 +93,7 @@ public final class UiUtil {
         Drawable drawable = view.getBackground();
         if (!(drawable instanceof GradientDrawable)) return;
         GradientDrawable gradientDrawable = (GradientDrawable) drawable;
-        int res = ColorUtils.blendARGB(biome.color.asARGB(), 0x7f7f7f7f, 0.5f);
+        int res = ColorUtils.blendARGB(biome.color, 0x7f7f7f7f, 0.5f);
         gradientDrawable.setColor(res);
     }
 

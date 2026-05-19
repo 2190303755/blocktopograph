@@ -12,7 +12,6 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.block.OldBlockRegistry;
 import com.mithrilmania.blocktopograph.map.Biome;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.util.UiUtil;
@@ -32,17 +31,13 @@ public class SelectionBasedContextFreeEditTask extends
     @NonNull
     private final WeakReference<MapFragment> mOwner;
 
-    @NonNull
-    private final OldBlockRegistry registry;
 
     private AlertDialog mWaitDialog;
 
     public SelectionBasedContextFreeEditTask(
-            @NonNull EditFunction func, @Nullable Bundle args, @NonNull MapFragment owner,
-            @NonNull OldBlockRegistry registry) {
+            @NonNull EditFunction func, @Nullable Bundle args, @NonNull MapFragment owner) {
         mFunction = func;
         mArgs = args;
-        this.registry = registry;
         mOwner = new WeakReference<>(owner);
     }
 

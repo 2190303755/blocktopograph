@@ -9,16 +9,14 @@ import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
-import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.FloatTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.IntTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.ListTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.StringTag;
-import com.mithrilmania.blocktopograph.nbt.old.tags.Tag;
+import com.mithrilmania.blocktopograph.nbt.BinaryTag;
+import com.mithrilmania.blocktopograph.nbt.CompoundTag;
+import com.mithrilmania.blocktopograph.nbt.IntTag;
+import com.mithrilmania.blocktopograph.nbt.ListTag;
+import com.mithrilmania.blocktopograph.nbt.NumericTag;
+import com.mithrilmania.blocktopograph.nbt.StringTag;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
-
-import java.util.List;
 
 /**
  * Load the NBT of the chunks and output the markers, async with both map-rendering and UI
@@ -69,33 +67,30 @@ public class MarkerAsyncTask extends AsyncTask<Void, AbstractMarker, Void> {
             if (entityData == null) return;
 
             entityData.load();
-
-            if (entityData.tags == null) return;
-
-            for (Tag tag : entityData.tags) {
-                if (!(tag instanceof CompoundTag)) continue;
-                CompoundTag compoundTag = (CompoundTag) tag;
+            for (BinaryTag tag : entityData.tags.values()) {
+                if (!(tag instanceof CompoundTag compoundTag)) continue;
                 Entity e = null;
                 {
-                    Tag idTag = compoundTag.getChildTagByKey("id");
+                    BinaryTag idTag = compoundTag.get("id");
                     if (idTag instanceof IntTag) {
-                        Integer id = ((IntTag) idTag).getValue();
-                        if (id != null) e = Entity.getEntity(id);
+                        e = Entity.getEntity(((IntTag) idTag).toInt());
                     }
                 }
                 if (e == null) {
-                    Tag idenTag = compoundTag.getChildTagByKey("identifier");
+                    BinaryTag idenTag = compoundTag.get("identifier");
                     if (idenTag instanceof StringTag) {
-                        String identifier = ((StringTag) idenTag).getValue();
-                        if (identifier != null) e = Entity.getEntity(identifier);
+                        e = Entity.getEntity(((StringTag) idenTag).value);
                     }
                 }
                 if (e == null) e = Entity.UNKNOWN;
-                List<Tag> pos = ((ListTag) compoundTag.getChildTagByKey("Pos")).getValue();
-                float xf = ((FloatTag) pos.get(0)).getValue();
-                float yf = ((FloatTag) pos.get(1)).getValue();
-                float zf = ((FloatTag) pos.get(2)).getValue();
-
+                float xf = 0.0F;
+                float yf = 0.0F;
+                float zf = 0.0F;
+                if (compoundTag.get("Pos") instanceof ListTag pos && pos.size() > 3) {
+                    xf = ((NumericTag) pos.get(0)).toFloat();
+                    yf = ((NumericTag) pos.get(1)).toFloat();
+                    zf = ((NumericTag) pos.get(2)).toFloat();
+                }
                 this.publishProgress(new AbstractMarker(Math.round(xf), Math.round(yf), Math.round(zf), dimension, e, false));
             }
 
@@ -109,24 +104,26 @@ public class MarkerAsyncTask extends AsyncTask<Void, AbstractMarker, Void> {
             NBTChunkData tileEntityData = chunk.getBlockEntity();
             if (tileEntityData == null) return;
             tileEntityData.load();
-            if (tileEntityData.tags == null) return;
-            for (Tag tag : tileEntityData.tags) {
-                if (tag instanceof CompoundTag) {
-                    CompoundTag compoundTag = (CompoundTag) tag;
-                    String name = ((StringTag) compoundTag.getChildTagByKey("id")).getValue();
-                    TileEntity te = TileEntity.getTileEntity(name);
-                    if (te != null && te.getBitmap() != null) {
-                        int eX = ((IntTag) compoundTag.getChildTagByKey("x")).getValue();
-                        int eY = ((IntTag) compoundTag.getChildTagByKey("y")).getValue();
-                        int eZ = ((IntTag) compoundTag.getChildTagByKey("z")).getValue();
-
-                        this.publishProgress(new AbstractMarker(Math.round(eX), Math.round(eY), Math.round(eZ), dimension, te, false));
-                    }
+            for (BinaryTag tag : tileEntityData.tags.values()) {
+                if (tag instanceof CompoundTag compoundTag) {
+                    var id = compoundTag.get("id");
+                    if (!(id instanceof StringTag)) continue;
+                    TileEntity te = TileEntity.getTileEntity(((StringTag) id).value);
+                    if (te == null || te.getBitmap() == null) continue;
+                    int eX = getIntOrZero(compoundTag, "x");
+                    int eY = getIntOrZero(compoundTag, "y");
+                    int eZ = getIntOrZero(compoundTag, "z");
+                    this.publishProgress(new AbstractMarker(eX, eY, eZ, dimension, te, false));
                 }
             }
         } catch (Exception e) {
             LogUtil.d(this, e);
         }
+    }
+
+    private static int getIntOrZero(CompoundTag tag, String key) {
+        var value = tag.get(key);
+        return value instanceof NumericTag ? ((NumericTag) value).toInt() : 0;
     }
 
     /*private void loadCustomMarkers(Chunk chunk) {
