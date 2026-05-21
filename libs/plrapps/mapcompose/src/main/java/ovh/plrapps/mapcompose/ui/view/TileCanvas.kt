@@ -19,11 +19,8 @@ import ovh.plrapps.mapcompose.core.ColorFilterProvider
 import ovh.plrapps.mapcompose.core.Tile
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
 import ovh.plrapps.mapcompose.ui.layout.grid
-import ovh.plrapps.mapcompose.ui.state.Rollover
-import ovh.plrapps.mapcompose.ui.state.RolloverData
 import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
 import kotlin.math.ceil
-import kotlin.time.TimeSource
 
 @Composable
 internal fun TileCanvas(
@@ -64,7 +61,6 @@ internal fun TileCanvas(
             scale(scale = zoomPRState.scale.toFloat(), Offset.Zero)
         }) {
             paint.isFilterBitmap = isFilteringBitmap()
-            val rolloverX = zoomPRState.rolloverX.value
 
             for (tile in tilesToRender) {
                 if (tile.markedForSweep) continue
@@ -72,7 +68,7 @@ internal fun TileCanvas(
                 val scaleForLevel = visibleTilesResolver.getScaleForLevel(tile.zoom)
                     ?: continue
                 val tileScaled = (tileSize / scaleForLevel).toInt()
-                val phases = tile.phases.applyRolloverX(rolloverX, tile.timeMark)
+                val phases = tile.phases
 
                 if (phases == null) {
                     drawTile(
@@ -140,44 +136,5 @@ private fun DrawScope.drawTile(
 
     drawIntoCanvas {
         it.nativeCanvas.drawBitmap(bitmap, null, dest, paint)
-    }
-}
-
-private fun IntRange?.applyRolloverX(rolloverData: RolloverData?, timeMark: TimeSource.Monotonic.ValueTimeMark?): IntRange? {
-    return if (rolloverData == null || timeMark == null) {
-        this
-    } else {
-        val rollover = getAppliedRollover(rolloverData, timeMark) ?: return this
-        if (this == null) {
-            when (rollover) {
-                Rollover.Forward -> -1..0
-                Rollover.Backward -> 0..1
-                is Rollover.None -> null
-            }
-        } else {
-            when (rollover) {
-                Rollover.Forward -> IntRange(first - 1, last)
-                Rollover.Backward -> IntRange(first, last + 1)
-                is Rollover.None -> this
-            }
-        }
-    }
-}
-
-/**
- * Apply [Rollover.None] only when the tile originates from a snapshot made _after_ the rollover.
- * Otherwise, when the tile originates from a snapshot made _before_ the rollover, the tile's phases
- * should be applied either [Rollover.Forward] or [Rollover.Backward] (depending on the direction
- * of the scroll).
- */
-private fun getAppliedRollover(rolloverData: RolloverData, timeMark: TimeSource.Monotonic.ValueTimeMark): Rollover? {
-    return if (rolloverData.current is Rollover.None) {
-        if (timeMark > rolloverData.current.timeMark) {
-            rolloverData.current
-        } else {
-            rolloverData.previous
-        }
-    } else {
-        rolloverData.current
     }
 }

@@ -49,8 +49,7 @@ class MapState(
         minScale = initialValues.minScale,
         maxScale = initialValues.maxScale,
         scale = initialValues.scale,
-        gestureConfiguration = initialValues.gestureConfiguration,
-        infiniteScrollX = initialValues.infiniteScrollX
+        gestureConfiguration = initialValues.gestureConfiguration
     )
     internal val markerRenderState = MarkerRenderState()
     internal val markerState = MarkerState(scope, markerRenderState)
@@ -61,8 +60,7 @@ class MapState(
             fullWidth = fullWidth,
             fullHeight = fullHeight,
             tileSize = tileSize,
-            magnifyingFactor = initialValues.magnifyingFactor,
-            infiniteScrollX = initialValues.infiniteScrollX
+            magnifyingFactor = initialValues.magnifyingFactor
         ) {
             zoomPanRotateState.scale
         }
@@ -209,7 +207,6 @@ class InitialValues internal constructor() {
     internal var minScale: Double = Double.MIN_VALUE
     internal var maxScale: Double = 2.0
     internal var magnifyingFactor = 0
-    internal var infiniteScrollX = false
     internal var highFidelityColors: Boolean = true
     internal var preloadingPadding: Int = 0
     internal var isFilteringBitmap: (MapState) -> Boolean = { true }
@@ -307,14 +304,6 @@ class InitialValues internal constructor() {
      */
     fun configureGestures(gestureConfigurationBlock: GestureConfiguration.() -> Unit) {
         this.gestureConfiguration.gestureConfigurationBlock()
-    }
-
-    /**
-     * Enable infinite scroll on x-axis. When enabled, the scroll offset ratio in x dimension has
-     * no effect.
-     */
-    fun infiniteScrollX(enabled: Boolean) {
-        infiniteScrollX = enabled
     }
 }
 

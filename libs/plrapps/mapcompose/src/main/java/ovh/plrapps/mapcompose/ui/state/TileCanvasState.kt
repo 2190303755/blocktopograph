@@ -25,13 +25,11 @@ import ovh.plrapps.mapcompose.core.TileSpec
 import ovh.plrapps.mapcompose.core.Viewport
 import ovh.plrapps.mapcompose.core.VisibleTiles
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
-import ovh.plrapps.mapcompose.core.VisibleWindow
 import ovh.plrapps.mapcompose.core.debounce
 import ovh.plrapps.mapcompose.core.spaceKey
 import ovh.plrapps.mapcompose.core.throttle
 import java.util.concurrent.Executors
 import kotlin.math.pow
-import kotlin.time.TimeSource
 
 /**
  * This class contains all the logic related to [Tile] management.
@@ -97,9 +95,6 @@ internal class TileCanvasState(
          * above others. */
         val tilesToRenderCopy = tilesCollected.sortedBy {
             /* As a side effect of sorting tiles, also set tile phases */
-            if (visibleTiles.visibleWindow is VisibleWindow.InfiniteScrollX) {
-                setTilePhases(it, visibleTiles.visibleWindow, visibleTiles.level, visibleTiles.visibleWindow.timeMark)
-            }
 
             val priority =
                 if (it.zoom == visibleTiles.level && it.subSample == visibleTiles.subSample) 100 else 0
@@ -211,35 +206,10 @@ internal class TileCanvasState(
     private suspend fun collectNewTiles() {
         visibleStateFlow.collectLatest { visibleState ->
             if (visibleState != null) {
-                when (visibleState.visibleTiles.visibleWindow) {
-                    is VisibleWindow.BoundsConstrained -> {
-                        sendSpecsForTileMatrix(
-                            visibleState,
-                            visibleState.visibleTiles.visibleWindow.tileMatrix
-                        )
-                    }
-
-                    is VisibleWindow.InfiniteScrollX -> {
-                        sendSpecsForTileMatrix(
-                            visibleState,
-                            visibleState.visibleTiles.visibleWindow.tileMatrix
-                        )
-                        val leftMatrix = visibleState.visibleTiles.visibleWindow.leftOverflow?.tileMatrix
-                        if (leftMatrix != null) {
-                            sendSpecsForTileMatrix(
-                                visibleState,
-                                leftMatrix
-                            )
-                        }
-                        val rightMatrix = visibleState.visibleTiles.visibleWindow.rightOverflow?.tileMatrix
-                        if (rightMatrix != null) {
-                            sendSpecsForTileMatrix(
-                                visibleState,
-                                rightMatrix
-                            )
-                        }
-                    }
-                }
+                sendSpecsForTileMatrix(
+                    visibleState,
+                    visibleState.visibleTiles.tileMatrix
+                )
             }
         }
     }
@@ -325,25 +295,8 @@ internal class TileCanvasState(
 
     private fun VisibleTiles.contains(tile: Tile): Boolean {
         if (level != tile.zoom) return false
-        return when (visibleWindow) {
-            is VisibleWindow.BoundsConstrained -> {
-                val colRange = visibleWindow.tileMatrix[tile.row] ?: return false
-                subSample == tile.subSample && tile.col in colRange
-            }
-
-            is VisibleWindow.InfiniteScrollX -> {
-                if (subSample != tile.subSample) return false
-                visibleWindow.tileMatrix[tile.row]?.let { range ->
-                    tile.col in range
-                } == true ||
-                        visibleWindow.leftOverflow?.tileMatrix?.get(tile.row)?.let { range ->
-                            tile.col in range
-                        } == true ||
-                        visibleWindow.rightOverflow?.tileMatrix?.get(tile.row)?.let { range ->
-                            tile.col in range
-                        } == true
-            }
-        }
+        val colRange = tileMatrix[tile.row] ?: return false
+        return subSample == tile.subSample && tile.col in colRange
     }
 
     private fun VisibleTiles.intersects(tile: Tile): Boolean {
@@ -364,7 +317,7 @@ internal class TileCanvasState(
 
                     val minColAtLvl = curMinCol.minAtGreaterLevel(dLevel)
                     val maxColAtLvl = curMaxCol.maxAtGreaterLevel(dLevel)
-                    return tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
+                    tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
                 } else { // User is zooming in
                     val dLevel = level - tile.zoom
                     val minRowAtLvl = tile.row.minAtGreaterLevel(dLevel)
@@ -372,26 +325,13 @@ internal class TileCanvasState(
 
                     val minColAtLvl = tile.col.minAtGreaterLevel(dLevel)
                     val maxColAtLvl = tile.col.maxAtGreaterLevel(dLevel)
-                    return curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
+                    curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
                             minRowAtLvl <= curMaxRow
                 }
             }
         }
 
-        return when (visibleWindow) {
-            is VisibleWindow.BoundsConstrained -> checkIntersection(visibleWindow.tileMatrix, tile)
-            is VisibleWindow.InfiniteScrollX -> {
-                val mainIntersect = checkIntersection(visibleWindow.tileMatrix, tile)
-
-                mainIntersect || (visibleWindow.leftOverflow != null && checkIntersection(
-                    visibleWindow.leftOverflow.tileMatrix,
-                    tile
-                )) || (visibleWindow.rightOverflow != null && checkIntersection(
-                    visibleWindow.rightOverflow.tileMatrix,
-                    tile
-                ))
-            }
-        }
+        return checkIntersection(tileMatrix, tile)
     }
 
     private fun updateTileCollectedBySpace() {
@@ -546,21 +486,6 @@ internal class TileCanvasState(
 
     private fun Int.maxAtGreaterLevel(n: Int): Int {
         return (this + 1) * 2.0.pow(n).toInt() - 1
-    }
-
-    private fun setTilePhases(tile: Tile, visibleWindow: VisibleWindow.InfiniteScrollX, level: Int, timeMark: TimeSource.Monotonic.ValueTimeMark) {
-        if (tile.zoom != level) return
-
-        val left = visibleWindow.leftOverflow?.phase?.get(tile.col)
-        val right = visibleWindow.rightOverflow?.phase?.get(tile.col)
-        val inCenter = tile.col in (visibleWindow.tileMatrix[tile.row] ?: IntRange.EMPTY)
-        tile.phases = if (left != null || right != null) {
-             IntRange(
-                start = left ?: (if (inCenter) 0 else 1),
-                endInclusive = right ?: (if (inCenter) 0 else -1)
-            )
-        } else null
-        tile.timeMark = timeMark
     }
 
     private data class VisibleState(
