@@ -38,7 +38,7 @@ class NBTEditorFragment @JvmOverloads constructor(
             this.initial?.let {
                 this.viewModel.apply {
                     viewModelScope.launch {
-                        readFromFile(it, context)
+                        readFromFile(it.source, it)
                     }
                 }
             }

@@ -58,7 +58,7 @@ class NBTEditorActivity : ComponentActivity() {
                 if (intent.getBooleanExtra(EXTRA_EDITOR_SKIP_IMPORTER, false)) {
                     this.viewModel.apply {
                         viewModelScope.launch {
-                            readFromFile(importer, this@NBTEditorActivity)
+                            readFromFile(importer.source, importer)
                         }
                     }
                 } else {

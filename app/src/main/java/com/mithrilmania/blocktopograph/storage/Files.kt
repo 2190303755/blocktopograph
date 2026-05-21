@@ -43,9 +43,7 @@ interface File : NBTSource {
     }
 }
 
-class SAFFile(
-    val uri: Uri
-) : File {
+class SAFFile(val uri: Uri) : File {
     override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         context.contentResolver.openInputStream(this.uri)?.use(action)
 
@@ -56,11 +54,17 @@ class SAFFile(
     override fun resolveName(context: Context) = this.uri.queryName(context) ?: ""
 
     override fun toString() = "SAFFile[$uri]"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return this.uri == (other as SAFFile).uri
+    }
+
+    override fun hashCode(): Int = this.uri.hashCode()
 }
 
-class ShizukuFile(
-    val path: String
-) : File {
+class ShizukuFile(val path: String) : File {
     override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         Blocktopograph.fileService?.getFileDescriptor(this.path)?.use {
             FileInputStream(it.fileDescriptor).use(action)
@@ -75,6 +79,14 @@ class ShizukuFile(
     override fun resolveName(context: Context) = java.io.File(this.path).name ?: ""
 
     override fun toString() = "ShizukuFile[$path]"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return this.path == (other as ShizukuFile).path
+    }
+
+    override fun hashCode(): Int = this.path.hashCode()
 }
 
 class VirtualFile(
@@ -95,6 +107,20 @@ class VirtualFile(
     override fun resolveName(context: Context) = this.name
 
     override fun toString() = "VirtualFile[$db <${key.toHexString()}>]"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as VirtualFile
+        return this.db === other.db && this.name == other.name && this.key.contentEquals(other.key)
+    }
+
+    override fun hashCode(): Int {
+        var result = this.db.hashCode()
+        result = 31 * result + this.name.hashCode()
+        result = 31 * result + this.key.contentHashCode()
+        return result
+    }
 }
 
 fun DB.file(

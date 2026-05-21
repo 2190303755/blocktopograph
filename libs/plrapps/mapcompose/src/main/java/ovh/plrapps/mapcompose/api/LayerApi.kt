@@ -2,10 +2,16 @@
 
 package ovh.plrapps.mapcompose.api
 
-import ovh.plrapps.mapcompose.core.*
+import ovh.plrapps.mapcompose.core.AboveAll
+import ovh.plrapps.mapcompose.core.AboveLayer
+import ovh.plrapps.mapcompose.core.BelowAll
+import ovh.plrapps.mapcompose.core.BelowLayer
+import ovh.plrapps.mapcompose.core.LayerFactory
+import ovh.plrapps.mapcompose.core.LayerPlacement
+import ovh.plrapps.mapcompose.core.TileBitmapProvider
+import ovh.plrapps.mapcompose.core.makeLayerId
 import ovh.plrapps.mapcompose.ui.state.MapState
-import java.util.*
-
+import java.util.Collections
 
 /**
  * Add a layer. By default, the layer is added on top of the layer stack (see [AboveAll]).
@@ -18,18 +24,19 @@ import java.util.*
  * @return The id of the created layer
  */
 fun MapState.addLayer(
-    tileStreamProvider: TileStreamProvider,
+    tileBitmapProvider: TileBitmapProvider,
     initialOpacity: Float = 1f,
     placement: LayerPlacement = AboveAll
 ): String {
     val layers = tileCanvasState.layerFlow.value.toMutableList()
     val id = makeLayerId()
-    val layer = Layer(id, tileStreamProvider, initialOpacity)
+    val layer = LayerFactory(id, tileBitmapProvider, initialOpacity)
 
     val newLayers = when (placement) {
         AboveAll -> {
             layers + layer
         }
+
         is AboveLayer -> {
             val existingLayerIndex = layers.indexOfFirst { it.id == placement.layerId }
             if (existingLayerIndex != -1 && existingLayerIndex < layers.lastIndex) {
@@ -37,10 +44,12 @@ fun MapState.addLayer(
             }
             layers
         }
+
         BelowAll -> {
             layers.add(0, layer)
             layers
         }
+
         is BelowLayer -> {
             val existingLayerIndex = layers.indexOfFirst { it.id == placement.layerId }
             if (existingLayerIndex != -1) {
@@ -62,7 +71,7 @@ fun MapState.addLayer(
  */
 fun MapState.replaceLayer(
     layerId: String,
-    tileStreamProvider: TileStreamProvider,
+    tileBitmapProvider: TileBitmapProvider,
     initialOpacity: Float = 1f
 ): String? {
     val layers = tileCanvasState.layerFlow.value.toMutableList()
@@ -74,7 +83,7 @@ fun MapState.replaceLayer(
     val id = makeLayerId()
 
     return if (index != -1) {
-        layers[index] = Layer(id, tileStreamProvider, initialOpacity)
+        layers[index] = LayerFactory(id, tileBitmapProvider, initialOpacity)
         setLayers(layers)
         id
     } else null
@@ -199,13 +208,13 @@ fun MapState.buildLayers(builder: LayersBuilder.() -> Unit): List<String> {
 }
 
 interface LayersBuilder {
-    fun addLayer(tileStreamProvider: TileStreamProvider, initialOpacity: Float = 1f)
+    fun addLayer(tileBitmapProvider: TileBitmapProvider, initialOpacity: Float = 1f)
 }
 
 /**
  * Utility function to automatically refresh tiles after a change of layers.
  */
-private fun MapState.setLayers(layers: List<Layer>) {
+private fun MapState.setLayers(layers: List<LayerFactory>) {
     tileCanvasState.setLayers(layers)
     renderVisibleTilesThrottled()
 }

@@ -47,11 +47,11 @@ android {
 }
 
 dependencies {
-    val composeBoM = "2026.05.00"
-    val paging = "3.4.2"
+    val composeBoM = "2026.05.01"
+    val paging = "3.5.0"
     implementation(platform("androidx.compose:compose-bom:$composeBoM"))
-    implementation("androidx.activity:activity-compose:1.12.4")
-    implementation("androidx.compose.material3:material3:1.5.0-alpha19")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha20")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -60,11 +60,12 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     implementation(project(":tileview"))
     implementation(project(":libs:hivemc:leveldb"))
+    implementation(project(":libs:plrapps:mapcompose"))
     implementation("com.github.clans:fab:1.6.4")
-    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("androidx.annotation:annotation:1.10.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("com.github.bumptech.glide:glide:5.0.7")
     androidTestImplementation(platform("androidx.compose:compose-bom:$composeBoM"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
@@ -75,11 +76,11 @@ dependencies {
     implementation("com.hivemc.leveldb:leveldb-api:1.0.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
-    implementation("androidx.core:core-ktx:1.16.0")
-    implementation("androidx.activity:activity-ktx:1.12.4")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")
-    implementation("androidx.window:window:1.5.0")
+    implementation("androidx.window:window:1.5.1")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("sh.calvin.reorderable:reorderable:3.1.0")

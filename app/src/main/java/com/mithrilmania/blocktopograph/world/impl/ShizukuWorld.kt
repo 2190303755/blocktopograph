@@ -15,10 +15,9 @@ class ShizukuWorld(
     name: String?
 ) : World(name, ShizukuFile("$root/$FILE_LEVEL_DAT")) {
     override suspend fun open(context: Context): WorldStorage? {
-        if (this.storage != null) return this.storage
         try {
             val service = Blocktopograph.fileService ?: return null
-            this.storage = WorldStorage(
+            return WorldStorage(
                 service.prepareDB(
                     context.externalCacheDir?.absolutePath ?: return null,
                     this.root
@@ -28,7 +27,7 @@ class ShizukuWorld(
         } catch (e: IOException) {
             e.error("Failed to open level db from $root")
         }
-        return this.storage
+        return null
     }
 
     override suspend fun sync(context: Context) {

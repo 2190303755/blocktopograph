@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
-import android.content.Context
+import android.app.Application
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.MainThread
@@ -8,10 +8,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.RootLike
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.buildNode
+import com.mithrilmania.blocktopograph.editor.nbt.node.visit
+import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,7 +40,23 @@ value class ReplacementRequest(val node: NBTNode)
 @JvmInline
 value class RenamingRequest(val node: NBTNode)
 
-class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
+fun NBTNode.collectVisibleChildren(): List<NBTNode> {
+    val children = mutableListOf<NBTNode>()
+    this.children.forEach {
+        it.visit(children::add)
+    }
+    return children
+}
+
+fun NBTNode.countOfVisibleNodes(): Int {
+    var count = 0
+    this.visit { ++count }
+    return count
+}
+
+class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig, RootLike {
+    override val depth: Int get() = 0
+    var navigation: Pair<NBTSource, NBTImportConfig>? = null
     var modified: Boolean by mutableStateOf(false)
     var flattening: Boolean by mutableStateOf(false)
     var confirmation: ConfirmationRequest? by mutableStateOf(null)
@@ -50,6 +73,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     override var heterogeneous: Boolean by mutableStateOf(false)
     override var littleEndian: Boolean by mutableStateOf(true)
     override var storageVersion: UInt? by mutableStateOf(null)
+    val nodes = mutableStateListOf<NBTNode>()
     val undo: MutableList<Operation> = mutableStateListOf()
     val redo: MutableList<Operation> = mutableStateListOf()
 
@@ -88,14 +112,15 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     }
 
     @MainThread
-    suspend fun readFromFile(importer: NBTImportModel, context: Context) {
+    suspend fun readFromFile(source: NBTSource, importer: NBTImportConfig) {
+        val context = this.application
         val result = try {
             withContext(Dispatchers.IO) {
-                importer.source.readNBT(context, importer)
+                source.readNBT(context, importer)
             } ?: return
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to read", Toast.LENGTH_SHORT).show()
-            Log.e("NBTEditor", "Failed to read ${importer.source}", e)
+            Log.e("NBTEditor", "Failed to read $source", e)
             return
         }
         flattening = true
@@ -104,7 +129,7 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
         }
         nodes.clear()
         nodes.addAll(flattened)
-        source = importer.source
+        this.source = source
         flattening = false
         if (result.stringified) {
             stringify = true
@@ -122,7 +147,8 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
     }
 
     @MainThread
-    suspend fun saveToFile(source: NBTSource, context: Context) {
+    suspend fun saveToFile(source: NBTSource) {
+        val context = this.application
         val exporter = this.exporter
         val root = this.nodes.firstOrNull() ?: return
         val tag = withContext(Dispatchers.Default) {
@@ -147,6 +173,54 @@ class NBTEditorModel : NBTTreeModel(), NBTExportConfig {
         }
         this.source = source
         this.modified = false
+    }
+
+    fun expandNode(node: NBTNode) {
+        if (!node.expanded) {
+            val index = this.nodes.indexOf(node)
+            if (index < 0) return
+            this.nodes.addAll(index + 1, node.collectVisibleChildren())
+        }
+    }
+
+    fun collapsesNode(node: NBTNode) {
+        if (node.expanded) {
+            val index = this.nodes.indexOf(node)
+            if (index < 0 || index + 1 >= this.nodes.size) return
+            val offset = node.countOfVisibleNodes()
+            if (offset > 1) {
+                this.nodes.removeRange(index + 1, index + offset)
+            }
+        }
+    }
+
+    fun adjustChild(
+        parent: NBTNode,
+        action: () -> Unit
+    ) {
+        if (parent.expanded) {
+            val index = this.nodes.indexOf(parent)
+            if (index >= 0) {
+                val offset = parent.countOfVisibleNodes()
+                if (offset > 1) {
+                    this.nodes.removeRange(index + 1, index + offset)
+                }
+                action()
+                this.nodes.addAll(index + 1, parent.collectVisibleChildren())
+                return
+            }
+        }
+        action()
+    }
+
+    fun flattenTag(tag: BinaryTag, name: String = ""): List<NBTNode> {
+        val nodes = mutableListOf<NBTNode>()
+        val root = tag.buildNode(
+            this,
+            name
+        )
+        root.visit(nodes::add)
+        return nodes
     }
 
     fun buildExporter(repick: Boolean = false) {

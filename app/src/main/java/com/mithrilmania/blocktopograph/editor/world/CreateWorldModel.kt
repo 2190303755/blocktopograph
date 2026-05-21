@@ -15,12 +15,12 @@ class CreateWorldModel : ViewModel() {
     val snackbar: SnackbarHostState = SnackbarHostState()
     val name: TextFieldState = TextFieldState()
     var biome: Biome by mutableStateOf(Biome.PLAINS)
-    var selected: Layer? by mutableStateOf(null)
+    var selected: FlatLayer? by mutableStateOf(null)
     var picked: BlockTemplate? by mutableStateOf(null)
-    val layers: MutableList<Layer> = mutableStateListOf(
-        Layer(BlockTemplates.getOfType("minecraft:tallgrass")[0], 1),
-        Layer(BlockTemplates.getOfType("minecraft:grass")[0], 1),
-        Layer(BlockTemplates.getOfType("minecraft:dirt")[0], 29),
-        Layer(BlockTemplates.getOfType("minecraft:bedrock")[0], 1)
+    val layers: MutableList<FlatLayer> = mutableStateListOf(
+        FlatLayer(BlockTemplates.getOfType("minecraft:tallgrass")[0], 1),
+        FlatLayer(BlockTemplates.getOfType("minecraft:grass")[0], 1),
+        FlatLayer(BlockTemplates.getOfType("minecraft:dirt")[0], 29),
+        FlatLayer(BlockTemplates.getOfType("minecraft:bedrock")[0], 1)
     )
 }

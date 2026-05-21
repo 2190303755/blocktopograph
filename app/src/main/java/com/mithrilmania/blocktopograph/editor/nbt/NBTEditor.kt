@@ -83,6 +83,7 @@ import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
+import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
@@ -102,7 +103,7 @@ fun NBTEditorModel.saveAsync(context: Context) {
         this.buildExporter()
     } else {
         this.viewModelScope.launch {
-            saveToFile(source, context)
+            saveToFile(source)
         }
     }
 }
@@ -160,7 +161,7 @@ fun NBTEditor(
     val creator = rememberLauncherForActivityResult(FileCreator) callback@{
         val file = SAFFile(it ?: return@callback)
         editor.viewModelScope.launch {
-            editor.saveToFile(file, context)
+            editor.saveToFile(file)
             onConfirm(editor.confirmation)
         }
     }
@@ -185,7 +186,7 @@ fun NBTEditor(
                         editor.buildExporter()
                     } else {
                         editor.viewModelScope.launch {
-                            editor.saveToFile(source, context)
+                            editor.saveToFile(source)
                             onConfirm(editor.confirmation)
                         }
                     }
@@ -598,7 +599,7 @@ fun NBTEditor(
     }
     AnimatedBottomSheetDialog(
         targetState = editor.exporter,
-        skipPartiallyExpanded = true
+        enabledValues = HiddenOrExpanded
     ) { sheetState, exporter ->
         NBTExportDialog(
             exporter = exporter,
@@ -609,13 +610,13 @@ fun NBTEditor(
             }
         ) { file ->
             editor.viewModelScope.launch {
-                editor.saveToFile(file, context)
+                editor.saveToFile(file)
             }
         }
     }
     AnimatedBottomSheetDialog(
         targetState = editor.importer,
-        skipPartiallyExpanded = true
+        enabledValues = HiddenOrExpanded
     ) { sheetState, importer ->
         NBTImportDialog(
             importer = importer,
@@ -625,7 +626,7 @@ fun NBTEditor(
             }
         ) {
             editor.viewModelScope.launch {
-                editor.readFromFile(importer, context)
+                editor.readFromFile(importer.source, importer)
             }
         }
     }

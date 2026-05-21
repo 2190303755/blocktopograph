@@ -58,7 +58,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,13 +79,14 @@ import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
+import com.mithrilmania.blocktopograph.ui.component.PartiallyOrFullyExpanded
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBoxPadding
@@ -129,8 +130,9 @@ class WorldTestActivity : ComponentActivity() {
         this.setThemedContent {
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
             val scaffoldState = rememberBottomSheetScaffoldState(
-                rememberStandardBottomSheetState(
-                    initialValue = SheetValue.Expanded
+                rememberBottomSheetState(
+                    initialValue = SheetValue.Expanded,
+                    enabledValues = PartiallyOrFullyExpanded
                 )
             )
             val listState: LazyListState = rememberLazyListState()
@@ -408,13 +410,12 @@ class WorldTestActivity : ComponentActivity() {
             }
             LaunchedEffect(majorModel.editing) {
                 majorModel.editing?.let {
-                    this@WorldTestActivity.editor.readFromFile(
-                        NBTImportModel(
-                            it,
+                    editor.readFromFile(
+                        it,
+                        NBTImportConfigImpl(
                             NBTFormat.LITTLE_ENDIAN,
                             HeaderPresence.UNCERTAIN
-                        ),
-                        this@WorldTestActivity
+                        )
                     )
                 }
             }

@@ -22,7 +22,6 @@ class SAFWorld(
     SAFFile(config)
 ) {
     override suspend fun open(context: Context): WorldStorage? {
-        if (this.storage != null) return this.storage
         val cache = context.externalCacheDir?.path ?: return null
         var folder: File? = null
         try {
@@ -32,11 +31,11 @@ class SAFWorld(
                 folder = File(cache, UUID.randomUUID().toString())
             } while (folder.exists())
             source.copyFolderTo(resolver, folder)
-            this.storage = WorldStorage(folder.path, Options.newDefaultOptions())
+            return WorldStorage(folder.path, Options.newDefaultOptions())
         } catch (e: IOException) {
             e.error("Failed to open level db at ${folder?.path} from $root")
         }
-        return this.storage
+        return null
     }
 
     override suspend fun sync(context: Context) {

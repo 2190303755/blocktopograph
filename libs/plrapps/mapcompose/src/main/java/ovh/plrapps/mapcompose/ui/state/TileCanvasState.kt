@@ -4,11 +4,31 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.flow.*
-import ovh.plrapps.mapcompose.core.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ovh.plrapps.mapcompose.core.ColorFilterProvider
+import ovh.plrapps.mapcompose.core.LayerFactory
+import ovh.plrapps.mapcompose.core.SpaceKey
+import ovh.plrapps.mapcompose.core.Tile
+import ovh.plrapps.mapcompose.core.TileCollector
+import ovh.plrapps.mapcompose.core.TileMatrix
+import ovh.plrapps.mapcompose.core.TileSpec
+import ovh.plrapps.mapcompose.core.Viewport
+import ovh.plrapps.mapcompose.core.VisibleTiles
+import ovh.plrapps.mapcompose.core.VisibleTilesResolver
+import ovh.plrapps.mapcompose.core.VisibleWindow
+import ovh.plrapps.mapcompose.core.debounce
+import ovh.plrapps.mapcompose.core.spaceKey
+import ovh.plrapps.mapcompose.core.throttle
 import java.util.concurrent.Executors
 import kotlin.math.pow
 import kotlin.time.TimeSource
@@ -38,7 +58,7 @@ internal class TileCanvasState(
     internal var tilesToRender: List<Tile> by mutableStateOf(listOf())
     private var tilesCollectedBySpace: Map<SpaceKey, Tile> = mapOf()
 
-    private val _layerFlow = MutableStateFlow<List<Layer>>(listOf())
+    private val _layerFlow = MutableStateFlow<List<LayerFactory>>(listOf())
     internal val layerFlow = _layerFlow.asStateFlow()
 
     private val visibleTileLocationsChannel = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
@@ -134,7 +154,7 @@ internal class TileCanvasState(
         }
     }
 
-    fun setLayers(layers: List<Layer>) {
+    fun setLayers(layers: List<LayerFactory>) {
         _layerFlow.value = layers
     }
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,6 +94,7 @@ import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuField
+import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
 import com.mithrilmania.blocktopograph.ui.component.HorizontalPadding
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
@@ -182,11 +185,11 @@ class CreateWorldActivity : ComponentActivity() {
                                 data[KEY_LAST_PLAYED_TIME] = LongTag(
                                     System.currentTimeMillis() / 1000
                                 )
-                                var layers: MutableList<Layer> = viewModel.layers
+                                var layers: MutableList<FlatLayer> = viewModel.layers
                                 if (layers.size < 3) {
                                     layers = layers.toMutableList()
                                     repeat(3 - layers.size) {
-                                        layers.add(Layer(height = 0))
+                                        layers.add(FlatLayer(height = 0))
                                     }
                                 }
                                 layers.toJson(viewModel.biome)?.let {
@@ -249,7 +252,7 @@ class CreateWorldActivity : ComponentActivity() {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }
                     Row(
-                        modifier = spacing,
+                        modifier = spacing.fillMaxWidth(),
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -260,7 +263,7 @@ class CreateWorldActivity : ComponentActivity() {
                         FilledTonalButton(
                             onClick = {
                                 viewModel.snackbar.currentSnackbarData?.dismiss()
-                                viewModel.layers.add(0, Layer())
+                                viewModel.layers.add(0, FlatLayer())
                             },
                             shapes = ButtonDefaults.shapes(),
                             contentPadding = ButtonDefaults.contentPaddingFor(
@@ -302,10 +305,15 @@ class CreateWorldActivity : ComponentActivity() {
                                                 MaterialTheme.colorScheme.surface
                                             }
                                         )
-                                        Spacer(
-                                            Modifier
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Remove item",
+                                            modifier = Modifier
                                                 .fillMaxSize()
                                                 .background(color)
+                                                .wrapContentSize(Alignment.CenterEnd)
+                                                .padding(end = 16.dp),
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
                                         )
                                     },
                                     onDismiss = { direction ->
@@ -357,6 +365,7 @@ class CreateWorldActivity : ComponentActivity() {
                                             }
                                         },
                                         modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.surface)
                                             .clickable {
                                                 viewModel.selected = layer
                                                 viewModel.picked = null
@@ -374,7 +383,10 @@ class CreateWorldActivity : ComponentActivity() {
                             }
                         }
                     }
-                    AnimatedBottomSheetDialog(viewModel.selected) { sheetState, selected ->
+                    AnimatedBottomSheetDialog(
+                        targetState = viewModel.selected,
+                        enabledValues = HiddenOrExpanded
+                    ) { sheetState, selected ->
                         var picking by rememberSaveable { mutableStateOf(false) }
                         ModalBottomSheet(
                             onDismissRequest = { viewModel.selected = null },

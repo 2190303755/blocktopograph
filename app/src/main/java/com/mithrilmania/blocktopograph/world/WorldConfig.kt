@@ -55,4 +55,12 @@ class WorldConfig(
     override fun resolveName(context: Context): String {
         return this.source.resolveName(context)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return this.source == (other as WorldConfig).source
+    }
+
+    override fun hashCode(): Int = this.source.hashCode()
 }

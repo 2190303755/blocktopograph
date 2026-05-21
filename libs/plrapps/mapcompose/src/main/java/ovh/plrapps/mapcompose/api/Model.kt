@@ -1,7 +1,7 @@
 package ovh.plrapps.mapcompose.api
 
-import ovh.plrapps.mapcompose.core.Layer
-import ovh.plrapps.mapcompose.core.TileStreamProvider
+import ovh.plrapps.mapcompose.core.LayerFactory
+import ovh.plrapps.mapcompose.core.TileBitmapProvider
 import ovh.plrapps.mapcompose.core.makeLayerId
 import ovh.plrapps.mapcompose.ui.state.markers.model.ClusterClickBehavior as ClusterClickBehaviorInternal
 import ovh.plrapps.mapcompose.ui.state.markers.model.Custom as CustomInternal
@@ -66,10 +66,10 @@ sealed interface ClusterScaleThreshold {
 }
 
 internal class LayersBuilderInternal : LayersBuilder {
-    internal val layers = mutableListOf<Layer>()
-    override fun addLayer(tileStreamProvider: TileStreamProvider, initialOpacity: Float) {
+    internal val layers = mutableListOf<LayerFactory>()
+    override fun addLayer(tileBitmapProvider: TileBitmapProvider, initialOpacity: Float) {
         val id = makeLayerId()
-        val layer = Layer(id, tileStreamProvider, initialOpacity)
+        val layer = LayerFactory(id, tileBitmapProvider, initialOpacity)
         layers.add(layer)
     }
 }

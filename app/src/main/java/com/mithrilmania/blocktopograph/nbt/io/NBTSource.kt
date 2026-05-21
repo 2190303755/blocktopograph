@@ -8,6 +8,7 @@ interface NBTSource {
     fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta?
     fun saveNBT(context: Context, config: NBTExportConfig, name: String, tag: BinaryTag)
     fun resolveName(context: Context): String
+    override fun equals(other: Any?): Boolean
 }
 
 class LocalPlayerSource(
@@ -57,6 +58,14 @@ class LocalPlayerSource(
 
     override fun resolveName(context: Context): String =
         this.dat.resolveName(context) + " > $KEY_LOCAL_PLAYER"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return this.dat == (other as LocalPlayerSource).dat
+    }
+
+    override fun hashCode(): Int = this.dat.hashCode()
 
     companion object {
         const val KEY_LOCAL_PLAYER = "Player"

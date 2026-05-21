@@ -1,10 +1,10 @@
 package ovh.plrapps.mapcompose.core
 
-import java.util.*
+import java.util.UUID
 
-internal data class Layer(
+internal data class LayerFactory(
     val id: String,
-    val tileStreamProvider: TileStreamProvider,
+    val tileBitmapProvider: TileBitmapProvider,
     val alpha: Float = 1f
 )
 

@@ -74,9 +74,10 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
-import com.mithrilmania.blocktopograph.editor.world.WorldEditorActivity
+import com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorActivity
 import com.mithrilmania.blocktopograph.ui.WorldDetailDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
+import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
 import com.mithrilmania.blocktopograph.ui.component.HorizontalPadding
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
@@ -256,7 +257,7 @@ class WorldListActivity : ComponentActivity() {
                     }
                     AnimatedBottomSheetDialog(
                         targetState = viewModel.selected,
-                        skipPartiallyExpanded = true
+                        enabledValues = HiddenOrExpanded
                     ) { sheetState, selected ->
                         WorldDetailDialog(
                             detail = selected,

@@ -36,6 +36,12 @@
             android:parentActivityName=".world.WorldListActivity"
             android:theme="@style/World" />
         <activity
+            android:name=".editor.world.v2.WorldEditorActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/title_activity_world"
+            android:parentActivityName=".world.WorldListActivity"
+            android:theme="@style/ComposeTheme" />
+        <activity
             android:name=".editor.world.CreateWorldActivity"
             android:label="@string/create_world_title"
             android:theme="@style/ComposeTheme" />

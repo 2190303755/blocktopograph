@@ -2,8 +2,6 @@ package ovh.plrapps.mapcompose.core
 
 import android.graphics.Bitmap
 import android.graphics.Bitmap.Config
-import android.graphics.Bitmap.createBitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Build
@@ -19,12 +17,10 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
-import java.io.InputStream
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-import kotlin.math.pow
 
 
 /**
@@ -75,7 +71,7 @@ internal class TileCollector(
     suspend fun collectTiles(
         tileSpecs: ReceiveChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: List<Layer>,
+        layers: List<LayerFactory>,
     ) = coroutineScope {
         val tilesToDownload = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
         val tilesDownloadedFromWorker = Channel<TileSpec>(capacity = 1)
@@ -95,67 +91,14 @@ internal class TileCollector(
         tilesToDownload: ReceiveChannel<TileSpec>,
         tilesDownloaded: SendChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: List<Layer>,
+        layers: List<LayerFactory>,
     ) = launch(dispatcher) {
 
         val layerIds = layers.map { it.id }
         val canUseHardwareBitmaps = canUseHardwareBitmaps()
 
-        /**
-         * This config is for the software canvas, which is used in two situations:
-         * 1. There's more than one layer. We use a software canvas before copying the result either
-         *    on a hardware bitmap (if we can use hardware bitmaps), or to another software bitmap.
-         * 2. There's exactly one layer. Then, [Config.RGB_565] is suitable when we're optimizing
-         *    for low-end devices. This config won't be used if we can use hardware bitmaps.
-         */
-        val config = if (layers.size == 1 && optimizeForLowEndDevices) {
-            Config.RGB_565
-        } else {
-            Config.ARGB_8888
-        }
-
-        val bitmapLoadingOptionsForLayer = layerIds.associateWith {
-            BitmapFactory.Options().apply {
-                inPreferredConfig = config
-            }
-        }
-
-        /* If we can't use hardware bitmaps or we have two or more layers, we need to work with
-         * a software canvas */
-        val shouldUseSoftwareCanvas = layers.size > 1 || !canUseHardwareBitmaps
-
-        val bitmapForLayer = if (shouldUseSoftwareCanvas) {
-            layerIds.associateWith {
-                createBitmap(tileSize, tileSize, config)
-            }
-        } else emptyMap()
-
         val canvas = Canvas()
         val paint = Paint(Paint.FILTER_BITMAP_FLAG)
-
-        fun getBitmap(
-            subSamplingRatio: Int,
-            layer: Layer,
-            inputStream: InputStream,
-        ): BitmapForLayer {
-            val bitmapLoadingOptions =
-                bitmapLoadingOptionsForLayer[layer.id] ?: return BitmapForLayer(null, layer)
-
-            bitmapLoadingOptions.inSampleSize = subSamplingRatio
-            if (shouldUseSoftwareCanvas) {
-                bitmapLoadingOptions.inMutable = true
-                bitmapLoadingOptions.inBitmap = bitmapForLayer[layer.id]
-            } else {
-                bitmapLoadingOptions.inPreferredConfig = Config.HARDWARE
-            }
-
-            return inputStream.use {
-                val bitmap = runCatching {
-                    BitmapFactory.decodeStream(inputStream, null, bitmapLoadingOptions)
-                }.getOrNull()
-                BitmapForLayer(bitmap, layer)
-            }
-        }
 
         for (spec in tilesToDownload) {
             if (layers.isEmpty()) {
@@ -163,21 +106,16 @@ internal class TileCollector(
                 continue
             }
 
-            val subSamplingRatio = 2.0.pow(spec.subSample).toInt()
-            val bitmapForLayers = layers.mapIndexed { index, layer ->
+            val resolvedLayers = layers.map { layer ->
                 async {
-                    val i = layer.tileStreamProvider.getTileStream(spec.row, spec.col, spec.zoom)
-                    if (i != null) {
-                        getBitmap(
-                            subSamplingRatio = subSamplingRatio,
-                            layer = layer,
-                            inputStream = i
-                        )
-                    } else BitmapForLayer(null, layer)
+                    ResolvedLayer(
+                        layer.tileBitmapProvider.getTileBitmap(spec.row, spec.col, spec.zoom),
+                        layer.alpha
+                    )
                 }
             }.awaitAll()
 
-            val primaryLayerBitmap = bitmapForLayers.firstOrNull()?.bitmap ?: run {
+            val primaryLayerBitmap = resolvedLayers.firstOrNull()?.bitmap ?: run {
                 tilesDownloaded.send(spec)
                 /* When the decoding failed or if there's nothing to decode, then send back the Tile
                  * just as in normal processing, so that the actor which submits tiles specs to the
@@ -199,20 +137,16 @@ internal class TileCollector(
             if (layers.size > 1) {
                 canvas.setBitmap(primaryLayerBitmap)
 
-                for (result in bitmapForLayers.drop(1)) {
-                    paint.alpha = (255f * result.layer.alpha).toInt()
+                for (result in resolvedLayers.drop(1)) {
+                    paint.alpha = (255f * result.alpha).toInt()
                     if (result.bitmap == null) continue
                     canvas.drawBitmap(result.bitmap, 0f, 0f, paint)
                 }
             }
 
             val resultBitmap = if (canUseHardwareBitmaps) {
-                if (layers.size > 1) {
-                    primaryLayerBitmap.copy(Config.HARDWARE, false)
-                } else primaryLayerBitmap
-            } else {
-                primaryLayerBitmap.copy(config, false)
-            }
+                primaryLayerBitmap.copy(Config.HARDWARE, false)
+            } else primaryLayerBitmap
 
             val tile = Tile(
                 spec.zoom,
@@ -238,7 +172,7 @@ internal class TileCollector(
         val specsBeingProcessed = mutableListOf<TileSpec>()
 
         while (true) {
-            select<Unit> {
+            select {
                 tilesDownloadedFromWorker.onReceive {
                     specsBeingProcessed.remove(it)
                     isIdle = specsBeingProcessed.isEmpty()
@@ -298,4 +232,4 @@ internal class TileCollector(
     private val dispatcher = executor.asCoroutineDispatcher()
 }
 
-private data class BitmapForLayer(val bitmap: Bitmap?, val layer: Layer)
+private data class ResolvedLayer(val bitmap: Bitmap?, val alpha: Float)

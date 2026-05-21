@@ -17,9 +17,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +40,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+val HiddenOrExpanded = setOf(
+    SheetValue.Hidden,
+    SheetValue.Expanded
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+val PartiallyOrFullyExpanded = setOf(
+    SheetValue.PartiallyExpanded,
+    SheetValue.Expanded
+)
 
 val DialogPadding = PaddingValues(all = 24.dp)
 val IconPadding = PaddingValues(bottom = 16.dp)
@@ -186,11 +199,18 @@ fun PastableDialog(
 @Composable
 fun <T : Any> AnimatedBottomSheetDialog(
     targetState: T?,
-    skipPartiallyExpanded: Boolean = false,
+    enabledValues: Set<SheetValue> = setOf(
+        SheetValue.Hidden,
+        SheetValue.PartiallyExpanded,
+        SheetValue.Expanded
+    ),
     content: @Composable (SheetState, T) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = enabledValues
+    )
     var effectiveState by remember { mutableStateOf(targetState) }
     LaunchedEffect(targetState) {
         if (targetState === null) {

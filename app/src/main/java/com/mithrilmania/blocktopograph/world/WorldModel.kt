@@ -92,7 +92,7 @@ open class WorldModel(val world: World) : ViewModel(world) {
         this.viewModelScope.launch(Dispatchers.IO) {
             if (this@WorldModel.storage.await() == null) {
                 this@WorldModel.storage = async {
-                    this@WorldModel.world.open(app)
+                    this@WorldModel.world.openWithCache(app)
                 }
             }
         }

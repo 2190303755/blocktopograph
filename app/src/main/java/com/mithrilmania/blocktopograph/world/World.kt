@@ -1,7 +1,11 @@
 package com.mithrilmania.blocktopograph.world
 
 import android.content.Context
+import android.content.Intent
+import android.content.Intent.EXTRA_TITLE
+import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.LogUtil
+import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
@@ -13,8 +17,11 @@ import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.error
+import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3
 import com.mithrilmania.blocktopograph.util.toLDBKey
+import com.mithrilmania.blocktopograph.world.impl.SAFWorld
+import com.mithrilmania.blocktopograph.world.impl.ShizukuWorld
 import kotlinx.coroutines.Deferred
 import java.io.ByteArrayInputStream
 import java.io.Closeable
@@ -23,11 +30,18 @@ abstract class World(name: String?, config: File) : Closeable {
     val plainName = name?.replace(FORMATTER, "") ?: "My World"
     val config: WorldConfig = WorldConfig(config)
     var storage: WorldStorage? = null
-        protected set
+        private set
 
     /**
      * try open leveldb if [storage] is `null`
      */
+    suspend fun openWithCache(context: Context): WorldStorage? {
+        val storage = this.storage
+        if (storage !== null) return storage
+        this.storage = this.open(context)
+        return this.storage
+    }
+
     abstract suspend fun open(context: Context): WorldStorage?
 
     /**
@@ -43,6 +57,23 @@ abstract class World(name: String?, config: File) : Closeable {
         @JvmField
         val FORMATTER: Regex = Regex("§.")
     }
+}
+
+fun Intent.resolveWorld(context: Context): World? {
+    val uri = this.data
+    if (uri === null) {
+        return ShizukuWorld(
+            this.getStringExtra(EXTRA_PATH) ?: return null,
+            this.getStringExtra(EXTRA_TITLE)
+                ?: context.getString(R.string.world_default_name)
+        )
+    }
+    return SAFWorld(
+        uri,
+        uri.findChild(context.contentResolver, FILE_LEVEL_DAT) ?: return null,
+        this.getStringExtra(EXTRA_TITLE)
+            ?: context.getString(R.string.world_default_name)
+    )
 }
 
 suspend inline fun <T> Deferred<WorldStorage?>.await(
