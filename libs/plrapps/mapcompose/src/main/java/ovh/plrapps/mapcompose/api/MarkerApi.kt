@@ -23,10 +23,6 @@ import ovh.plrapps.mapcompose.ui.state.markers.DragInterceptor
 import ovh.plrapps.mapcompose.ui.state.markers.DragStartListener
 import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
 import ovh.plrapps.mapcompose.ui.state.markers.model.RenderingStrategy
-import ovh.plrapps.mapcompose.utils.AngleDegree
-import ovh.plrapps.mapcompose.utils.rotateX
-import ovh.plrapps.mapcompose.utils.rotateY
-import ovh.plrapps.mapcompose.utils.toRad
 import ovh.plrapps.mapcompose.utils.withRetry
 
 /**
@@ -430,9 +426,8 @@ fun MapState.onCalloutClick(cb: (id: String, x: Double, y: Double) -> Unit) {
  * @param deltaPx The displacement amount in pixels
  */
 fun MapState.moveMarkerBy(id: String, deltaPx: Offset) {
-    val angle = -zoomPanRotateState.rotation.toRad()
-    val dx = rotateX(deltaPx.x.toDouble(), deltaPx.y.toDouble(), angle)
-    val dy = rotateY(deltaPx.x.toDouble(), deltaPx.y.toDouble(), angle)
+    val dx = deltaPx.x.toDouble()
+    val dy = deltaPx.y.toDouble()
     markerState.moveMarkerBy(
         id,
         dx / (zoomPanRotateState.fullWidth * zoomPanRotateState.scale),
@@ -453,7 +448,7 @@ suspend fun MapState.centerOnMarker(
     with(zoomPanRotateState) {
         markerState.getMarker(id)?.also {
             awaitLayout()
-            val paddingOffset = visibleAreaPadding.getOffsetForScroll(rotation)
+            val paddingOffset = visibleAreaPadding.getOffsetForScroll()
             val destScrollX = it.x * fullWidth * scale - layoutSize.width / 2 - paddingOffset.x
             val destScrollY = it.y * fullHeight * scale - layoutSize.height / 2 - paddingOffset.y
 
@@ -480,50 +475,15 @@ suspend fun MapState.centerOnMarker(
         markerState.getMarker(id)?.also {
             awaitLayout()
             val destScaleCst = constrainScale(destScale)
-            val paddingOffset = visibleAreaPadding.getOffsetForScroll(rotation)
+            val paddingOffset = visibleAreaPadding.getOffsetForScroll()
             val destScrollX = it.x * fullWidth * destScaleCst - layoutSize.width / 2 - paddingOffset.x
             val destScrollY = it.y * fullHeight * destScaleCst - layoutSize.height / 2 - paddingOffset.y
 
             withRetry(maxAnimationsRetries, animationsRetriesInterval) {
-                smoothScrollScaleRotate(
+                smoothScrollScale(
                     destScrollX,
                     destScrollY,
                     destScale,
-                    animationSpec
-                )
-            }
-        }
-    }
-}
-
-/**
- * Center on a marker, animating the scroll position, the scale, and the rotation.
- *
- * @param id The id of the marker
- * @param destScale The destination scale
- * @param destAngle The destination angle in decimal degrees
- * @param animationSpec The [AnimationSpec]. Default is [SpringSpec] with low stiffness.
- */
-suspend fun MapState.centerOnMarker(
-    id: String,
-    destScale: Double,
-    destAngle: AngleDegree,
-    animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
-) {
-    with(zoomPanRotateState) {
-        markerState.getMarker(id)?.also {
-            awaitLayout()
-            val destScaleCst = constrainScale(destScale)
-            val paddingOffset = visibleAreaPadding.getOffsetForScroll(rotation)
-            val destScrollX = it.x * fullWidth * destScaleCst - layoutSize.width / 2 - paddingOffset.x
-            val destScrollY = it.y * fullHeight * destScaleCst - layoutSize.height / 2 - paddingOffset.y
-
-            withRetry(maxAnimationsRetries, animationsRetriesInterval) {
-                smoothScrollScaleRotate(
-                    destScrollX,
-                    destScrollY,
-                    destScale,
-                    destAngle,
                     animationSpec
                 )
             }

@@ -5,14 +5,6 @@ package ovh.plrapps.mapcompose.api
 import androidx.compose.ui.platform.ViewConfiguration
 import ovh.plrapps.mapcompose.ui.state.MapState
 
-
-/**
- * Enable rotation by user gestures.
- */
-fun MapState.enableRotation() {
-    zoomPanRotateState.isRotationEnabled = true
-}
-
 /**
  * Enable scrolling by user gestures. This is enabled by default.
  */
@@ -25,14 +17,6 @@ fun MapState.enableScrolling() {
  */
 fun MapState.enableZooming() {
     zoomPanRotateState.isZoomingEnabled = true
-}
-
-/**
- * Discard rotation gestures. The map can still be programmatically rotated using APIs such as
- * [rotateTo] or [rotation].
- */
-fun MapState.disableRotation() {
-    zoomPanRotateState.isRotationEnabled = false
 }
 
 /**
@@ -55,7 +39,6 @@ fun MapState.disableZooming() {
  */
 fun MapState.disableGestures() {
     with (zoomPanRotateState) {
-        isRotationEnabled = false
         isScrollingEnabled = false
         isZoomingEnabled = false
     }

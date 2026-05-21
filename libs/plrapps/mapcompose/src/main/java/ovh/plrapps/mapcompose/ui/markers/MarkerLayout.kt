@@ -16,9 +16,6 @@ import androidx.compose.ui.unit.IntOffset
 import ovh.plrapps.mapcompose.ui.layout.grid
 import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
 import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
-import ovh.plrapps.mapcompose.utils.rotateCenteredX
-import ovh.plrapps.mapcompose.utils.rotateCenteredY
-import ovh.plrapps.mapcompose.utils.toRad
 import kotlin.math.ceil
 
 @Composable
@@ -71,55 +68,19 @@ internal fun MarkerLayout(
                 val heightOffset =
                     placeable.measuredHeight * data.relativeOffset.y + with(density) { data.absoluteOffset.y.toPx() }
 
-                if (zoomPRState.rotation == 0f) {
-                    val x = data.x * zoomPRState.fullWidth * zoomPRState.scale + widthOffset
-                    val y = data.y * zoomPRState.fullHeight * zoomPRState.scale + heightOffset
-                    /* It's important to always update data even when visibility is set to false, so
-                     * click handling works on updated data (a non-visible marker might be clickable) */
-                    data.xPlacement = x
-                    data.yPlacement = y
+                val x = data.x * zoomPRState.fullWidth * zoomPRState.scale + widthOffset
+                val y = data.y * zoomPRState.fullHeight * zoomPRState.scale + heightOffset
+                /* It's important to always update data even when visibility is set to false, so
+                 * click handling works on updated data (a non-visible marker might be clickable) */
+                data.xPlacement = x
+                data.yPlacement = y
 
-                    if (data.isVisible) {
-                        placeable.place((x - origin.x).toInt(), (y - origin.y).toInt(), zIndex = data.zIndex)
-                    }
-                } else {
-                    with(zoomPRState) {
-                        val angleRad = rotation.toRad()
-                        val xFullPx = data.x * fullWidth * scale
-                        val yFullPx = data.y * fullHeight * scale
-                        val centerX = centroidX * fullWidth * scale
-                        val centerY = centroidY * fullHeight * scale
-
-                        val x = rotateCenteredX(
-                            xFullPx,
-                            yFullPx,
-                            centerX,
-                            centerY,
-                            angleRad
-                        ) + widthOffset
-
-                        val y = rotateCenteredY(
-                            xFullPx,
-                            yFullPx,
-                            centerX,
-                            centerY,
-                            angleRad
-                        ) + heightOffset
-
-                        /* It's important to always update data even when visibility is set to false,
-                         * so click handling works on updated data (a non-visible marker might be
-                         * clickable) */
-                        data.xPlacement = x
-                        data.yPlacement = y
-
-                        if (data.isVisible) {
-                            placeable.place(
-                                (x - origin.x).toInt(),
-                                (y - origin.y).toInt(),
-                                zIndex = data.zIndex
-                            )
-                        }
-                    }
+                if (data.isVisible) {
+                    placeable.place(
+                        (x - origin.x).toInt(),
+                        (y - origin.y).toInt(),
+                        zIndex = data.zIndex
+                    )
                 }
             }
         }

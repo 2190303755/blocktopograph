@@ -30,13 +30,6 @@ fun DefaultCanvas(
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(left = -mapState.scroll.x.toFloat(), top = -mapState.scroll.y.toFloat())
-            rotate(
-                degrees = mapState.rotation,
-                pivot = Offset(
-                    x = (mapState.centroidX * mapState.fullSize.width * mapState.scale).toFloat(),
-                    y = (mapState.centroidY.toFloat() * mapState.fullSize.height * mapState.scale).toFloat()
-                )
-            )
             scale(scale = mapState.scale.toFloat(), Offset.Zero)
         }, drawBlock)
     }

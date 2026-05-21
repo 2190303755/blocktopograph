@@ -14,7 +14,6 @@ import androidx.compose.animation.core.generateDecayAnimationSpec
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
@@ -25,23 +24,14 @@ import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.core.GestureConfiguration
 import ovh.plrapps.mapcompose.ui.layout.GestureListener
 import ovh.plrapps.mapcompose.ui.layout.LayoutSizeChangeListener
-import ovh.plrapps.mapcompose.utils.AngleDegree
-import ovh.plrapps.mapcompose.utils.AngleRad
 import ovh.plrapps.mapcompose.utils.lerp
-import ovh.plrapps.mapcompose.utils.modulo
-import ovh.plrapps.mapcompose.utils.rotateCenteredX
-import ovh.plrapps.mapcompose.utils.rotateCenteredY
-import ovh.plrapps.mapcompose.utils.toRad
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
 import kotlin.time.TimeSource
 
 internal class ZoomPanRotateState(
@@ -51,7 +41,6 @@ internal class ZoomPanRotateState(
     minScale: Double,
     maxScale: Double,
     scale: Double,
-    rotation: AngleDegree,
     gestureConfiguration: GestureConfiguration,
     val infiniteScrollX: Boolean,
 ) : GestureListener, LayoutSizeChangeListener {
@@ -72,15 +61,13 @@ internal class ZoomPanRotateState(
         }
     }
 
-    private val areGesturesEnabled by derivedStateOf { isRotationEnabled || isScrollingEnabled || isZoomingEnabled }
-    internal var isRotationEnabled by mutableStateOf(false)
+    private val areGesturesEnabled by derivedStateOf { isScrollingEnabled || isZoomingEnabled }
     internal var isScrollingEnabled by mutableStateOf(true)
     internal var isZoomingEnabled by mutableStateOf(true)
     internal var isFlingZoomEnabled by mutableStateOf(true)
 
-    /* Single source of truth. Don't mutate directly, use appropriate setScale(), setRotation(), etc. */
+    /* Single source of truth. Don't mutate directly, use appropriate setScale(), etc. */
     internal var scale by mutableDoubleStateOf(scale)
-    internal var rotation: AngleDegree by mutableFloatStateOf(rotation)
     internal var scrollX by mutableDoubleStateOf(0.0)
     internal var scrollY by mutableDoubleStateOf(0.0)
 
@@ -105,8 +92,6 @@ internal class ZoomPanRotateState(
             field = value
             setScale(scale)
         }
-
-    internal val shouldLoopScale get() = false
 
     internal var scrollOffsetRatio = Offset(0f, 0f)
         set(value) {
@@ -152,13 +137,6 @@ internal class ZoomPanRotateState(
         notifyStateChanged()
     }
 
-    @Suppress("unused")
-    fun setRotation(angle: AngleDegree, notify: Boolean = true) {
-        this.rotation = angle.modulo()
-        updateCentroid()
-        if (notify) notifyStateChanged()
-    }
-
     /**
      * Scales the layout with animated scale, without maintaining scroll position.
      *
@@ -177,24 +155,6 @@ internal class ZoomPanRotateState(
                 apiAnimatable.animateTo(1f, animationSpec) {
                     setScale(lerp(currScale, scale, value.toDouble()))
                 }
-            }
-        }
-    }
-
-    suspend fun smoothRotateTo(
-        angle: AngleDegree,
-        animationSpec: AnimationSpec<Float>
-    ): Boolean {
-        /* We don't have to stop scrolling animation while doing that */
-        return invokeAndCheckSuccess {
-            val currRotation = this@ZoomPanRotateState.rotation
-            var targetAngle = (angle % 360)
-            if (abs(targetAngle - currRotation) > 180) {
-                targetAngle += if (targetAngle > currRotation) -360 else 360
-            }
-            apiAnimatable.snapTo(0f)
-            apiAnimatable.animateTo(1f, animationSpec) {
-                setRotation(lerp(currRotation, targetAngle, value))
             }
         }
     }
@@ -232,7 +192,7 @@ internal class ZoomPanRotateState(
      * @param destScale The final scale value the layout should animate to.
      * @param animationSpec The [AnimationSpec] the animation should use.
      */
-    suspend fun smoothScrollScaleRotate(
+    suspend fun smoothScrollScale(
         destScrollX: Double,
         destScrollY: Double,
         destScale: Double,
@@ -251,46 +211,6 @@ internal class ZoomPanRotateState(
                     scrollX = lerp(startScrollX, destScrollX, value.toDouble()),
                     scrollY = lerp(startScrollY, destScrollY, value.toDouble())
                 )
-            }
-        }
-    }
-
-    /**
-     * Animates the scroll, the scale, and the rotation together with the supplied destination values.
-     *
-     * @param destScrollX Horizontal scroll of the destination point.
-     * @param destScrollY Vertical scroll of the destination point.
-     * @param destScale The final scale value the layout should animate to.
-     * @param destAngle The final angle in decimal degrees the layout should animate to.
-     * @param animationSpec The [AnimationSpec] the animation should use.
-     */
-    suspend fun smoothScrollScaleRotate(
-        destScrollX: Double,
-        destScrollY: Double,
-        destScale: Double,
-        destAngle: AngleDegree,
-        animationSpec: AnimationSpec<Float>
-    ): Boolean {
-        val startScrollX = this.scrollX
-        val startScrollY = this.scrollY
-        val startScale = this.scale
-
-        val currRotation = this@ZoomPanRotateState.rotation
-        var targetAngle = (destAngle % 360)
-        if (abs(targetAngle - currRotation) > 180) {
-            targetAngle += if (targetAngle > currRotation) -360 else 360
-        }
-
-        return invokeAndCheckSuccess {
-            userAnimatable.stop()
-            apiAnimatable.snapTo(0f)
-            apiAnimatable.animateTo(1f, animationSpec) {
-                setScale(lerp(startScale, destScale, value.toDouble()))
-                setScroll(
-                    scrollX = lerp(startScrollX, destScrollX, value.toDouble()),
-                    scrollY = lerp(startScrollY, destScrollY, value.toDouble())
-                )
-                setRotation(lerp(currRotation, targetAngle, value))
             }
         }
     }
@@ -318,7 +238,7 @@ internal class ZoomPanRotateState(
         val destScrollX = getScrollAtOffsetAndScale(startScrollX, focusX, destScaleCst / startScale)
         val destScrollY = getScrollAtOffsetAndScale(startScrollY, focusY, destScaleCst / startScale)
 
-        return smoothScrollScaleRotate(destScrollX, destScrollY, destScale, animationSpec)
+        return smoothScrollScale(destScrollX, destScrollY, destScale, animationSpec)
     }
 
     /**
@@ -352,11 +272,9 @@ internal class ZoomPanRotateState(
 
         /* Pinch and zoom magic */
         val effectiveScaleRatio = scale / formerScale
-        val angleRad = -rotation.toRad()
-        val centroidRotated = rotateFocalPoint(centroid, angleRad)
         setScroll(
-            scrollX = getScrollAtOffsetAndScale(scrollX, centroidRotated.x, effectiveScaleRatio),
-            scrollY = getScrollAtOffsetAndScale(scrollY, centroidRotated.y, effectiveScaleRatio)
+            scrollX = getScrollAtOffsetAndScale(scrollX, centroid.x, effectiveScaleRatio),
+            scrollY = getScrollAtOffsetAndScale(scrollY, centroid.y, effectiveScaleRatio)
         )
     }
 
@@ -364,61 +282,21 @@ internal class ZoomPanRotateState(
         return (scroll + offSet) * scaleRatio - offSet
     }
 
-    /**
-     * Rotates a focal point around the center of the layout.
-     */
-    private fun rotateFocalPoint(point: Offset, angleRad: AngleRad): Offset {
-        val x = if (angleRad == 0f) point.x else {
-            layoutSize.height / 2 * sin(angleRad) + layoutSize.width / 2 * (1 - cos(angleRad)) +
-                    point.x * cos(angleRad) - point.y * sin(angleRad)
-        }
-
-        val y = if (angleRad == 0f) point.y else {
-            layoutSize.height / 2 * (1 - cos(angleRad)) - layoutSize.width / 2 * sin(angleRad) +
-                    point.x * sin(angleRad) + point.y * cos(angleRad)
-        }
-        return Offset(x, y)
-    }
-
-    override fun onRotationDelta(rotationDelta: Float) {
-        if (!isRotationEnabled) return
-
-        setRotation(rotation + rotationDelta)
-    }
-
     override fun onScrollDelta(scrollDelta: Offset) {
         if (!isScrollingEnabled) return
 
-        var scrollX = scrollX
-        var scrollY = scrollY
-
-        val rotRad = -rotation.toRad()
-        scrollX -= if (rotRad == 0f) scrollDelta.x else {
-            scrollDelta.x * cos(rotRad) - scrollDelta.y * sin(rotRad)
-        }
-        scrollY -= if (rotRad == 0f) scrollDelta.y else {
-            scrollDelta.x * sin(rotRad) + scrollDelta.y * cos(rotRad)
-        }
-        setScroll(scrollX, scrollY)
+        setScroll(scrollX - scrollDelta.x, scrollY - scrollDelta.y)
     }
 
     override fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity) {
         if (!isScrollingEnabled) return
-
-        val rotRad = -rotation.toRad()
-        val velocityX = if (rotRad == 0f) velocity.x else {
-            velocity.x * cos(rotRad) - velocity.y * sin(rotRad)
-        }
-        val velocityY = if (rotRad == 0f) velocity.y else {
-            velocity.x * sin(rotRad) + velocity.y * cos(rotRad)
-        }
 
         scope?.launch {
             userAnimatable.snapTo(Offset.Zero)
             val initialScrollX = scrollX
             val initialScrollY = scrollY
             userAnimatable.animateDecay(
-                initialVelocity = -Offset(velocityX, velocityY),
+                initialVelocity = -Offset(velocity.x, velocity.y),
                 animationSpec = flingSpec,
             ) {
                 setScroll(
@@ -476,37 +354,13 @@ internal class ZoomPanRotateState(
     }
 
     private fun <T> offsetToRelative(focalPt: Offset, block: (Double, Double) -> T): T {
-        val angleRad = -rotation.toRad()
-        val focalPtRotated = rotateFocalPoint(focalPt, angleRad)
-        val x = (scrollX + focalPtRotated.x) / (scale * fullWidth)
-        val y = (scrollY + focalPtRotated.y) / (scale * fullHeight)
+        val x = (scrollX + focalPt.x) / (scale * fullWidth)
+        val y = (scrollY + focalPt.y) / (scale * fullHeight)
         return block(x, y)
     }
 
     private fun <T> relativeToMarkerLayoutCoords(x: Double, y: Double, block: (Int, Int) -> T): T {
-        val xFullPx = x * fullWidth * scale
-        val yFullPx = y * fullHeight * scale
-        val centerX = centroidX * fullWidth * scale
-        val centerY = centroidY * fullHeight * scale
-
-        val angleRad = rotation.toRad()
-        val xPx = (rotateCenteredX(
-            xFullPx,
-            yFullPx,
-            centerX,
-            centerY,
-            angleRad
-        )).toInt()
-
-        val yPx = (rotateCenteredY(
-            xFullPx,
-            yFullPx,
-            centerX,
-            centerY,
-            angleRad
-        )).toInt()
-
-        return block(xPx, yPx)
+        return block((x * fullWidth * scale).toInt(), (y * fullWidth * scale).toInt())
     }
 
     override fun onDoubleTap(focalPt: Offset) {
@@ -514,13 +368,10 @@ internal class ZoomPanRotateState(
 
         val destScale = 2.0.pow(floor(ln((scale * 2)) / ln(2.0)))
 
-        val angleRad = -rotation.toRad()
-        val focalPtRotated = rotateFocalPoint(focalPt, angleRad)
-
         scope?.launch {
             smoothScaleWithFocalPoint(
-                focalPtRotated.x,
-                focalPtRotated.y,
+                focalPt.x,
+                focalPt.y,
                 destScale,
                 doubleTapSpec
             )
@@ -532,13 +383,10 @@ internal class ZoomPanRotateState(
 
         val destScale = 2.0.pow(floor(ln((scale / 2)) / ln(2.0)))
 
-        val angleRad = -rotation.toRad()
-        val focalPtRotated = rotateFocalPoint(focalPt, angleRad)
-
         scope?.launch {
             smoothScaleWithFocalPoint(
-                focalPtRotated.x,
-                focalPtRotated.y,
+                focalPt.x,
+                focalPt.y,
                 destScale,
                 doubleTapSpec
             )
@@ -589,10 +437,7 @@ internal class ZoomPanRotateState(
     }
 
     private fun constrainScrollX(scrollX: Double): Double {
-        val angle = rotation.toRad()
-
-        val layoutDimension =
-            polarRadius(layoutSize.width.toFloat(), layoutSize.height.toFloat(), angle)
+        val layoutDimension = layoutSize.width.toFloat()
         val bias = (layoutDimension - layoutSize.width) / 2
 
         return if (infiniteScrollX) {
@@ -665,10 +510,7 @@ internal class ZoomPanRotateState(
     }
 
     private fun constrainScrollY(scrollY: Double): Double {
-        val angle = rotation.toRad()
-
-        val layoutDimension =
-            polarRadius(layoutSize.height.toFloat(), layoutSize.width.toFloat(), angle)
+        val layoutDimension = layoutSize.height.toFloat()
         val bias = (layoutDimension - layoutSize.height) / 2
 
         return if (fullHeight * scale < layoutDimension) {
@@ -699,10 +541,6 @@ internal class ZoomPanRotateState(
         if (layoutSize != IntSize.Zero) {
             stateChangeListener.onStateChanged()
         }
-    }
-
-    private fun polarRadius(a: Float, b: Float, angle: AngleRad): Float {
-        return a * b / sqrt((a * sin(angle)).pow(2) + (b * cos(angle)).pow(2))
     }
 
     private val rolloverThreshold = 200.0

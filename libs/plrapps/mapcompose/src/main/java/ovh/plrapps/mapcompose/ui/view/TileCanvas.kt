@@ -1,8 +1,8 @@
 package ovh.plrapps.mapcompose.ui.view
 
+import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -57,13 +57,6 @@ internal fun TileCanvas(
 
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
-            rotate(
-                degrees = zoomPRState.rotation,
-                pivot = Offset(
-                    x = zoomPRState.pivotX.toFloat(),
-                    y = zoomPRState.pivotY.toFloat()
-                )
-            )
             translate(
                 left = (-zoomPRState.scrollX + x0 * zoomPRState.scale).toFloat(),
                 top = (-zoomPRState.scrollY + y0 * zoomPRState.scale).toFloat()

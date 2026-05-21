@@ -13,8 +13,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.CoroutineScope
-import ovh.plrapps.mapcompose.ui.gestures.detectTransformGestures
 import ovh.plrapps.mapcompose.ui.gestures.detectTapGestures
+import ovh.plrapps.mapcompose.ui.gestures.detectTransformGestures
 
 @Composable
 internal fun ZoomPanRotate(
@@ -32,8 +32,7 @@ internal fun ZoomPanRotate(
             .pointerInput(gestureListener.isListeningForGestures()) {
                 if (!gestureListener.isListeningForGestures()) return@pointerInput
                 detectTransformGestures(
-                    onGesture = { centroid, pan, gestureZoom, gestureRotate ->
-                        gestureListener.onRotationDelta(gestureRotate)
+                    onGesture = { centroid, pan, gestureZoom ->
                         gestureListener.onScaleRatio(gestureZoom.toDouble(), centroid)
                         gestureListener.onScrollDelta(pan)
                     },
@@ -86,7 +85,6 @@ internal fun ZoomPanRotate(
 
 internal interface GestureListener {
     fun onScaleRatio(scaleRatio: Double, centroid: Offset)
-    fun onRotationDelta(rotationDelta: Float)
     fun onScrollDelta(scrollDelta: Offset)
     fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity)
     fun onFlingZoom(velocity: Float, centroid: Offset)

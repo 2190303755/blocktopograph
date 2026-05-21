@@ -1,8 +1,12 @@
 package ovh.plrapps.mapcompose.core
 
-import ovh.plrapps.mapcompose.utils.rotateX
-import ovh.plrapps.mapcompose.utils.rotateY
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 import kotlin.time.TimeSource
 
 /**
@@ -158,67 +162,7 @@ internal class VisibleTilesResolver(
             return VisibleTiles(level, visibleWindow, getSubSample(scale))
         }
 
-        return if (viewport.angleRad == 0f) {
-            makeVisibleTiles(viewport.left, viewport.top, viewport.right, viewport.bottom)
-        } else {
-            val xTopLeft = viewport.left
-            val yTopLeft = viewport.top
-
-            val xTopRight = viewport.right
-            val yTopRight = viewport.top
-
-            val xBotLeft = viewport.left
-            val yBotLeft = viewport.bottom
-
-            val xBotRight = viewport.right
-            val yBotRight = viewport.bottom
-
-            val xCenter = (viewport.right + viewport.left).toDouble() / 2
-            val yCenter = (viewport.bottom + viewport.top).toDouble() / 2
-
-            val xTopLeftRot =
-                rotateX(xTopLeft - xCenter, yTopLeft - yCenter, viewport.angleRad) + xCenter
-            val yTopLeftRot =
-                rotateY(xTopLeft - xCenter, yTopLeft - yCenter, viewport.angleRad) + yCenter
-            var xLeftMost = xTopLeftRot
-            var yTopMost = yTopLeftRot
-            var xRightMost = xTopLeftRot
-            var yBotMost = yTopLeftRot
-
-            val xTopRightRot =
-                rotateX(xTopRight - xCenter, yTopRight - yCenter, viewport.angleRad) + xCenter
-            val yTopRightRot =
-                rotateY(xTopRight - xCenter, yTopRight - yCenter, viewport.angleRad) + yCenter
-            xLeftMost = xLeftMost.coerceAtMost(xTopRightRot)
-            yTopMost = yTopMost.coerceAtMost(yTopRightRot)
-            xRightMost = xRightMost.coerceAtLeast(xTopRightRot)
-            yBotMost = yBotMost.coerceAtLeast(yTopRightRot)
-
-            val xBotLeftRot =
-                rotateX(xBotLeft - xCenter, yBotLeft - yCenter, viewport.angleRad) + xCenter
-            val yBotLeftRot =
-                rotateY(xBotLeft - xCenter, yBotLeft - yCenter, viewport.angleRad) + yCenter
-            xLeftMost = xLeftMost.coerceAtMost(xBotLeftRot)
-            yTopMost = yTopMost.coerceAtMost(yBotLeftRot)
-            xRightMost = xRightMost.coerceAtLeast(xBotLeftRot)
-            yBotMost = yBotMost.coerceAtLeast(yBotLeftRot)
-
-            val xBotRightRot =
-                rotateX(xBotRight - xCenter, yBotRight - yCenter, viewport.angleRad) + xCenter
-            val yBotRightRot =
-                rotateY(xBotRight - xCenter, yBotRight - yCenter, viewport.angleRad) + yCenter
-            xLeftMost = xLeftMost.coerceAtMost(xBotRightRot)
-            yTopMost = yTopMost.coerceAtMost(yBotRightRot)
-            xRightMost = xRightMost.coerceAtLeast(xBotRightRot)
-            yBotMost = yBotMost.coerceAtLeast(yBotRightRot)
-
-            makeVisibleTiles(
-                xLeftMost.toInt(),
-                yTopMost.toInt(),
-                xRightMost.toInt(),
-                yBotMost.toInt()
-            )
-        }
+        return makeVisibleTiles(viewport.left, viewport.top, viewport.right, viewport.bottom)
     }
 
     // internal for test purposes

@@ -179,13 +179,6 @@ internal fun PathCanvas(
     ) {
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
-            rotate(
-                degrees = zoomPRState.rotation,
-                pivot = Offset(
-                    x = (zoomPRState.pivotX).toFloat(),
-                    y = (zoomPRState.pivotY).toFloat()
-                )
-            )
             translate(
                 left = (-zoomPRState.scrollX + path.origin.x * zoomPRState.scale).toFloat(),
                 top = (-zoomPRState.scrollY + path.origin.y * zoomPRState.scale).toFloat()

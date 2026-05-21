@@ -17,8 +17,6 @@ import ovh.plrapps.mapcompose.core.throttle
 import ovh.plrapps.mapcompose.ui.gestures.model.HitType
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
-import ovh.plrapps.mapcompose.utils.AngleDegree
-import ovh.plrapps.mapcompose.utils.toRad
 
 /**
  * The state of the map. All public APIs are extensions functions or extension properties of this
@@ -51,7 +49,6 @@ class MapState(
         minScale = initialValues.minScale,
         maxScale = initialValues.maxScale,
         scale = initialValues.scale,
-        rotation = initialValues.rotation,
         gestureConfiguration = initialValues.gestureConfiguration,
         infiniteScrollX = initialValues.infiniteScrollX
     )
@@ -169,7 +166,6 @@ class MapState(
             top = zoomPanRotateState.scrollY.toInt() - padding
             right = left + zoomPanRotateState.layoutSize.width + padding * 2
             bottom = top + zoomPanRotateState.layoutSize.height + padding * 2
-            angleRad = zoomPanRotateState.rotation.toRad()
         }
     }
 
@@ -212,7 +208,6 @@ class InitialValues internal constructor() {
     internal var scale: Double = 1.0
     internal var minScale: Double = Double.MIN_VALUE
     internal var maxScale: Double = 2.0
-    internal var rotation: AngleDegree = 0f
     internal var magnifyingFactor = 0
     internal var infiniteScrollX = false
     internal var highFidelityColors: Boolean = true
@@ -254,13 +249,6 @@ class InitialValues internal constructor() {
      */
     fun maxScale(maxScale: Double) = apply {
         this.maxScale = maxScale
-    }
-
-    /**
-     * Set the initial rotation. Defaults to 0° (no rotation).
-     */
-    fun rotation(rotation: AngleDegree) = apply {
-        this.rotation = rotation
     }
 
     /**

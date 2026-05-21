@@ -1,6 +1,12 @@
 package ovh.plrapps.mapcompose.ui.gestures
 
-import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateCentroidSize
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateRotation
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerInputScope
@@ -22,7 +28,7 @@ import kotlin.math.pow
  */
 internal suspend fun PointerInputScope.detectTransformGestures(
     panZoomLock: Boolean = false,
-    onGesture: (centroid: Offset, pan: Offset, zoom: Float, rotation: Float) -> Unit,
+    onGesture: (centroid: Offset, pan: Offset, zoom: Float) -> Unit,
     onTouchDown: () -> Unit,
     onTwoFingersTap: (centroid: Offset) -> Unit,
     onFling: (velocity: Velocity) -> Unit,
@@ -98,7 +104,7 @@ internal suspend fun PointerInputScope.detectTransformGestures(
                         zoomChange != 1f ||
                         panChange != Offset.Zero
                     ) {
-                        onGesture(centroid, panChange, zoomChange, effectiveRotation)
+                        onGesture(centroid, panChange, zoomChange)
                     }
                     event.changes.fastForEach {
                         if (it.positionChanged()) {

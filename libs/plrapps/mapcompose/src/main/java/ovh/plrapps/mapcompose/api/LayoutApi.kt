@@ -24,15 +24,9 @@ import kotlinx.coroutines.sync.withLock
 import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.VisibleAreaPadding
 import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
-import ovh.plrapps.mapcompose.utils.AngleDegree
 import ovh.plrapps.mapcompose.utils.Point
 import ovh.plrapps.mapcompose.utils.dpToPx
-import ovh.plrapps.mapcompose.utils.rotate
-import ovh.plrapps.mapcompose.utils.rotateCenteredX
-import ovh.plrapps.mapcompose.utils.rotateCenteredY
-import ovh.plrapps.mapcompose.utils.scaleAxis
 import ovh.plrapps.mapcompose.utils.throttle
-import ovh.plrapps.mapcompose.utils.toRad
 import ovh.plrapps.mapcompose.utils.withRetry
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -44,16 +38,6 @@ var MapState.scale: Double
     get() = zoomPanRotateState.scale
     set(value) {
         zoomPanRotateState.setScale(value)
-    }
-
-/**
- * The [rotation] property is the angle (in decimal degrees) of rotation,
- * using the center of the view as the pivot point.
- */
-var MapState.rotation: AngleDegree
-    get() = zoomPanRotateState.rotation
-    set(value) {
-        zoomPanRotateState.setRotation(value)
     }
 
 /**
@@ -80,13 +64,13 @@ suspend fun MapState.setScroll(scrollX: Double, scrollY: Double) {
 }
 
 fun MapState.referentialSnapshotFlow(): Flow<ReferentialSnapshot> = snapshotFlow {
-    ReferentialSnapshot(zoomPanRotateState.scale, scroll, zoomPanRotateState.rotation)
+    ReferentialSnapshot(zoomPanRotateState.scale, scroll)
 }
 
-data class ReferentialSnapshot(val scale: Double, val scroll: Scroll, val rotation: AngleDegree)
+data class ReferentialSnapshot(val scale: Double, val scroll: Scroll)
 
 /**
- * Get notified whenever the state ([scale] and/or [scroll] and/or [rotation]) changes.
+ * Get notified whenever the state ([scale] and/or [scroll]) changes.
  *
  * @param cb An extension function with [MapState] as receiver type
  */
@@ -197,18 +181,6 @@ fun MapState.setScrollOffsetRatio(xRatio: Float, yRatio: Float) {
 }
 
 /**
- * Rotates to the specified [angle] in decimal degrees, animating the rotation.
- */
-suspend fun MapState.rotateTo(
-    angle: AngleDegree,
-    animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
-) {
-    withRetry(maxAnimationsRetries, animationsRetriesInterval) {
-        zoomPanRotateState.smoothRotateTo(angle, animationSpec)
-    }
-}
-
-/**
  * Get the layout dimensions in pixels.
  * Note that layout dimension may change during the lifetime of the application. The returned value
  * is a read-only snapshot.
@@ -252,7 +224,7 @@ suspend fun MapState.snapScrollTo(
         val offsetX = screenOffset.x * layoutSize.width
         val offsetY = screenOffset.y * layoutSize.height
 
-        val paddingOffset = visibleAreaPadding.getOffsetForScroll(rotation)
+        val paddingOffset = visibleAreaPadding.getOffsetForScroll()
         val destScrollX = x * fullWidth * scale + offsetX - paddingOffset.x
         val destScrollY = y * fullHeight * scale + offsetY - paddingOffset.y
 
@@ -286,12 +258,12 @@ suspend fun MapState.scrollTo(
 
         val effectiveDstScale = constrainScale(destScale)
 
-        val paddingOffset = visibleAreaPadding.getOffsetForScroll(rotation)
+        val paddingOffset = visibleAreaPadding.getOffsetForScroll()
         val destScrollX = x * fullWidth * effectiveDstScale + offsetX - paddingOffset.x
         val destScrollY = y * fullHeight * effectiveDstScale + offsetY - paddingOffset.y
 
         withRetry(maxAnimationsRetries, animationsRetriesInterval) {
-            smoothScrollScaleRotate(
+            smoothScrollScale(
                 destScrollX,
                 destScrollY,
                 effectiveDstScale,
@@ -354,17 +326,11 @@ private fun ZoomPanRotateState.calculateScrollTo(
     val centerX = (area.xLeft + area.xRight) / 2
     val centerY = (area.yTop + area.yBottom) / 2
 
-    val xAxisScale = fullHeight / fullWidth.toDouble()
-    val normalizedArea = area.scaleAxis(1 / xAxisScale)
-    val rotatedNormalizedArea =
-        normalizedArea.rotate(Point(centerX / xAxisScale, centerY), -rotation.toRad())
-    val rotatedArea = rotatedNormalizedArea.scaleAxis(xAxisScale)
-
-    val areaWidth = fullWidth * (rotatedArea.xRight - rotatedArea.xLeft)
+    val areaWidth = fullWidth * (area.xRight - area.xLeft)
     val availableViewportWidth = (layoutSize.width - visibleAreaPadding.left - visibleAreaPadding.right) * (1 - padding.x)
     val horizontalScale = availableViewportWidth / areaWidth
 
-    val areaHeight = fullHeight * (rotatedArea.yBottom - rotatedArea.yTop)
+    val areaHeight = fullHeight * (area.yBottom - area.yTop)
     val availableViewportHeight = (layoutSize.height - visibleAreaPadding.top - visibleAreaPadding.bottom) * (1 - padding.y)
     val verticalScale = availableViewportHeight / areaHeight
 
@@ -477,50 +443,22 @@ suspend fun MapState.visibleArea(padding: IntOffset = IntOffset.Zero): VisibleAr
         val xRight = centroidX + (layoutSize.width + padding.x * 2) / (2 * fullWidth * scale)
         val yBottom = centroidY + (layoutSize.height + padding.y * 2) / (2 * fullHeight * scale)
 
-        val xAxisScale = fullHeight / fullWidth.toDouble()
-        val scaledCenterX = centroidX / xAxisScale
-
-        val p1x = rotateCenteredX(
-            xLeft / xAxisScale, yTop, scaledCenterX, centroidY, -rotation.toRad()
-        ) * xAxisScale
-        val p1y = rotateCenteredY(
-            xLeft / xAxisScale, yTop, scaledCenterX, centroidY, -rotation.toRad()
-        )
-
-        val p2x = rotateCenteredX(
-            xRight / xAxisScale, yTop, scaledCenterX, centroidY, -rotation.toRad()
-        ) * xAxisScale
-        val p2y = rotateCenteredY(
-            xRight / xAxisScale, yTop, scaledCenterX, centroidY, -rotation.toRad()
-        )
-
-        val p3x = rotateCenteredX(
-            xRight / xAxisScale, yBottom, scaledCenterX, centroidY, -rotation.toRad()
-        ) * xAxisScale
-        val p3y = rotateCenteredY(
-            xRight / xAxisScale, yBottom, scaledCenterX, centroidY, -rotation.toRad()
-        )
-
-        val p4x = rotateCenteredX(
-            xLeft / xAxisScale, yBottom, scaledCenterX, centroidY, -rotation.toRad()
-        ) * xAxisScale
-        val p4y = rotateCenteredY(
-            xLeft / xAxisScale, yBottom, scaledCenterX, centroidY, -rotation.toRad()
-        )
-
         visibleAreaMutex.withLock {
             val area = visibleArea
             if (area == null) {
-                visibleArea = VisibleArea(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y)
+                visibleArea = VisibleArea(
+                    xLeft, yTop, xRight, yTop, xRight, yBottom, xLeft,
+                    yBottom
+                )
             } else {
-                area._p1x = p1x
-                area._p1y = p1y
-                area._p2x = p2x
-                area._p2y = p2y
-                area._p3x = p3x
-                area._p3y = p3y
-                area._p4x = p4x
-                area._p4y = p4y
+                area._p1x = xLeft
+                area._p1y = yTop
+                area._p2x = xRight
+                area._p2y = yTop
+                area._p3x = xRight
+                area._p3y = yBottom
+                area._p4x = xLeft
+                area._p4y = yBottom
             }
             visibleArea as VisibleArea
         }
@@ -590,7 +528,7 @@ internal var visibleArea: VisibleArea? = null
  */
 fun MapState.viewportChangeFlow(): Flow<MapState> {
     return snapshotFlow {
-        centroidX.hashCode() + centroidY.hashCode() + scale.hashCode() + rotation.hashCode()
+        centroidX.hashCode() + centroidY.hashCode() + scale.hashCode()
     }.map { this }
 }
 

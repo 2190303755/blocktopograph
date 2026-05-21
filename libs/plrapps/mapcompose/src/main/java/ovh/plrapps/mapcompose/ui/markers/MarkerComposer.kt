@@ -10,13 +10,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
 import ovh.plrapps.mapcompose.api.moveMarkerBy
-import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
 import ovh.plrapps.mapcompose.ui.state.MapState
-import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
 import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
-import ovh.plrapps.mapcompose.utils.rotateX
-import ovh.plrapps.mapcompose.utils.rotateY
-import ovh.plrapps.mapcompose.utils.toRad
+import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
+import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
 
 @Composable
 internal fun MarkerComposer(
@@ -107,15 +104,10 @@ private fun invokeDragStartListener(
 ) {
     /* Compute the pointer offset */
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
-    val pointerOffset = position - origin
-    val angle = -zoomPRState.rotation.toRad()
-    val pointerOffsetRotated = Offset(
-        rotateX(pointerOffset.x.toDouble(), pointerOffset.y.toDouble(), angle).toFloat(),
-        rotateY(pointerOffset.x.toDouble(), pointerOffset.y.toDouble(), angle).toFloat()
-    )
+    val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffsetRotated.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
-    val py = data.y + pointerOffsetRotated.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
+    val px = data.x + pointerOffset.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
+    val py = data.y + pointerOffset.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
 
     data.dragStartListener?.onDragStart(
         id = data.id,
@@ -133,23 +125,18 @@ private fun invokeDragInterceptor(
     position: Offset
 ) {
     /* Compute the displacement */
-    val angle = -zoomPRState.rotation.toRad()
-    val dx = rotateX(deltaPx.x.toDouble(), deltaPx.y.toDouble(), angle)
-    val dy = rotateY(deltaPx.x.toDouble(), deltaPx.y.toDouble(), angle)
+    val dx = deltaPx.x.toDouble()
+    val dy = deltaPx.y.toDouble()
 
     val deltaX = dx / (zoomPRState.fullWidth * zoomPRState.scale)
     val deltaY = dy / (zoomPRState.fullHeight * zoomPRState.scale)
 
     /* Compute the pointer offset */
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
-    val pointerOffset = position - origin
-    val pointerOffsetRotated = Offset(
-        rotateX(pointerOffset.x.toDouble(), pointerOffset.y.toDouble(), angle).toFloat(),
-        rotateY(pointerOffset.x.toDouble(), pointerOffset.y.toDouble(), angle).toFloat()
-    )
+    val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffsetRotated.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
-    val py = data.y + pointerOffsetRotated.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
+    val px = data.x + pointerOffset.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
+    val py = data.y + pointerOffset.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
 
     data.dragInterceptor?.onMove(
         id = data.id,
