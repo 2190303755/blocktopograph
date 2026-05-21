@@ -15,8 +15,6 @@ import ovh.plrapps.mapcompose.core.Viewport
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
 import ovh.plrapps.mapcompose.core.throttle
 import ovh.plrapps.mapcompose.ui.gestures.model.HitType
-import ovh.plrapps.mapcompose.ui.layout.Fit
-import ovh.plrapps.mapcompose.ui.layout.MinimumScaleMode
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
 import ovh.plrapps.mapcompose.utils.AngleDegree
@@ -50,7 +48,7 @@ class MapState(
         fullWidth = fullWidth,
         fullHeight = fullHeight,
         stateChangeListener = this,
-        minimumScaleMode = initialValues.minimumScaleMode,
+        minScale = initialValues.minScale,
         maxScale = initialValues.maxScale,
         scale = initialValues.scale,
         rotation = initialValues.rotation,
@@ -212,7 +210,7 @@ class InitialValues internal constructor() {
     internal var y = 0.5
     internal var screenOffset: Offset = Offset(-0.5f, -0.5f)
     internal var scale: Double = 1.0
-    internal var minimumScaleMode: MinimumScaleMode = Fit
+    internal var minScale: Double = Double.MIN_VALUE
     internal var maxScale: Double = 2.0
     internal var rotation: AngleDegree = 0f
     internal var magnifyingFactor = 0
@@ -245,10 +243,10 @@ class InitialValues internal constructor() {
     }
 
     /**
-     * Set the [MinimumScaleMode]. Defaults to [Fit].
+     * Set the minimum allowed scale. Defaults to [Double.MIN_VALUE].
      */
-    fun minimumScaleMode(minimumScaleMode: MinimumScaleMode) = apply {
-        this.minimumScaleMode = minimumScaleMode
+    fun minScale(minScale: Double) = apply {
+        this.minScale = minScale
     }
 
     /**

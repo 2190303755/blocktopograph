@@ -1,25 +1,54 @@
 package ovh.plrapps.mapcompose.ui.state
 
-import androidx.compose.animation.core.*
-import androidx.compose.runtime.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.AnimationVector2D
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.FloatExponentialDecaySpec
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.generateDecayAnimationSpec
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.core.GestureConfiguration
-import ovh.plrapps.mapcompose.ui.layout.*
-import ovh.plrapps.mapcompose.utils.*
+import ovh.plrapps.mapcompose.ui.layout.GestureListener
+import ovh.plrapps.mapcompose.ui.layout.LayoutSizeChangeListener
+import ovh.plrapps.mapcompose.utils.AngleDegree
+import ovh.plrapps.mapcompose.utils.AngleRad
+import ovh.plrapps.mapcompose.utils.lerp
+import ovh.plrapps.mapcompose.utils.modulo
+import ovh.plrapps.mapcompose.utils.rotateCenteredX
+import ovh.plrapps.mapcompose.utils.rotateCenteredY
+import ovh.plrapps.mapcompose.utils.toRad
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.time.TimeSource
 
 internal class ZoomPanRotateState(
     val fullWidth: Int,
     val fullHeight: Int,
     private val stateChangeListener: ZoomPanRotateStateListener,
-    minimumScaleMode: MinimumScaleMode,
+    minScale: Double,
     maxScale: Double,
     scale: Double,
     rotation: AngleDegree,
@@ -43,12 +72,6 @@ internal class ZoomPanRotateState(
         }
     }
 
-    internal var minimumScaleMode: MinimumScaleMode = minimumScaleMode
-        set(value) {
-            field = value
-            recalculateMinScale()
-        }
-
     private val areGesturesEnabled by derivedStateOf { isRotationEnabled || isScrollingEnabled || isZoomingEnabled }
     internal var isRotationEnabled by mutableStateOf(false)
     internal var isScrollingEnabled by mutableStateOf(true)
@@ -71,7 +94,11 @@ internal class ZoomPanRotateState(
 
     internal var visibleAreaPadding = VisibleAreaPadding(0, 0, 0, 0)
 
-    internal var minScale by mutableDoubleStateOf(0.0)   // should only be changed through MinimumScaleMode
+    var minScale = minScale
+        set(value) {
+            field = value.coerceAtLeast(Double.MIN_VALUE)
+            setScale(scale)
+        }
 
     var maxScale = maxScale
         set(value) {
@@ -79,7 +106,7 @@ internal class ZoomPanRotateState(
             setScale(scale)
         }
 
-    internal var shouldLoopScale by mutableStateOf(false)
+    internal val shouldLoopScale get() = false
 
     internal var scrollOffsetRatio = Offset(0f, 0f)
         set(value) {
@@ -485,11 +512,7 @@ internal class ZoomPanRotateState(
     override fun onDoubleTap(focalPt: Offset) {
         if (!isZoomingEnabled) return
 
-        val destScale = (
-                2.0.pow(floor(ln((scale * 2)) / ln(2.0)))
-                ).let {
-                if (shouldLoopScale && it > maxScale) minScale else it
-            }
+        val destScale = 2.0.pow(floor(ln((scale * 2)) / ln(2.0)))
 
         val angleRad = -rotation.toRad()
         val focalPtRotated = rotateFocalPoint(focalPt, angleRad)
@@ -554,7 +577,6 @@ internal class ZoomPanRotateState(
         }
 
         layoutSize = size
-        recalculateMinScale()
         if (newScrollX != null && newScrollY != null) {
             setScroll(newScrollX, newScrollY)
         }
@@ -662,7 +684,7 @@ internal class ZoomPanRotateState(
     }
 
     internal fun constrainScale(scale: Double): Double {
-        return scale.coerceIn(max(minScale, Double.MIN_VALUE), maxScale.coerceAtLeast(minScale))
+        return scale.coerceIn(minScale, maxScale.coerceAtLeast(minScale))
     }
 
     private fun updateCentroid() {
@@ -671,18 +693,6 @@ internal class ZoomPanRotateState(
 
         centroidX = (scrollX + pivotX) / (fullWidth * scale)
         centroidY = (scrollY + pivotY) / (fullHeight * scale)
-    }
-
-    private fun recalculateMinScale() {
-        val minScaleX = layoutSize.width.toDouble() / fullWidth
-        val minScaleY = layoutSize.height.toDouble() / fullHeight
-        val mode = minimumScaleMode
-        minScale = when (mode) {
-            Fit -> min(minScaleX, minScaleY)
-            Fill -> max(minScaleX, minScaleY)
-            is Forced -> mode.scale
-        }
-        setScale(scale)
     }
 
     private fun notifyStateChanged() {

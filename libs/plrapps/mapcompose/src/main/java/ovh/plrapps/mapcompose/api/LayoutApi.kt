@@ -21,14 +21,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import ovh.plrapps.mapcompose.ui.layout.Fill
-import ovh.plrapps.mapcompose.ui.layout.Fit
-import ovh.plrapps.mapcompose.ui.layout.Forced
-import ovh.plrapps.mapcompose.ui.layout.MinimumScaleMode
 import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.VisibleAreaPadding
 import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
-import ovh.plrapps.mapcompose.utils.*
+import ovh.plrapps.mapcompose.utils.AngleDegree
+import ovh.plrapps.mapcompose.utils.Point
+import ovh.plrapps.mapcompose.utils.dpToPx
+import ovh.plrapps.mapcompose.utils.rotate
+import ovh.plrapps.mapcompose.utils.rotateCenteredX
+import ovh.plrapps.mapcompose.utils.rotateCenteredY
+import ovh.plrapps.mapcompose.utils.scaleAxis
+import ovh.plrapps.mapcompose.utils.throttle
+import ovh.plrapps.mapcompose.utils.toRad
+import ovh.plrapps.mapcompose.utils.withRetry
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -97,15 +102,6 @@ fun MapState.removeStateChangeListener() {
 }
 
 /**
- * On double-tap, and if the scale is already at its maximum value, circle-back to the minimum scale.
- */
-var MapState.shouldLoopScale
-    get() = zoomPanRotateState.shouldLoopScale
-    set(value) {
-        zoomPanRotateState.shouldLoopScale = value
-    }
-
-/**
  * Sets the padding of the visible area of the map viewport in [Dp], for the purpose of camera moves.
  * For example, if you have some UI obscuring the map on the left, you can set the appropriate
  * left padding. Then, when you use the scrollTo methods, the map will take that into account, by
@@ -160,33 +156,15 @@ fun MapState.setVisibleAreaPadding(left: Int = 0, right: Int = 0, top: Int = 0, 
 }
 
 /**
- * Set the minimum scale mode. See [MinimumScaleMode].
- * The minimum scale can be manually defined using [Forced], or can be inferred using [Fill], or
- * [Fit] (the default).
- * Note: When enabling map rotation, it's advised to use the [Fill] mode.
+ * The default maximum scale is [Double.MIN_VALUE].
+ * When changed, and if the current scale is smaller than the new [minScale], the current scale is
+ * changed to be equal to [minScale].
  */
-var MapState.minimumScaleMode: MinimumScaleMode
-    get() = zoomPanRotateState.minimumScaleMode
-    set(value) {
-        zoomPanRotateState.minimumScaleMode = value
-    }
-
-/**
- * Get the current minimum scale. The minimum scale changes on [minimumScaleMode] change.
- * Do note that the initial value is always 0.0. However, the value is updated after the first layout
- * pass. To observe minimum scale changes, use [MapState.minScaleSnapshotFlow] api.
- */
-val MapState.minScale: Double
+var MapState.minScale: Double
     get() = zoomPanRotateState.minScale
-
-/**
- * Get the minimum scale changes.
- */
-fun MapState.minScaleSnapshotFlow(): Flow<Double> {
-    return snapshotFlow {
-        zoomPanRotateState.minScale
+    set(value) {
+        zoomPanRotateState.minScale = value
     }
-}
 
 /**
  * The default maximum scale is 2.0.
