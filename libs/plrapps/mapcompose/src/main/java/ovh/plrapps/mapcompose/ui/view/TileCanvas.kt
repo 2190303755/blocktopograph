@@ -19,13 +19,13 @@ import ovh.plrapps.mapcompose.core.ColorFilterProvider
 import ovh.plrapps.mapcompose.core.Tile
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
 import ovh.plrapps.mapcompose.ui.layout.grid
-import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
+import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import kotlin.math.ceil
 
 @Composable
 internal fun TileCanvas(
     modifier: Modifier,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     visibleTilesResolver: VisibleTilesResolver,
     tileSize: Int,
     alphaTick: Float,
@@ -49,16 +49,16 @@ internal fun TileCanvas(
          * Since the translate function of the Canvas works with floats, we perform a change of
          * referential so that we only need to translate the canvas by an amount which can be
          * precisely represented as a float. */
-        val x0 = ((ceil(zoomPRState.scrollX / grid) * grid) / zoomPRState.scale).toInt()
-        val y0 = ((ceil(zoomPRState.scrollY / grid) * grid) / zoomPRState.scale).toInt()
+        val x0 = ((ceil(zoomPanState.scrollX / grid) * grid) / zoomPanState.scale).toInt()
+        val y0 = ((ceil(zoomPanState.scrollY / grid) * grid) / zoomPanState.scale).toInt()
 
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(
-                left = (-zoomPRState.scrollX + x0 * zoomPRState.scale).toFloat(),
-                top = (-zoomPRState.scrollY + y0 * zoomPRState.scale).toFloat()
+                left = (-zoomPanState.scrollX + x0 * zoomPanState.scale).toFloat(),
+                top = (-zoomPanState.scrollY + y0 * zoomPanState.scale).toFloat()
             )
-            scale(scale = zoomPRState.scale.toFloat(), Offset.Zero)
+            scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
             paint.isFilterBitmap = isFilteringBitmap()
 

@@ -11,20 +11,20 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
 import ovh.plrapps.mapcompose.api.moveMarkerBy
 import ovh.plrapps.mapcompose.ui.state.MapState
-import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
+import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
 import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
 
 @Composable
 internal fun MarkerComposer(
     modifier: Modifier,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     markerRenderState: MarkerRenderState,
     mapState: MapState
 ) {
     MarkerLayout(
         modifier = modifier,
-        zoomPRState = zoomPRState,
+        zoomPanState = zoomPanState,
     ) {
         for (data in markerRenderState.markers.value) {
             /* Optimize re-compositions */
@@ -39,7 +39,7 @@ internal fun MarkerComposer(
                                         onDragStart = {
                                             val listener = data.dragStartListener
                                             if (listener != null) {
-                                                invokeDragStartListener(data, zoomPRState, it)
+                                                invokeDragStartListener(data, zoomPanState, it)
                                             }
                                         },
                                         onDragEnd = {
@@ -51,7 +51,7 @@ internal fun MarkerComposer(
                                         if (interceptor != null) {
                                             invokeDragInterceptor(
                                                 data,
-                                                zoomPRState,
+                                                zoomPanState,
                                                 dragAmount,
                                                 change.position
                                             )
@@ -99,15 +99,15 @@ internal fun MarkerComposer(
 
 private fun invokeDragStartListener(
     data: MarkerData,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     position: Offset
 ) {
     /* Compute the pointer offset */
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
     val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffset.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
-    val py = data.y + pointerOffset.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
+    val px = data.x + pointerOffset.x.toDouble() / (zoomPanState.fullWidth * zoomPanState.scale)
+    val py = data.y + pointerOffset.y.toDouble() / (zoomPanState.fullHeight * zoomPanState.scale)
 
     data.dragStartListener?.onDragStart(
         id = data.id,
@@ -120,7 +120,7 @@ private fun invokeDragStartListener(
 
 private fun invokeDragInterceptor(
     data: MarkerData,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     deltaPx: Offset,
     position: Offset
 ) {
@@ -128,15 +128,15 @@ private fun invokeDragInterceptor(
     val dx = deltaPx.x.toDouble()
     val dy = deltaPx.y.toDouble()
 
-    val deltaX = dx / (zoomPRState.fullWidth * zoomPRState.scale)
-    val deltaY = dy / (zoomPRState.fullHeight * zoomPRState.scale)
+    val deltaX = dx / (zoomPanState.fullWidth * zoomPanState.scale)
+    val deltaY = dy / (zoomPanState.fullHeight * zoomPanState.scale)
 
     /* Compute the pointer offset */
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
     val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffset.x.toDouble() / (zoomPRState.fullWidth * zoomPRState.scale)
-    val py = data.y + pointerOffset.y.toDouble() / (zoomPRState.fullHeight * zoomPRState.scale)
+    val px = data.x + pointerOffset.x.toDouble() / (zoomPanState.fullWidth * zoomPanState.scale)
+    val py = data.y + pointerOffset.y.toDouble() / (zoomPanState.fullHeight * zoomPanState.scale)
 
     data.dragInterceptor?.onMove(
         id = data.id,

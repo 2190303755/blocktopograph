@@ -32,10 +32,10 @@ import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
 
-internal class ZoomPanRotateState(
+internal class ZoomPanState(
     val fullWidth: Int,
     val fullHeight: Int,
-    private val stateChangeListener: ZoomPanRotateStateListener,
+    private val stateChangeListener: ZoomPanStateListener,
     minScale: Double,
     maxScale: Double,
     scale: Double,
@@ -144,7 +144,7 @@ internal class ZoomPanRotateState(
         animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
     ): Boolean {
         return invokeAndCheckSuccess {
-            val currScale = this@ZoomPanRotateState.scale
+            val currScale = this@ZoomPanState.scale
             if (currScale > 0) {
                 apiAnimatable.snapTo(0f)
                 apiAnimatable.animateTo(1f, animationSpec) {
@@ -488,7 +488,7 @@ internal class ZoomPanRotateState(
  */
 internal data class VisibleAreaPadding(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
-interface ZoomPanRotateStateListener {
+interface ZoomPanStateListener {
     fun onStateChanged()
     fun onTouchDown()
     fun onPress()

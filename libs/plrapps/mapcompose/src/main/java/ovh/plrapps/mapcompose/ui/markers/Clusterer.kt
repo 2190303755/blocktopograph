@@ -41,12 +41,10 @@ import ovh.plrapps.mapcompose.utils.dpToPx
 import ovh.plrapps.mapcompose.utils.map
 import ovh.plrapps.mapcompose.utils.throttle
 import java.util.UUID
-import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlin.math.sqrt
 
 internal class Clusterer(
     val id: String,
@@ -269,9 +267,7 @@ internal class Clusterer(
         val clusterList = mutableListOf<Cluster>()
         val markerList = mutableListOf<Marker>()
 
-        val markerAssigned = markers.associateTo(mutableMapOf()) {
-            it.uuid to false
-        }
+        val markerAssigned = hashSetOf<UUID>()
 
         for (e in entriesSorted) {
             val neighbors = mesh.getNeighbors(e.key)
@@ -281,10 +277,15 @@ internal class Clusterer(
             val startBary = getBarycenter(e.value.markers) ?: break
 
             val mergedMarkers = (e.value.markers + neighborsMarkers).filter { marker ->
-                distance(startBary, marker, scale) < epsilon && (markerAssigned[marker.uuid]
-                    ?: false).not()
+                squaredDistance(
+                    startBary.x,
+                    startBary.y,
+                    marker.x,
+                    marker.y,
+                    scale
+                ) < epsilon * epsilon && !markerAssigned.contains(marker.uuid)
             }.onEach {
-                markerAssigned[it.uuid] = true
+                markerAssigned.add(it.uuid)
             }
 
             if (mergedMarkers.size == 1) {
@@ -309,11 +310,22 @@ internal class Clusterer(
     ): ClusteringResult {
         fun findInVicinity(cluster: Cluster): Placeable? {
             val closeEnoughMarker = result.markers.firstOrNull {
-                distance(cluster.x, cluster.y, it.x, it.y, scale) < epsilon
+                squaredDistance(
+                    cluster.x,
+                    cluster.y,
+                    it.x,
+                    it.y,
+                    scale
+                ) < epsilon * epsilon
             }
             return closeEnoughMarker ?: result.clusters.firstOrNull { otherCluster ->
-                distance(otherCluster.x, otherCluster.y, cluster.x, cluster.y, scale) < epsilon
-                        && otherCluster != cluster
+                squaredDistance(
+                    otherCluster.x,
+                    otherCluster.y,
+                    cluster.x,
+                    cluster.y,
+                    scale
+                ) < epsilon * epsilon && otherCluster != cluster
             }
         }
 
@@ -363,15 +375,16 @@ internal class Clusterer(
         )
     }
 
-    private fun distance(b: Barycenter, marker: Marker, scale: Double): Double {
-        return distance(b.x, b.y, marker.x, marker.y, scale)
-    }
-
-    private fun distance(x1: Double, y1: Double, x2: Double, y2: Double, scale: Double): Double {
-        return sqrt(
-            (abs(x1 - x2) * mapState.fullSize.width * scale).pow(2) +
-                    (abs(y1 - y2) * mapState.fullSize.height * scale).pow(2),
-        )
+    private fun squaredDistance(
+        x1: Double,
+        y1: Double,
+        x2: Double,
+        y2: Double,
+        scale: Double
+    ): Double {
+        val dx = (x2 - x1) * scale * mapState.fullSize.width
+        val dy = (y2 - y1) * scale * mapState.fullSize.height
+        return dx * dx + dy * dy
     }
 
     private fun fuseClusters(cluster1: Cluster, cluster2: Cluster): Cluster {

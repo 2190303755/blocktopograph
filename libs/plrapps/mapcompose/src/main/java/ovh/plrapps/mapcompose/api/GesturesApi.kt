@@ -9,14 +9,14 @@ import ovh.plrapps.mapcompose.ui.state.MapState
  * Enable scrolling by user gestures. This is enabled by default.
  */
 fun MapState.enableScrolling() {
-    zoomPanRotateState.isScrollingEnabled = true
+    zoomPanState.isScrollingEnabled = true
 }
 
 /**
  * Enable zooming by user gestures. This is enabled by default.
  */
 fun MapState.enableZooming() {
-    zoomPanRotateState.isZoomingEnabled = true
+    zoomPanState.isZoomingEnabled = true
 }
 
 /**
@@ -24,21 +24,21 @@ fun MapState.enableZooming() {
  * [scrollTo] or [snapScrollTo].
  */
 fun MapState.disableScrolling() {
-    zoomPanRotateState.isScrollingEnabled = false
+    zoomPanState.isScrollingEnabled = false
 }
 
 /**
  * Discard zooming gestures. The map can still be programmatically zoomed using [scale].
  */
 fun MapState.disableZooming() {
-    zoomPanRotateState.isZoomingEnabled = false
+    zoomPanState.isZoomingEnabled = false
 }
 
 /**
  * Disable gesture detection. The map view can still be transformed programmatically.
  */
 fun MapState.disableGestures() {
-    with (zoomPanRotateState) {
+    with(zoomPanState) {
         isScrollingEnabled = false
         isZoomingEnabled = false
     }
@@ -48,14 +48,14 @@ fun MapState.disableGestures() {
  * Enables fling scale animation after a pinch to zoom gesture. Enabled by default.
  */
 fun MapState.enableFlingZoom() {
-    zoomPanRotateState.isFlingZoomEnabled = true
+    zoomPanState.isFlingZoomEnabled = true
 }
 
 /**
  * Disables fling scale animation after a pinch to zoom gesture.
  */
 fun MapState.disableFlingZoom() {
-    zoomPanRotateState.isFlingZoomEnabled = false
+    zoomPanState.isFlingZoomEnabled = false
 }
 
 /**

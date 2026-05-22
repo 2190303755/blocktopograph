@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.VisibleAreaPadding
-import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
+import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import ovh.plrapps.mapcompose.utils.Point
 import ovh.plrapps.mapcompose.utils.dpToPx
 import ovh.plrapps.mapcompose.utils.throttle
@@ -35,9 +35,9 @@ import kotlin.math.roundToInt
  * The scale of the map. By convention, the scale at full dimension is 1.0.
  */
 var MapState.scale: Double
-    get() = zoomPanRotateState.scale
+    get() = zoomPanState.scale
     set(value) {
-        zoomPanRotateState.setScale(value)
+        zoomPanState.setScale(value)
     }
 
 /**
@@ -45,7 +45,7 @@ var MapState.scale: Double
  * This is a low-level concept (returned value is in scaled pixels).
  */
 val MapState.scroll: Scroll
-    get() = Scroll(zoomPanRotateState.scrollX, zoomPanRotateState.scrollY)
+    get() = Scroll(zoomPanState.scrollX, zoomPanState.scrollY)
 
 
 /**
@@ -56,7 +56,7 @@ val MapState.scroll: Scroll
  * known position, prefer the [snapScrollTo] API.
  */
 suspend fun MapState.setScroll(scrollX: Double, scrollY: Double) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
 
         setScroll(scrollX, scrollY)
@@ -64,7 +64,7 @@ suspend fun MapState.setScroll(scrollX: Double, scrollY: Double) {
 }
 
 fun MapState.referentialSnapshotFlow(): Flow<ReferentialSnapshot> = snapshotFlow {
-    ReferentialSnapshot(zoomPanRotateState.scale, scroll)
+    ReferentialSnapshot(zoomPanState.scale, scroll)
 }
 
 data class ReferentialSnapshot(val scale: Double, val scroll: Scroll)
@@ -120,9 +120,9 @@ suspend fun MapState.setVisibleAreaPadding(
     topRatio: Float = 0f,
     bottomRatio: Float = 0f
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
-        val layoutSize = zoomPanRotateState.layoutSize
+        val layoutSize = zoomPanState.layoutSize
         setVisibleAreaPadding(
             left = (leftRatio * layoutSize.width).roundToInt(),
             right = (rightRatio * layoutSize.width).roundToInt(),
@@ -136,7 +136,7 @@ suspend fun MapState.setVisibleAreaPadding(
  * Variant of [MapState.setVisibleAreaPadding] using pixels.
  */
 fun MapState.setVisibleAreaPadding(left: Int = 0, right: Int = 0, top: Int = 0, bottom: Int = 0) {
-    zoomPanRotateState.visibleAreaPadding = VisibleAreaPadding(left, top, right, bottom)
+    zoomPanState.visibleAreaPadding = VisibleAreaPadding(left, top, right, bottom)
 }
 
 /**
@@ -145,9 +145,9 @@ fun MapState.setVisibleAreaPadding(left: Int = 0, right: Int = 0, top: Int = 0, 
  * changed to be equal to [minScale].
  */
 var MapState.minScale: Double
-    get() = zoomPanRotateState.minScale
+    get() = zoomPanState.minScale
     set(value) {
-        zoomPanRotateState.minScale = value
+        zoomPanState.minScale = value
     }
 
 /**
@@ -156,9 +156,9 @@ var MapState.minScale: Double
  * changed to be equal to [maxScale].
  */
 var MapState.maxScale: Double
-    get() = zoomPanRotateState.maxScale
+    get() = zoomPanState.maxScale
     set(value) {
-        zoomPanRotateState.maxScale = value
+        zoomPanState.maxScale = value
     }
 
 /**
@@ -177,7 +177,7 @@ var MapState.maxScale: Double
  * multiplied by the layout height.
  */
 fun MapState.setScrollOffsetRatio(xRatio: Float, yRatio: Float) {
-    zoomPanRotateState.scrollOffsetRatio = Offset(xRatio, yRatio)
+    zoomPanState.scrollOffsetRatio = Offset(xRatio, yRatio)
 }
 
 /**
@@ -186,7 +186,7 @@ fun MapState.setScrollOffsetRatio(xRatio: Float, yRatio: Float) {
  * is a read-only snapshot.
  */
 suspend fun MapState.getLayoutSize(): IntSize {
-    return with(zoomPanRotateState) {
+    return with(zoomPanState) {
         awaitLayout()
         layoutSize
     }
@@ -197,7 +197,7 @@ suspend fun MapState.getLayoutSize(): IntSize {
  * This api is useful to observe layout changes.
  */
 suspend fun MapState.getLayoutSizeFlow(): Flow<IntSize> {
-    return with(zoomPanRotateState) {
+    return with(zoomPanState) {
         awaitLayout()
         snapshotFlow {
             layoutSize
@@ -219,7 +219,7 @@ suspend fun MapState.snapScrollTo(
     y: Double,
     screenOffset: Offset = Offset(-0.5f, -0.5f)
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
         val offsetX = screenOffset.x * layoutSize.width
         val offsetY = screenOffset.y * layoutSize.height
@@ -251,7 +251,7 @@ suspend fun MapState.scrollTo(
     animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow),
     screenOffset: Offset = Offset(-0.5f, -0.5f)
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
         val offsetX = screenOffset.x * layoutSize.width
         val offsetY = screenOffset.y * layoutSize.height
@@ -284,7 +284,7 @@ suspend fun MapState.snapScrollTo(
     area: BoundingBox,
     padding: Offset = Offset(0f, 0f)
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
         val (center, scale) = calculateScrollTo(area, padding)
         setScale(scale)
@@ -306,7 +306,7 @@ suspend fun MapState.scrollTo(
     padding: Offset = Offset(0f, 0f),
     animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow),
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         awaitLayout()
         val (center, scale) = calculateScrollTo(area, padding)
         scrollTo(center.x, center.y, scale, animationSpec)
@@ -319,7 +319,7 @@ suspend fun MapState.scrollTo(
  *
  * @return The scroll position and scale, as a [Pair].
  */
-private fun ZoomPanRotateState.calculateScrollTo(
+private fun ZoomPanState.calculateScrollTo(
     area: BoundingBox,
     padding: Offset
 ): Pair<Point, Double> {
@@ -341,22 +341,22 @@ private fun ZoomPanRotateState.calculateScrollTo(
 }
 
 /**
- * The [centroidX] is the x coordinate of the center of the current viewport (which is also the
- * origin of rotation transformation). It changes with the scroll and the scale.
+ * The [centroidX] is the x coordinate of the center of the current viewport.
+ * It changes with the scroll and the scale.
  * This is a low-level concept, and is only useful when defining custom views.
  * The value is a relative coordinate (in [0.0 .. 1.0] range).
  */
 val MapState.centroidX: Double
-    get() = zoomPanRotateState.centroidX
+    get() = zoomPanState.centroidX
 
 /**
- * The [centroidY] is the y coordinate of the center of the current viewport (which is also the
- * origin of rotation transformation). It changes with the scroll and the scale.
+ * The [centroidY] is the y coordinate of the center of the current viewport.
+ * It changes with the scroll and the scale.
  * This is a low-level concept, and is only useful when defining custom views.
  * The value is a relative coordinate (in [0.0 .. 1.0] range).
  */
 val MapState.centroidY: Double
-    get() = zoomPanRotateState.centroidY
+    get() = zoomPanState.centroidY
 
 /**
  * Get the flow of centroid points. A centroid point contains the normalized coordinates of the
@@ -375,7 +375,7 @@ val MapState.centroidY: Double
  */
 fun MapState.centroidSnapshotFlow(): Flow<Point> {
     return snapshotFlow {
-        Point(zoomPanRotateState.centroidX, zoomPanRotateState.centroidY)
+        Point(zoomPanState.centroidX, zoomPanState.centroidY)
     }
 }
 
@@ -383,7 +383,7 @@ fun MapState.centroidSnapshotFlow(): Flow<Point> {
  * A convenience property. It corresponds to the size used when creating the [MapState].
  */
 val MapState.fullSize: IntSize
-    get() = IntSize(zoomPanRotateState.fullWidth, zoomPanRotateState.fullHeight)
+    get() = IntSize(zoomPanState.fullWidth, zoomPanState.fullHeight)
 
 /**
  * Returns the level, an entire value belonging to [0 ; levelCount - 1], where `levelCount` is the
@@ -398,16 +398,16 @@ fun MapState.getLevelAtScale(scale: Double): Int {
  * coroutines), you might have to cancel those coroutines as well.
  */
 suspend fun MapState.stopAnimations() {
-    zoomPanRotateState.stopAnimations()
+    zoomPanState.stopAnimations()
 }
 
 /**
- * Returns the visible area expressed in normalized coordinates. This does not account for rotation.
- * When the map isn't rotated, the obtained [BoundingBox] represents the same area as the one
+ * Returns the visible area expressed in normalized coordinates.
+ * The obtained [BoundingBox] represents the same area as the one
  * obtained with the [visibleArea] API.
  */
 suspend fun MapState.visibleBoundingBox(): BoundingBox {
-    return with(zoomPanRotateState) {
+    return with(zoomPanState) {
         awaitLayout()
 
         BoundingBox(
@@ -422,7 +422,7 @@ suspend fun MapState.visibleBoundingBox(): BoundingBox {
 data class BoundingBox(val xLeft: Double, val yTop: Double, val xRight: Double, val yBottom: Double)
 
 /**
- * Returns the visible area expressed in normalized coordinates. This **does** account for rotation.
+ * Returns the visible area expressed in normalized coordinates.
  *
  * @return The [VisibleArea], as follows:
  * ```
@@ -435,7 +435,7 @@ data class BoundingBox(val xLeft: Double, val yTop: Double, val xRight: Double, 
  * ```
  */
 suspend fun MapState.visibleArea(padding: IntOffset = IntOffset.Zero): VisibleArea {
-    return with(zoomPanRotateState) {
+    return with(zoomPanState) {
         awaitLayout()
 
         val xLeft = centroidX - (layoutSize.width + padding.x * 2) / (2 * fullWidth * scale)
@@ -466,7 +466,7 @@ suspend fun MapState.visibleArea(padding: IntOffset = IntOffset.Zero): VisibleAr
 }
 
 /**
- * Returns the visible area expressed in normalized coordinates. This *does* account for rotation.
+ * Returns the visible area expressed in normalized coordinates.
  */
 suspend fun MapState.visibleAreaFlow(
     padding: IntOffset = IntOffset.Zero,

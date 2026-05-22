@@ -8,9 +8,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.api.ClusterScaleThreshold
+import ovh.plrapps.mapcompose.ui.gestures.model.HitType
 import ovh.plrapps.mapcompose.ui.markers.Clusterer
 import ovh.plrapps.mapcompose.ui.markers.LazyLoader
-import ovh.plrapps.mapcompose.ui.gestures.model.HitType
 import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.markers.model.ClusterClickBehavior
 import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
@@ -107,8 +107,8 @@ internal class MarkerState(
 
     fun moveMarkerTo(markerData: MarkerData, x: Double, y: Double) {
         with(markerData) {
-            val prevX = x
-            val prevY = y
+            val prevX = this.x
+            val prevY = this.y
             this.x = if (isConstrainedInBounds) x.coerceIn(0.0, 1.0) else x
             this.y = if (isConstrainedInBounds) y.coerceIn(0.0, 1.0) else y
             onMarkerMove(this, this.x - prevX, this.y - prevY)

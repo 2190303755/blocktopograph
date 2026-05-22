@@ -39,10 +39,10 @@ class MapState(
     tileSize: Int = 256,
     workerCount: Int = Runtime.getRuntime().availableProcessors() - 1,
     initialValuesBuilder: InitialValues.() -> Unit = {}
-) : ZoomPanRotateStateListener {
+) : ZoomPanStateListener {
     private val initialValues = InitialValues().apply(initialValuesBuilder)
     internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    internal val zoomPanRotateState = ZoomPanRotateState(
+    internal val zoomPanState = ZoomPanState(
         fullWidth = fullWidth,
         fullHeight = fullHeight,
         stateChangeListener = this,
@@ -62,7 +62,7 @@ class MapState(
             tileSize = tileSize,
             magnifyingFactor = initialValues.magnifyingFactor
         ) {
-            zoomPanRotateState.scale
+            zoomPanState.scale
         }
     internal val tileCanvasState = TileCanvasState(
         scope,
@@ -133,7 +133,7 @@ class MapState(
     override fun interceptsTap(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
         val markerHandled = markerState.onHit(xPx, yPx, hitType = HitType.Click)
         val pathHandled = if (!markerHandled) {
-            pathState.onHit(x, y, zoomPanRotateState.scale, hitType = HitType.Click)
+            pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.Click)
         } else false
 
         return markerHandled || pathHandled
@@ -142,7 +142,7 @@ class MapState(
     override fun interceptsLongPress(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
         val markerHandled = markerState.onHit(xPx, yPx, hitType = HitType.LongPress)
         val pathHandled = if (!markerHandled) {
-            pathState.onHit(x, y, zoomPanRotateState.scale, hitType = HitType.LongPress)
+            pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.LongPress)
         } else false
 
         return markerHandled || pathHandled
@@ -160,10 +160,10 @@ class MapState(
     private fun updateViewport(): Viewport {
         val padding = preloadingPadding
         return viewport.apply {
-            left = zoomPanRotateState.scrollX.toInt() - padding
-            top = zoomPanRotateState.scrollY.toInt() - padding
-            right = left + zoomPanRotateState.layoutSize.width + padding * 2
-            bottom = top + zoomPanRotateState.layoutSize.height + padding * 2
+            left = zoomPanState.scrollX.toInt() - padding
+            top = zoomPanState.scrollY.toInt() - padding
+            right = left + zoomPanState.layoutSize.width + padding * 2
+            bottom = top + zoomPanState.layoutSize.height + padding * 2
         }
     }
 
@@ -172,7 +172,7 @@ class MapState(
      * For the moment, the scroll is the only one.
      */
     private fun applyLateInitialValues(initialValues: InitialValues) {
-        with(zoomPanRotateState) {
+        with(zoomPanState) {
             val offsetX = initialValues.screenOffset.x * layoutSize.width
             val offsetY = initialValues.screenOffset.y * layoutSize.height
 

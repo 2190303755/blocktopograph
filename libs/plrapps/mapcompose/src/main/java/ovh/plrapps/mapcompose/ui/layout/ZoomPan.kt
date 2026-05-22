@@ -17,7 +17,7 @@ import ovh.plrapps.mapcompose.ui.gestures.detectTapGestures
 import ovh.plrapps.mapcompose.ui.gestures.detectTransformGestures
 
 @Composable
-internal fun ZoomPanRotate(
+internal fun ZoomPan(
     modifier: Modifier = Modifier,
     gestureListener: GestureListener,
     layoutSizeChangeListener: LayoutSizeChangeListener,
@@ -69,7 +69,7 @@ internal fun ZoomPanRotate(
             .fillMaxSize(),
     ) { measurables, constraints ->
         val placeables = measurables.map { measurable ->
-            // Measure each children
+            // Measure each child
             measurable.measure(constraints)
         }
 

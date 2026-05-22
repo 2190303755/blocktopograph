@@ -32,7 +32,7 @@ import ovh.plrapps.mapcompose.ui.paths.model.Cap
 import ovh.plrapps.mapcompose.ui.paths.model.PatternItem
 import ovh.plrapps.mapcompose.ui.state.DrawablePathState
 import ovh.plrapps.mapcompose.ui.state.PathState
-import ovh.plrapps.mapcompose.ui.state.ZoomPanRotateState
+import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import ovh.plrapps.mapcompose.utils.Point
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -40,14 +40,14 @@ import kotlin.math.ceil
 @Composable
 internal fun PathComposer(
     modifier: Modifier,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     pathState: PathState
 ) {
     var drawOrder = 0
     for (path in pathState.pathState.values.sortedBy { it.zIndex }) {
         key(path.id) {
             path.drawOrder.update { drawOrder++ }
-            PathCanvas(modifier, zoomPRState, path)
+            PathCanvas(modifier, zoomPanState, path)
         }
     }
 }
@@ -55,7 +55,7 @@ internal fun PathComposer(
 @Composable
 internal fun PathCanvas(
     modifier: Modifier,
-    zoomPRState: ZoomPanRotateState,
+    zoomPanState: ZoomPanState,
     drawablePathState: DrawablePathState
 ) {
     val offsetAndCount = drawablePathState.offsetAndCount
@@ -69,16 +69,16 @@ internal fun PathCanvas(
      * For paths, we also need to be mindful not to change the referential too often. */
     val origin by produceState(
         initialValue = IntOffset.Zero,
-        key1 = zoomPRState.scale,
-        key2 = zoomPRState.scrollX,
-        key3 = zoomPRState.scrollY
+        key1 = zoomPanState.scale,
+        key2 = zoomPanState.scrollX,
+        key3 = zoomPanState.scrollY
     ) {
-        val scale = zoomPRState.scale
+        val scale = zoomPanState.scale
 
         val formerX0 = value.x
         val formerY0 = value.y
-        val x0 = ((ceil(zoomPRState.scrollX / grid) * grid) / scale).toInt()
-        val y0 = ((ceil(zoomPRState.scrollY / grid) * grid) / scale).toInt()
+        val x0 = ((ceil(zoomPanState.scrollX / grid) * grid) / scale).toInt()
+        val y0 = ((ceil(zoomPanState.scrollY / grid) * grid) / scale).toInt()
 
         val shouldUpdate = (abs(x0 - formerX0) * scale > grid) ||
                 (abs(y0 - formerY0) * scale > grid)
@@ -91,7 +91,7 @@ internal fun PathCanvas(
     /* When epsilon changes, a new path is generated. */
     val epsilon by remember {
         derivedStateOf {
-            val scale = zoomPRState.scale
+            val scale = zoomPanState.scale
             val simplify = drawablePathState.simplify
             if (simplify == 0f) {
                 0.0
@@ -136,9 +136,14 @@ internal fun PathCanvas(
     }
 
     val density = LocalDensity.current
-    val dashPathEffect = remember(drawablePathState.pattern, widthPx, zoomPRState.scale, density) {
+    val dashPathEffect = remember(drawablePathState.pattern, widthPx, zoomPanState.scale, density) {
         drawablePathState.pattern?.let {
-            makePathEffect(it, strokeWidthPx = widthPx, scale = zoomPRState.scale.toFloat(), density)
+            makePathEffect(
+                it,
+                strokeWidthPx = widthPx,
+                scale = zoomPanState.scale.toFloat(),
+                density
+            )
         }
     }
 
@@ -147,7 +152,7 @@ internal fun PathCanvas(
         drawablePathState.color,
         drawablePathState.cap,
         widthPx,
-        zoomPRState.scale
+        zoomPanState.scale
     ) {
         Paint().apply {
             style = Paint.Style.STROKE
@@ -159,7 +164,7 @@ internal fun PathCanvas(
                 Cap.Square -> Paint.Cap.SQUARE
             }
             pathEffect = dashPathEffect
-            strokeWidth = (widthPx / zoomPRState.scale).toFloat()
+            strokeWidth = (widthPx / zoomPanState.scale).toFloat()
         }
     }
 
@@ -180,10 +185,10 @@ internal fun PathCanvas(
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(
-                left = (-zoomPRState.scrollX + path.origin.x * zoomPRState.scale).toFloat(),
-                top = (-zoomPRState.scrollY + path.origin.y * zoomPRState.scale).toFloat()
+                left = (-zoomPanState.scrollX + path.origin.x * zoomPanState.scale).toFloat(),
+                top = (-zoomPanState.scrollY + path.origin.y * zoomPanState.scale).toFloat()
             )
-            scale(scale = zoomPRState.scale.toFloat(), Offset.Zero)
+            scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
             with(drawablePathState) {
                 if (visible) {

@@ -11,7 +11,7 @@ import ovh.plrapps.mapcompose.ui.MapUI
 import ovh.plrapps.mapcompose.ui.state.MapState
 
 /**
- * A custom canvas which moves, scales, and rotates along with the map (exactly like some internal
+ * A custom canvas which moves and scales along with the map (exactly like some internal
  * components of [MapUI]).
  * It's an example which can be used in a custom composable (as it takes a [drawBlock] as input).
  *

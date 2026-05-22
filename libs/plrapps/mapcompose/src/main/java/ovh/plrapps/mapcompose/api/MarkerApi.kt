@@ -430,8 +430,8 @@ fun MapState.moveMarkerBy(id: String, deltaPx: Offset) {
     val dy = deltaPx.y.toDouble()
     markerState.moveMarkerBy(
         id,
-        dx / (zoomPanRotateState.fullWidth * zoomPanRotateState.scale),
-        dy / (zoomPanRotateState.fullHeight * zoomPanRotateState.scale)
+        dx / (zoomPanState.fullWidth * zoomPanState.scale),
+        dy / (zoomPanState.fullHeight * zoomPanState.scale)
     )
 }
 
@@ -445,7 +445,7 @@ suspend fun MapState.centerOnMarker(
     id: String,
     animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         markerState.getMarker(id)?.also {
             awaitLayout()
             val paddingOffset = visibleAreaPadding.getOffsetForScroll()
@@ -471,7 +471,7 @@ suspend fun MapState.centerOnMarker(
     destScale: Double,
     animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
 ) {
-    with(zoomPanRotateState) {
+    with(zoomPanState) {
         markerState.getMarker(id)?.also {
             awaitLayout()
             val destScaleCst = constrainScale(destScale)
@@ -609,7 +609,7 @@ private suspend fun MapState.updateOffset(
     animationSpec: AnimationSpec<Float>?
 ) {
     if (animationSpec != null) {
-        with(zoomPanRotateState) {
+        with(zoomPanState) {
             awaitLayout()
             invokeAndCheckSuccess {
                 Animatable(0f).animateTo(1f, animationSpec) {

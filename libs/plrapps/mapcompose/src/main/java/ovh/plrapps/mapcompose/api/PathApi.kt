@@ -167,7 +167,7 @@ fun MapState.hasPath(id: String): Boolean {
  * instance can only be built using a [PathDataBuilder].
  */
 fun MapState.makePathDataBuilder(): PathDataBuilder {
-    return PathDataBuilder(zoomPanRotateState.fullWidth, zoomPanRotateState.fullHeight)
+    return PathDataBuilder(zoomPanState.fullWidth, zoomPanState.fullHeight)
 }
 
 /**

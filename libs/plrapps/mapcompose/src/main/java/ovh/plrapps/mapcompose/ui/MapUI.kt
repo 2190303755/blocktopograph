@@ -6,7 +6,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.zIndex
-import ovh.plrapps.mapcompose.ui.layout.ZoomPanRotate
+import ovh.plrapps.mapcompose.ui.layout.ZoomPan
 import ovh.plrapps.mapcompose.ui.markers.MarkerComposer
 import ovh.plrapps.mapcompose.ui.paths.PathComposer
 import ovh.plrapps.mapcompose.ui.state.MapState
@@ -18,21 +18,21 @@ fun MapUI(
     state: MapState,
     content: @Composable () -> Unit = {}
 ) {
-    val zoomPRState = state.zoomPanRotateState
+    val zoomPanState = state.zoomPanState
     val markerState = state.markerRenderState
     val pathState = state.pathState
 
     key(state) {
-        ZoomPanRotate(
+        ZoomPan(
             modifier = modifier
                 .clipToBounds()
                 .background(state.mapBackground),
-            gestureListener = zoomPRState,
-            layoutSizeChangeListener = zoomPRState,
+            gestureListener = zoomPanState,
+            layoutSizeChangeListener = zoomPanState,
         ) {
             TileCanvas(
                 modifier = Modifier,
-                zoomPRState = zoomPRState,
+                zoomPanState = zoomPanState,
                 visibleTilesResolver = state.visibleTilesResolver,
                 tileSize = state.tileSize,
                 alphaTick = state.tileCanvasState.alphaTick,
@@ -43,14 +43,14 @@ fun MapUI(
 
             MarkerComposer(
                 modifier = Modifier.zIndex(1f),
-                zoomPRState = zoomPRState,
+                zoomPanState = zoomPanState,
                 markerRenderState = markerState,
                 mapState = state
             )
 
             PathComposer(
                 modifier = Modifier,
-                zoomPRState = zoomPRState,
+                zoomPanState = zoomPanState,
                 pathState = pathState
             )
 
