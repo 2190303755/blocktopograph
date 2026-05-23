@@ -32,35 +32,29 @@ internal fun ZoomPan(
             .pointerInput(gestureListener.isListeningForGestures()) {
                 if (!gestureListener.isListeningForGestures()) return@pointerInput
                 detectTransformGestures(
-                    onGesture = { centroid, pan, gestureZoom ->
-                        gestureListener.onScaleRatio(gestureZoom.toDouble(), centroid)
+                    onGesture = { pivot, pan, gestureZoom ->
+                        gestureListener.onScaleRatio(gestureZoom.toDouble(), pivot)
                         gestureListener.onScrollDelta(pan)
                     },
                     onTouchDown = gestureListener::onTouchDown,
                     onTwoFingersTap = gestureListener::onTwoFingersTap,
                     onFling = { velocity -> gestureListener.onFling(flingSpec, velocity) },
-                    onFlingZoom = { centroid, velocity ->
-                        gestureListener.onFlingZoom(velocity, centroid)
-                    }
+                    onFlingZoom = gestureListener::onFlingZoom
                 )
             }
             .pointerInput(gestureListener.isListeningForGestures()) {
                 if (!gestureListener.isListeningForGestures()) return@pointerInput
                 detectTapGestures(
-                    onTap = { offset -> gestureListener.onTap(offset) },
-                    onDoubleTap = { offset -> gestureListener.onDoubleTap(offset) },
-                    onDoubleTapZoom = { centroid, zoom ->
-                        gestureListener.onScaleRatio(zoom.toDouble(), centroid)
+                    onTap = gestureListener::onTap,
+                    onDoubleTap = gestureListener::onDoubleTap,
+                    onDoubleTapZoom = { pivot, zoom ->
+                        gestureListener.onScaleRatio(zoom.toDouble(), pivot)
                     },
-                    onDoubleTapZoomFling = { centroid, velocity ->
-                        gestureListener.onFlingZoom(velocity, centroid)
-                    },
+                    onDoubleTapZoomFling = gestureListener::onFlingZoom,
                     onPress = { gestureListener.onPress() },
-                    onLongPress = { offset -> gestureListener.onLongPress(offset) },
-                    shouldConsumeTap = { offset -> gestureListener.shouldConsumeTapGesture(offset) },
-                    shouldConsumeLongPress = { offset ->
-                        gestureListener.shouldConsumeLongPress(offset)
-                    }
+                    onLongPress = gestureListener::onLongPress,
+                    shouldConsumeTap = gestureListener::shouldConsumeTapGesture,
+                    shouldConsumeLongPress = gestureListener::shouldConsumeLongPress
                 )
             }
             .onSizeChanged {
@@ -84,10 +78,10 @@ internal fun ZoomPan(
 }
 
 internal interface GestureListener {
-    fun onScaleRatio(scaleRatio: Double, centroid: Offset)
+    fun onScaleRatio(scaleRatio: Double, pivot: Offset)
     fun onScrollDelta(scrollDelta: Offset)
     fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity)
-    fun onFlingZoom(velocity: Float, centroid: Offset)
+    fun onFlingZoom(velocity: Float, pivot: Offset)
     fun onTouchDown()
     fun onPress()
     fun onTap(focalPt: Offset)

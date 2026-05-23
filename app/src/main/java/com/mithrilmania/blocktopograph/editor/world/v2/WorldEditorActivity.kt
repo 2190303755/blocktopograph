@@ -136,20 +136,23 @@ class WorldEditorActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     if (viewModel.majorLayerId == null) {
                         viewModel.majorLayerId = viewModel.map.addLayer({ row, col, zoomLvl ->
+                            val chunks = 1 shl (ZOOM_LEVELS - zoomLvl)
+                            val tileSize = TILE_DIMENSION * chunks
                             val storage = info.storage
                             val dimension = viewModel.dimension
                             val bitmap = createBitmap(
-                                TILE_DIMENSION,
-                                TILE_DIMENSION,
+                                tileSize,
+                                tileSize,
                                 Bitmap.Config.RGB_565
                             )
-                            val chunksInTile = 1 // ignoring the zoom, each chunk is a single tile
-                            val x = col - ORIGIN_OFFSET
-                            val z = row - ORIGIN_OFFSET
                             val canvas = Canvas(bitmap)
                             val paint = Paint()
-                            for (chunkX in x until x + chunksInTile) {
-                                for (chunkZ in z until z + chunksInTile) {
+                            for (offsetX in 0 until chunks) {
+                                val left = offsetX * TILE_DIMENSION
+                                val chunkX = offsetX + col * chunks
+                                for (offsetZ in 0 until chunks) {
+                                    val top = offsetZ * TILE_DIMENSION
+                                    val chunkZ = offsetZ + row * chunks
                                     val chunk = storage.getChunk(chunkX, chunkZ, dimension)
                                     if (chunk.isError) {
                                         MapType.ERROR.renderer.renderToBitmap(
@@ -158,8 +161,8 @@ class WorldEditorActivity : ComponentActivity() {
                                             dimension,
                                             chunkX,
                                             chunkZ,
-                                            0,
-                                            0,
+                                            left,
+                                            top,
                                             RENDER_SCALE,
                                             RENDER_SCALE,
                                             paint,
@@ -173,8 +176,8 @@ class WorldEditorActivity : ComponentActivity() {
                                         dimension,
                                         chunkX,
                                         chunkZ,
-                                        0,
-                                        0,
+                                        left,
+                                        top,
                                         RENDER_SCALE,
                                         RENDER_SCALE,
                                         paint,
@@ -188,8 +191,8 @@ class WorldEditorActivity : ComponentActivity() {
                                             dimension,
                                             chunkX,
                                             chunkZ,
-                                            0,
-                                            0,
+                                            left,
+                                            top,
                                             RENDER_SCALE,
                                             RENDER_SCALE,
                                             paint,
@@ -207,8 +210,8 @@ class WorldEditorActivity : ComponentActivity() {
                                             dimension,
                                             chunkX,
                                             chunkZ,
-                                            0,
-                                            0,
+                                            left,
+                                            top,
                                             RENDER_SCALE,
                                             RENDER_SCALE,
                                             paint,
@@ -220,17 +223,17 @@ class WorldEditorActivity : ComponentActivity() {
 
 
                             //draw tile-edges white
-                            for (i in 0 until TILE_DIMENSION) {
+                            for (i in 0 until tileSize) {
                                 //horizontal edges
                                 bitmap[i, 0] = Color.WHITE
-                                bitmap[i, TILE_DIMENSION - 1] = Color.WHITE
+                                bitmap[i, tileSize - 1] = Color.WHITE
                                 //vertical edges
                                 bitmap[0, i] = Color.WHITE
-                                bitmap[TILE_DIMENSION - 1, i] = Color.WHITE
+                                bitmap[tileSize - 1, i] = Color.WHITE
                             }
 
                             MCTileProvider.drawText(
-                                "(${x * 16}; ${z * 16})",
+                                "(${col * CHUNK_DIMENSION * chunks}; ${row * CHUNK_DIMENSION * chunks})",
                                 bitmap,
                                 Color.WHITE,
                                 0
@@ -238,36 +241,34 @@ class WorldEditorActivity : ComponentActivity() {
 
                             bitmap
                         })
-
-                        val unused = {
-                            var framedToPlayer = false
-                            try {
-                                val playerPos: DimensionVector3<Float>? = try {
-                                    val data: ByteArray? =
-                                        info.storage.db.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
-                                    val player: BinaryTag? = if (data === null) {
-                                        info.world.config.getCached(this@WorldEditorActivity)["Player"]
-                                    } else {
-                                        BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
-                                    }
-                                    if (player !is CompoundTag) {
-                                        LogUtil.d(this, "No local player. A server world?")
-                                        null
-                                    } else {
-                                        player.extractPlayerPos()
-                                    }
-                                } catch (e: Exception) {
-                                    LogUtil.d(this, e)
-                                    null
+                        var framedToPlayer = false
+                        try {
+                            val playerPos: DimensionVector3<Float>? = try {
+                                val data: ByteArray? =
+                                    info.storage.db.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
+                                val player: BinaryTag? = if (data === null) {
+                                    info.world.config.getCached(this@WorldEditorActivity)["Player"]
+                                } else {
+                                    BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
                                 }
-                                if (playerPos != null) {
-                                    val x: Float = playerPos.x
-                                    val y: Float = playerPos.y
-                                    val z: Float = playerPos.z
-                                    LogUtil.d(
-                                        this,
-                                        "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]"
-                                    )/*
+                                if (player !is CompoundTag) {
+                                    LogUtil.d(this, "No local player. A server world?")
+                                    null
+                                } else {
+                                    player.extractPlayerPos()
+                                }
+                            } catch (e: Exception) {
+                                LogUtil.d(this, e)
+                                null
+                            }
+                            if (playerPos != null) {
+                                val x: Float = playerPos.x
+                                val y: Float = playerPos.y
+                                val z: Float = playerPos.z
+                                LogUtil.d(
+                                    this,
+                                    "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]"
+                                )/*
                                 localPlayerMarker = AbstractMarker(
                                     x.toInt(),
                                     y.toInt(),
@@ -278,46 +279,45 @@ class WorldEditorActivity : ComponentActivity() {
                                 )
                                 this.staticMarkers.add(localPlayerMarker)
                                 addMarker(localPlayerMarker)*/
-                                    if (playerPos.dimension != viewModel.dimension) {
-                                        viewModel.dimension = playerPos.dimension
-                                        //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
-                                    }
-                                    coroutineScope.launch {
-                                        viewModel.map.scrollTo(
-                                            (x / 16.0 - HALF_WORLD_DIMENSION) / WORLD_DIMENSION,
-                                            (z / 16.0 - HALF_WORLD_DIMENSION) / WORLD_DIMENSION,
-                                        )
-                                    }
-                                    framedToPlayer = true
+                                if (playerPos.dimension != viewModel.dimension) {
+                                    viewModel.dimension = playerPos.dimension
+                                    //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
                                 }
-                            } catch (e: Exception) {
-                                LogUtil.d(this, "Failed to place player marker.", e)
+                                coroutineScope.launch {
+                                    viewModel.map.scrollTo(
+                                        x.toDouble(),
+                                        z.toDouble()
+                                    )
+                                }
+                                framedToPlayer = true
                             }
+                        } catch (e: Exception) {
+                            LogUtil.d(this, "Failed to place player marker.", e)
+                        }
 
-                            try {
-                                val spawnPos: DimensionVector3<Int> =
-                                    info.world.resolveSpawnPoint(this@WorldEditorActivity)
-                                /* spawnMarker = AbstractMarker(
-                                     spawnPos.x!!, spawnPos.y!!, spawnPos.z!!, spawnPos.dimension,
-                                     CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false
-                                 )
-                                 this.staticMarkers.add(spawnMarker)
-                                 addMarker(spawnMarker)x - HALF_WORLD_DIMENSION
-     */
-                                if (!framedToPlayer) {
-                                    if (spawnPos.dimension != viewModel.dimension) {
-                                        viewModel.dimension = spawnPos.dimension
-                                        //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
-                                    }
-                                    coroutineScope.launch {
-                                        viewModel.map.scrollTo(
-                                            (spawnPos.x / 16.0 - HALF_WORLD_DIMENSION) / WORLD_DIMENSION,
-                                            (spawnPos.z / 16.0 - HALF_WORLD_DIMENSION) / WORLD_DIMENSION,
-                                        )
-                                    }
+                        try {
+                            val spawnPos: DimensionVector3<Int> =
+                                info.world.resolveSpawnPoint(this@WorldEditorActivity)
+                            /* spawnMarker = AbstractMarker(
+                                 spawnPos.x!!, spawnPos.y!!, spawnPos.z!!, spawnPos.dimension,
+                                 CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false
+                             )
+                             this.staticMarkers.add(spawnMarker)
+                             addMarker(spawnMarker)x - HALF_WORLD_DIMENSION
+ */
+                            if (!framedToPlayer) {
+                                if (spawnPos.dimension != viewModel.dimension) {
+                                    viewModel.dimension = spawnPos.dimension
+                                    //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
                                 }
-                            } catch (e: Exception) {
+                                coroutineScope.launch {
+                                    viewModel.map.scrollTo(
+                                        spawnPos.x.toDouble(),
+                                        spawnPos.z.toDouble()
+                                    )
+                                }
                             }
+                        } catch (e: Exception) {
                         }
                     }
                 }

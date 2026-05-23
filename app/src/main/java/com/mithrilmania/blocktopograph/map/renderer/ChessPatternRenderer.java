@@ -1,13 +1,16 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.RENDER_SCALE;
+
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class ChessPatternRenderer implements MapRenderer {
@@ -20,19 +23,19 @@ public class ChessPatternRenderer implements MapRenderer {
     }
 
     public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException {
-
+        var rect = new Rect(pX, pY, pX + CHUNK_DIMENSION * pW, pY + CHUNK_DIMENSION * pL);
+        paint.setColor(this.lightShade);
+        canvas.drawRect(rect, paint);
+        paint.setColor(this.darkShade);
+        int step = pW * 2;
+        int steps = CHUNK_DIMENSION / 2;
         int x, z, tX, tY;
-        int color;
 
-        for (z = 0, tY = pY; z < 16; z++, tY += pL) {
-            for (x = 0, tX = pX; x < 16; x++, tX += pW) {
-                color = ((x + z) & 1) == 1 ? darkShade : lightShade;
-                paint.setColor(color);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
-                //This would get hardware acceleration.
+        for (z = 0, tY = pY; z < CHUNK_DIMENSION; z++, tY += pL) {
+            for (x = 0, tX = ((z & 1) == 0 ? pX : pX + RENDER_SCALE); x < steps; x++, tX += step) {
+                rect.set(tX, tY, tX + pW, tY + pL);
+                canvas.drawRect(rect, paint);
             }
         }
     }
-
-
 }

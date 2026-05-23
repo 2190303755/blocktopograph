@@ -42,8 +42,8 @@ private val NoPressGesture: suspend PressGestureScope.(Offset) -> Unit = { }
  */
 internal suspend fun PointerInputScope.detectTapGestures(
     onDoubleTap: ((Offset) -> Unit)? = null,
-    onDoubleTapZoom: (centroid: Offset, zoom: Float) -> Unit,
-    onDoubleTapZoomFling: (centroid: Offset, velocity: Float) -> Unit,
+    onDoubleTapZoom: (pivot: Offset, zoom: Float) -> Unit,
+    onDoubleTapZoomFling: (velocity: Float, pivot: Offset) -> Unit,
     onLongPress: ((Offset) -> Unit)? = null,
     onPress: suspend PressGestureScope.(Offset) -> Unit = NoPressGesture,
     onTap: ((Offset) -> Unit)? = null,
@@ -159,8 +159,8 @@ internal suspend fun PointerInputScope.detectTapGestures(
 
                         if (abs(velocity) > flingZoomThreshold) {
                             onDoubleTapZoomFling(
-                                secondDown.position,
-                                velocity / flingZoomVelocityFactor
+                                velocity / flingZoomVelocityFactor,
+                                secondDown.position
                             )
                         }
                     }

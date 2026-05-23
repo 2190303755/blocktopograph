@@ -426,12 +426,10 @@ fun MapState.onCalloutClick(cb: (id: String, x: Double, y: Double) -> Unit) {
  * @param deltaPx The displacement amount in pixels
  */
 fun MapState.moveMarkerBy(id: String, deltaPx: Offset) {
-    val dx = deltaPx.x.toDouble()
-    val dy = deltaPx.y.toDouble()
     markerState.moveMarkerBy(
         id,
-        dx / (zoomPanState.fullWidth * zoomPanState.scale),
-        dy / (zoomPanState.fullHeight * zoomPanState.scale)
+        deltaPx.x / zoomPanState.scale,
+        deltaPx.y / zoomPanState.scale
     )
 }
 
@@ -449,8 +447,8 @@ suspend fun MapState.centerOnMarker(
         markerState.getMarker(id)?.also {
             awaitLayout()
             val paddingOffset = visibleAreaPadding.getOffsetForScroll()
-            val destScrollX = it.x * fullWidth * scale - layoutSize.width / 2 - paddingOffset.x
-            val destScrollY = it.y * fullHeight * scale - layoutSize.height / 2 - paddingOffset.y
+            val destScrollX = it.x - paddingOffset.x / scale
+            val destScrollY = it.y - paddingOffset.y / scale
 
             withRetry(maxAnimationsRetries, animationsRetriesInterval) {
                 smoothScrollTo(destScrollX, destScrollY, animationSpec)
@@ -476,14 +474,14 @@ suspend fun MapState.centerOnMarker(
             awaitLayout()
             val destScaleCst = constrainScale(destScale)
             val paddingOffset = visibleAreaPadding.getOffsetForScroll()
-            val destScrollX = it.x * fullWidth * destScaleCst - layoutSize.width / 2 - paddingOffset.x
-            val destScrollY = it.y * fullHeight * destScaleCst - layoutSize.height / 2 - paddingOffset.y
+            val destScrollX = it.x - paddingOffset.x / destScaleCst
+            val destScrollY = it.y - paddingOffset.y / destScaleCst
 
             withRetry(maxAnimationsRetries, animationsRetriesInterval) {
                 smoothScrollScale(
                     destScrollX,
                     destScrollY,
-                    destScale,
+                    destScaleCst,
                     animationSpec
                 )
             }

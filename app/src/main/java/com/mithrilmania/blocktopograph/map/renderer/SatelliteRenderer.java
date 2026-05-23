@@ -10,8 +10,8 @@ import androidx.annotation.NonNull;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class SatelliteRenderer implements MapRenderer {
@@ -93,6 +93,7 @@ public class SatelliteRenderer implements MapRenderer {
 
         Chunk dataW = storage.getChunk(chunkX - 1, chunkZ, dimension);
         Chunk dataN = storage.getChunk(chunkX, chunkZ - 1, dimension);
+        var rect = new Rect();
 
         boolean west = dataW != null && !dataW.isVoid(),
                 north = dataN != null && !dataN.isVoid();
@@ -110,7 +111,8 @@ public class SatelliteRenderer implements MapRenderer {
                                 : chunk.getHeightMapValue(x, z - 1)//within chunk
                 );
                 paint.setColor(color);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
+                rect.set(tX, tY, tX + pW, tY + pL);
+                canvas.drawRect(rect, paint);
 
 
             }

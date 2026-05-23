@@ -13,8 +13,6 @@ import kotlin.math.pow
  * consistency.
  *
  * @param levelCount Number of levels
- * @param fullWidth Width of the map at scale 1.0
- * @param fullHeight Height of the map at scale 1.0
  * @param magnifyingFactor Alters the level at which tiles are picked for a given scale. By default,
  * the level immediately higher (in index) is picked, to avoid sub-sampling. This corresponds to a
  * [magnifyingFactor] of 0. The value 1 will result in picking the current level at a given scale,
@@ -26,8 +24,6 @@ import kotlin.math.pow
  */
 internal class VisibleTilesResolver(
     private val levelCount: Int,
-    private val fullWidth: Int,
-    private val fullHeight: Int,
     private val tileSize: Int = 256,
     var magnifyingFactor: Int = 0,
     private val scaleProvider: ScaleProvider,
@@ -46,11 +42,6 @@ internal class VisibleTilesResolver(
      */
     fun getScaleForLevel(level: Int): Double? {
         return scaleForLevel[level]
-    }
-
-    fun getColCountForLevel(level: Int): Int? {
-        val scale = scaleForLevel[level] ?: return null
-        return max(0.0, ceil(fullWidth * scale / tileSize) - 1).toInt() + 1
     }
 
     /**
@@ -77,33 +68,20 @@ internal class VisibleTilesResolver(
     fun getVisibleTiles(viewport: Viewport): VisibleTiles {
         val scale = scaleProvider.getScale()
         val level = getLevel(scale, magnifyingFactor)
-        val scaleAtLevel = scaleForLevel[level] ?: throw AssertionError()
+        val scaleAtLevel = requireNotNull(scaleForLevel[level])
         val relativeScale = scale / scaleAtLevel
-
-        /* At the current level, row and col index have maximum values */
-        val maxCol = max(0.0, ceil(fullWidth * scaleAtLevel / tileSize) - 1).toInt()
-        val maxRow = max(0.0, ceil(fullHeight * scaleAtLevel / tileSize) - 1).toInt()
-
-        fun Int.lowerThan(limit: Int): Int {
-            return if (this <= limit) this else limit
-        }
 
         val scaledTileSize = tileSize.toDouble() * relativeScale
 
-        fun makeVisibleTiles(left: Int, top: Int, right: Int, bottom: Int): VisibleTiles {
-            val colLeft = floor(left / scaledTileSize).toInt().lowerThan(maxCol).coerceAtLeast(0)
-            val rowTop = floor(top / scaledTileSize).toInt().lowerThan(maxRow).coerceAtLeast(0)
-            val colRight = (ceil(right / scaledTileSize).toInt() - 1).lowerThan(maxCol)
-            val rowBottom = (ceil(bottom / scaledTileSize).toInt() - 1).lowerThan(maxRow)
-
-            val tileMatrix = (rowTop..rowBottom).associateWith {
-                colLeft..colRight
-            }
-
-            return VisibleTiles(level, tileMatrix, getSubSample(scale))
+        val colLeft = floor(viewport.left / scaledTileSize).toInt()
+        val rowTop = floor(viewport.top / scaledTileSize).toInt()
+        val colRight = (ceil(viewport.right / scaledTileSize).toInt() - 1)
+        val rowBottom = (ceil(viewport.bottom / scaledTileSize).toInt() - 1)
+        val tileMatrix = (rowTop..rowBottom).associateWith {
+            colLeft..colRight
         }
 
-        return makeVisibleTiles(viewport.left, viewport.top, viewport.right, viewport.bottom)
+        return VisibleTiles(level, tileMatrix, getSubSample(scale))
     }
 
     // internal for test purposes

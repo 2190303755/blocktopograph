@@ -166,8 +166,8 @@ fun MapState.hasPath(id: String): Boolean {
  * Adding a path is done using [addPath], which requires a [PathData] instance. A [PathData]
  * instance can only be built using a [PathDataBuilder].
  */
-fun MapState.makePathDataBuilder(): PathDataBuilder {
-    return PathDataBuilder(zoomPanState.fullWidth, zoomPanState.fullHeight)
+fun makePathDataBuilder(): PathDataBuilder {
+    return PathDataBuilder()
 }
 
 /**

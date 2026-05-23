@@ -33,8 +33,6 @@ import kotlin.math.ln
 import kotlin.math.pow
 
 internal class ZoomPanState(
-    val fullWidth: Int,
-    val fullHeight: Int,
     private val stateChangeListener: ZoomPanStateListener,
     minScale: Double,
     maxScale: Double,
@@ -65,15 +63,8 @@ internal class ZoomPanState(
 
     /* Single source of truth. Don't mutate directly, use appropriate setScale(), etc. */
     internal var scale by mutableDoubleStateOf(scale)
-    internal var scrollX by mutableDoubleStateOf(0.0)
-    internal var scrollY by mutableDoubleStateOf(0.0)
-
-    internal var pivotX: Double by mutableDoubleStateOf(0.0)
-    internal var pivotY: Double by mutableDoubleStateOf(0.0)
-
-    internal var centroidX: Double by mutableDoubleStateOf(0.0)
-    internal var centroidY: Double by mutableDoubleStateOf(0.0)
-
+    internal var cameraX by mutableDoubleStateOf(0.0)
+    internal var cameraY by mutableDoubleStateOf(0.0)
     internal var layoutSize by mutableStateOf(IntSize.Zero)
 
     internal var visibleAreaPadding = VisibleAreaPadding(0, 0, 0, 0)
@@ -88,18 +79,6 @@ internal class ZoomPanState(
         set(value) {
             field = value
             setScale(scale)
-        }
-
-    internal var scrollOffsetRatio = Offset(0f, 0f)
-        set(value) {
-            if (value.x in 0f..1f && value.y in 0f..1f) {
-                field = value
-                /* Update the scroll to constrain it */
-                setScroll(
-                    scrollX = scrollX,
-                    scrollY = scrollY
-                )
-            } else throw IllegalArgumentException("The offset ratio should have values in 0f..1f range")
         }
 
     // For user gestures animations
@@ -117,18 +96,14 @@ internal class ZoomPanState(
             frictionMultiplier = gestureConfiguration.flingZoomFriction
         ).generateDecayAnimationSpec<Float>()
 
-    @Suppress("unused")
     fun setScale(scale: Double, notify: Boolean = true) {
         this.scale = constrainScale(scale)
-        updateCentroid()
         if (notify) notifyStateChanged()
     }
 
-    @Suppress("unused")
-    fun setScroll(scrollX: Double, scrollY: Double) {
-        this.scrollX = constrainScrollX(scrollX)
-        this.scrollY = constrainScrollY(scrollY)
-        updateCentroid()
+    fun setCamera(x: Double, y: Double) {
+        this.cameraX = x
+        this.cameraY = y
         notifyStateChanged()
     }
 
@@ -148,7 +123,7 @@ internal class ZoomPanState(
             if (currScale > 0) {
                 apiAnimatable.snapTo(0f)
                 apiAnimatable.animateTo(1f, animationSpec) {
-                    setScale(lerp(currScale, scale, value.toDouble()))
+                    setScale(lerp(currScale, scale, value))
                 }
             }
         }
@@ -160,20 +135,20 @@ internal class ZoomPanState(
      * @return `true` if the operation completed without being cancelled.
      */
     suspend fun smoothScrollTo(
-        destScrollX: Double,
-        destScrollY: Double,
+        destCameraX: Double,
+        destCameraY: Double,
         animationSpec: AnimationSpec<Float>
     ): Boolean {
-        val startScrollX = this.scrollX
-        val startScrollY = this.scrollY
+        val startCameraX = this.cameraX
+        val startCameraY = this.cameraY
 
         return invokeAndCheckSuccess {
             userAnimatable.stop()
             apiAnimatable.snapTo(0f)
             apiAnimatable.animateTo(1f, animationSpec) {
-                setScroll(
-                    scrollX = lerp(startScrollX, destScrollX, value.toDouble()),
-                    scrollY = lerp(startScrollY, destScrollY, value.toDouble())
+                setCamera(
+                    x = lerp(startCameraX, destCameraX, value),
+                    y = lerp(startCameraY, destCameraY, value)
                 )
             }
         }
@@ -182,29 +157,29 @@ internal class ZoomPanState(
     /**
      * Animates the scroll and the scale together with the supplied destination values.
      *
-     * @param destScrollX Horizontal scroll of the destination point.
-     * @param destScrollY Vertical scroll of the destination point.
+     * @param destCameraX Horizontal scroll of the destination point.
+     * @param destCameraY Vertical scroll of the destination point.
      * @param destScale The final scale value the layout should animate to.
      * @param animationSpec The [AnimationSpec] the animation should use.
      */
     suspend fun smoothScrollScale(
-        destScrollX: Double,
-        destScrollY: Double,
+        destCameraX: Double,
+        destCameraY: Double,
         destScale: Double,
         animationSpec: AnimationSpec<Float>
     ): Boolean {
-        val startScrollX = this.scrollX
-        val startScrollY = this.scrollY
+        val startCameraX = this.cameraX
+        val startCameraY = this.cameraY
         val startScale = this.scale
 
         return invokeAndCheckSuccess {
             userAnimatable.stop()
             apiAnimatable.snapTo(0f)
             apiAnimatable.animateTo(1f, animationSpec) {
-                setScale(lerp(startScale, destScale, value.toDouble()))
-                setScroll(
-                    scrollX = lerp(startScrollX, destScrollX, value.toDouble()),
-                    scrollY = lerp(startScrollY, destScrollY, value.toDouble())
+                setScale(lerp(startScale, destScale, value), false)
+                setCamera(
+                    x = lerp(startCameraX, destCameraX, value),
+                    y = lerp(startCameraY, destCameraY, value)
                 )
             }
         }
@@ -214,26 +189,26 @@ internal class ZoomPanState(
      * Animates the layout to the scale provided, while maintaining position determined by the
      * the provided focal point.
      *
-     * @param focusX The horizontal focal point to maintain, relative to the layout.
-     * @param focusY The vertical focal point to maintain, relative to the layout.
+     * @param pivot The focal point to maintain, relative to the layout.
      * @param destScale The final scale value the layout should animate to.
      * @param animationSpec The [AnimationSpec] the animation should use.
      */
     private suspend fun smoothScaleWithFocalPoint(
-        focusX: Float,
-        focusY: Float,
+        pivot: Offset,
         destScale: Double,
         animationSpec: AnimationSpec<Float>
     ): Boolean {
         val destScaleCst = constrainScale(destScale)
         val startScale = scale
-        if (startScale == destScale) return true
-        val startScrollX = scrollX
-        val startScrollY = scrollY
-        val destScrollX = getScrollAtOffsetAndScale(startScrollX, focusX, destScaleCst / startScale)
-        val destScrollY = getScrollAtOffsetAndScale(startScrollY, focusY, destScaleCst / startScale)
-
-        return smoothScrollScale(destScrollX, destScrollY, destScale, animationSpec)
+        if (startScale == destScaleCst) return true
+        /* Pinch and zoom magic */
+        val offsetRatio = (destScaleCst - startScale) / (startScale * destScaleCst)
+        return smoothScrollScale(
+            (pivot.x - layoutSize.width / 2.0F) * offsetRatio + cameraX,
+            (pivot.y - layoutSize.height / 2.0F) * offsetRatio + cameraY,
+            destScaleCst,
+            animationSpec
+        )
     }
 
     /**
@@ -259,28 +234,24 @@ internal class ZoomPanState(
         userFloatAnimatable.stop()
     }
 
-    override fun onScaleRatio(scaleRatio: Double, centroid: Offset) {
+    override fun onScaleRatio(scaleRatio: Double, pivot: Offset) {
         if (!isZoomingEnabled) return
 
         val formerScale = scale
-        setScale(scale * scaleRatio)
+        setScale(formerScale * scaleRatio, false)
 
         /* Pinch and zoom magic */
-        val effectiveScaleRatio = scale / formerScale
-        setScroll(
-            scrollX = getScrollAtOffsetAndScale(scrollX, centroid.x, effectiveScaleRatio),
-            scrollY = getScrollAtOffsetAndScale(scrollY, centroid.y, effectiveScaleRatio)
+        val offsetRatio = (scale - formerScale) / (formerScale * scale)
+        setCamera(
+            x = (pivot.x - layoutSize.width / 2.0F) * offsetRatio + cameraX,
+            y = (pivot.y - layoutSize.height / 2.0F) * offsetRatio + cameraY
         )
-    }
-
-    private fun getScrollAtOffsetAndScale(scroll: Double, offSet: Float, scaleRatio: Double): Double {
-        return (scroll + offSet) * scaleRatio - offSet
     }
 
     override fun onScrollDelta(scrollDelta: Offset) {
         if (!isScrollingEnabled) return
 
-        setScroll(scrollX - scrollDelta.x, scrollY - scrollDelta.y)
+        setCamera(cameraX - scrollDelta.x / scale, cameraY - scrollDelta.y / scale)
     }
 
     override fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity) {
@@ -288,21 +259,21 @@ internal class ZoomPanState(
 
         scope?.launch {
             userAnimatable.snapTo(Offset.Zero)
-            val initialScrollX = scrollX
-            val initialScrollY = scrollY
+            val initialCameraX = cameraX
+            val initialCameraY = cameraY
             userAnimatable.animateDecay(
                 initialVelocity = -Offset(velocity.x, velocity.y),
                 animationSpec = flingSpec,
             ) {
-                setScroll(
-                    scrollX = initialScrollX + value.x,
-                    scrollY = initialScrollY + value.y
+                setCamera(
+                    x = initialCameraX + value.x / scale,
+                    y = initialCameraY + value.y / scale
                 )
             }
         }
     }
 
-    override fun onFlingZoom(velocity: Float, centroid: Offset) {
+    override fun onFlingZoom(velocity: Float, pivot: Offset) {
         if (!isZoomingEnabled || !isFlingZoomEnabled) return
 
         scope?.launch {
@@ -315,7 +286,7 @@ internal class ZoomPanState(
                 /* Since scale = 2.pow(z - maxLevel)  , where z is the zoom level
                  * taking the derivative: d_scale = ln(2) * scale * d_z */
                 val newScale = scale + ln(2.0) * scale * (value - previous)
-                onScaleRatio(newScale / scale, centroid)
+                onScaleRatio(newScale / scale, pivot)
                 previous = value
             }
         }
@@ -336,27 +307,21 @@ internal class ZoomPanState(
 
     override fun onTap(focalPt: Offset) {
         if (!stateChangeListener.detectsTap()) return
-        offsetToRelative(focalPt) { x, y ->
-            stateChangeListener.onTap(x, y)
-        }
+        stateChangeListener.onTap(focalPt.absoluteX(), focalPt.absoluteY())
     }
 
     override fun onLongPress(focalPt: Offset) {
         if (!stateChangeListener.detectsLongPress()) return
-        offsetToRelative(focalPt) { x, y ->
-            stateChangeListener.onLongPress(x, y)
-        }
+        stateChangeListener.onLongPress(focalPt.absoluteX(), focalPt.absoluteY())
     }
 
-    private fun <T> offsetToRelative(focalPt: Offset, block: (Double, Double) -> T): T {
-        val x = (scrollX + focalPt.x) / (scale * fullWidth)
-        val y = (scrollY + focalPt.y) / (scale * fullHeight)
-        return block(x, y)
-    }
+    fun Offset.absoluteX(
+        scale: Double = this@ZoomPanState.scale
+    ): Double = (x - layoutSize.width / 2.0F) / scale + cameraX
 
-    private fun <T> relativeToMarkerLayoutCoords(x: Double, y: Double, block: (Int, Int) -> T): T {
-        return block((x * fullWidth * scale).toInt(), (y * fullWidth * scale).toInt())
-    }
+    fun Offset.absoluteY(
+        scale: Double = this@ZoomPanState.scale
+    ): Double = (y - layoutSize.height / 2.0F) / scale + cameraY
 
     override fun onDoubleTap(focalPt: Offset) {
         if (!isZoomingEnabled) return
@@ -365,8 +330,7 @@ internal class ZoomPanState(
 
         scope?.launch {
             smoothScaleWithFocalPoint(
-                focalPt.x,
-                focalPt.y,
+                focalPt,
                 destScale,
                 doubleTapSpec
             )
@@ -380,8 +344,7 @@ internal class ZoomPanState(
 
         scope?.launch {
             smoothScaleWithFocalPoint(
-                focalPt.x,
-                focalPt.y,
+                focalPt,
                 destScale,
                 doubleTapSpec
             )
@@ -391,38 +354,26 @@ internal class ZoomPanState(
     override fun isListeningForGestures(): Boolean = areGesturesEnabled
 
     override fun shouldConsumeTapGesture(focalPt: Offset): Boolean {
-        return offsetToRelative(focalPt) { x, y ->
-            relativeToMarkerLayoutCoords(x, y) { xPx, yPx ->
-                stateChangeListener.interceptsTap(x, y, xPx, yPx)
-            }
-        }
+        return stateChangeListener.interceptsTap(
+            focalPt.x.toDouble(),
+            focalPt.y.toDouble(),
+            focalPt.absoluteX().toInt(),
+            focalPt.absoluteY().toInt()
+        )
     }
 
     override fun shouldConsumeLongPress(focalPt: Offset): Boolean {
-        return offsetToRelative(focalPt) { x, y ->
-            relativeToMarkerLayoutCoords(x, y) { xPx, yPx ->
-                stateChangeListener.interceptsLongPress(x, y, xPx, yPx)
-            }
-        }
+        return stateChangeListener.interceptsLongPress(
+            focalPt.x.toDouble(),
+            focalPt.y.toDouble(),
+            focalPt.absoluteX().toInt(),
+            focalPt.absoluteY().toInt()
+        )
     }
 
     override fun onSizeChanged(composableScope: CoroutineScope, size: IntSize) {
         scope = composableScope
-
-        /* When the size changes, typically on device rotation, the scroll needs to be adapted so
-         * that we keep the same location at the center of the screen. Don't do that when layout
-         * hasn't been done yet. */
-        var newScrollX: Double? = null
-        var newScrollY: Double? = null
-        if (layoutSize != IntSize.Zero) {
-            newScrollX = scrollX + (layoutSize.width - size.width) / 2
-            newScrollY = scrollY + (layoutSize.height - size.height) / 2
-        }
-
         layoutSize = size
-        if (newScrollX != null && newScrollY != null) {
-            setScroll(newScrollX, newScrollY)
-        }
 
         /* Layout was done at least once, resume continuations */
         for (ct in onLayoutContinuations) {
@@ -431,48 +382,8 @@ internal class ZoomPanState(
         onLayoutContinuations.clear()
     }
 
-    private fun constrainScrollX(scrollX: Double): Double {
-        val layoutDimension = layoutSize.width.toFloat()
-        val bias = (layoutDimension - layoutSize.width) / 2
-
-        return if (fullWidth * scale < layoutDimension) {
-            val offset = scrollOffsetRatio.x * fullWidth * scale
-            scrollX.coerceIn(fullWidth * scale - layoutDimension - offset + bias, offset + bias)
-        } else {
-            val offset = scrollOffsetRatio.x * layoutDimension
-            scrollX.coerceIn(
-                (-offset + bias).toDouble(),
-                offset + bias + fullWidth * scale - layoutDimension
-            )
-        }
-    }
-
-    private fun constrainScrollY(scrollY: Double): Double {
-        val layoutDimension = layoutSize.height.toFloat()
-        val bias = (layoutDimension - layoutSize.height) / 2
-
-        return if (fullHeight * scale < layoutDimension) {
-            val offset = scrollOffsetRatio.y * fullHeight * scale
-            scrollY.coerceIn(fullHeight * scale - layoutDimension - offset + bias, offset + bias)
-        } else {
-            val offset = scrollOffsetRatio.y * layoutDimension
-            scrollY.coerceIn(
-                (-offset + bias).toDouble(),
-                offset + bias + fullHeight * scale - layoutDimension
-            )
-        }
-    }
-
     internal fun constrainScale(scale: Double): Double {
         return scale.coerceIn(minScale, maxScale.coerceAtLeast(minScale))
-    }
-
-    private fun updateCentroid() {
-        pivotX = layoutSize.width.toDouble() / 2
-        pivotY = layoutSize.height.toDouble() / 2
-
-        centroidX = (scrollX + pivotX) / (fullWidth * scale)
-        centroidY = (scrollY + pivotY) / (fullHeight * scale)
     }
 
     private fun notifyStateChanged() {

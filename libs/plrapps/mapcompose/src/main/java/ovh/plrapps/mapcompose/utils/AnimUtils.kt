@@ -7,6 +7,6 @@ fun lerp(a: Float, b: Float, t: Float): Float {
     return a + (b - a) * t
 }
 
-fun lerp(a: Double, b: Double, t: Double): Double {
+fun lerp(a: Double, b: Double, t: Float): Double {
     return a + (b - a) * t
 }

@@ -23,8 +23,6 @@ import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
  * class.
  *
  * @param levelCount The number of levels in the pyramid.
- * @param fullWidth The width in pixels of the map at scale 1f.
- * @param fullHeight The height in pixels of the map at scale 1f.
  * @param tileSize The size in pixels of tiles, which are expected to be squared. Defaults to 256.
  * @param workerCount The thread count used to fetch tiles. Defaults to the number of cores minus
  * one, which works well for tiles in the file system or in a local database. However, that number
@@ -34,8 +32,6 @@ import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
  */
 class MapState(
     levelCount: Int,
-    fullWidth: Int,
-    fullHeight: Int,
     tileSize: Int = 256,
     workerCount: Int = Runtime.getRuntime().availableProcessors() - 1,
     initialValuesBuilder: InitialValues.() -> Unit = {}
@@ -43,8 +39,6 @@ class MapState(
     private val initialValues = InitialValues().apply(initialValuesBuilder)
     internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     internal val zoomPanState = ZoomPanState(
-        fullWidth = fullWidth,
-        fullHeight = fullHeight,
         stateChangeListener = this,
         minScale = initialValues.minScale,
         maxScale = initialValues.maxScale,
@@ -53,12 +47,10 @@ class MapState(
     )
     internal val markerRenderState = MarkerRenderState()
     internal val markerState = MarkerState(scope, markerRenderState)
-    internal val pathState = PathState(fullWidth, fullHeight)
+    internal val pathState = PathState()
     internal val visibleTilesResolver =
         VisibleTilesResolver(
             levelCount = levelCount,
-            fullWidth = fullWidth,
-            fullHeight = fullHeight,
             tileSize = tileSize,
             magnifyingFactor = initialValues.magnifyingFactor
         ) {
@@ -66,10 +58,8 @@ class MapState(
         }
     internal val tileCanvasState = TileCanvasState(
         scope,
-        tileSize,
         visibleTilesResolver,
-        workerCount,
-        initialValues.highFidelityColors
+        workerCount
     )
 
     private val throttledTask = scope.throttle(wait = 18) {
@@ -86,10 +76,6 @@ class MapState(
     internal var isFilteringBitmap: () -> Boolean by mutableStateOf(
         { initialValues.isFilteringBitmap(this) }
     )
-    private var consumeLateInitialValues: () -> Unit = {
-        consumeLateInitialValues = {}
-        applyLateInitialValues(initialValues)
-    }
 
     /**
      * Cancels all internal tasks.
@@ -104,8 +90,6 @@ class MapState(
     }
 
     override fun onStateChanged() {
-        consumeLateInitialValues()
-
         renderVisibleTilesThrottled()
         stateChangeListener?.invoke(this)
     }
@@ -131,21 +115,13 @@ class MapState(
     override fun detectsLongPress(): Boolean = longPressCb != null
 
     override fun interceptsTap(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
-        val markerHandled = markerState.onHit(xPx, yPx, hitType = HitType.Click)
-        val pathHandled = if (!markerHandled) {
-            pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.Click)
-        } else false
-
-        return markerHandled || pathHandled
+        return markerState.onHit(xPx, yPx, hitType = HitType.Click)
+                || pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.Click)
     }
 
     override fun interceptsLongPress(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
-        val markerHandled = markerState.onHit(xPx, yPx, hitType = HitType.LongPress)
-        val pathHandled = if (!markerHandled) {
-            pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.LongPress)
-        } else false
-
-        return markerHandled || pathHandled
+        return markerState.onHit(xPx, yPx, hitType = HitType.LongPress)
+                || pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.LongPress)
     }
 
     internal fun renderVisibleTilesThrottled() {
@@ -158,28 +134,16 @@ class MapState(
     }
 
     private fun updateViewport(): Viewport {
-        val padding = preloadingPadding
+        val padding = preloadingPadding * 2
+        val zoomPanState = this.zoomPanState
+        val layoutSize = zoomPanState.layoutSize
+        val width = padding + layoutSize.width
+        val height = padding + layoutSize.height
         return viewport.apply {
-            left = zoomPanState.scrollX.toInt() - padding
-            top = zoomPanState.scrollY.toInt() - padding
-            right = left + zoomPanState.layoutSize.width + padding * 2
-            bottom = top + zoomPanState.layoutSize.height + padding * 2
-        }
-    }
-
-    /**
-     * Apply "late" initial values - e.g, those which depend on the layout size.
-     * For the moment, the scroll is the only one.
-     */
-    private fun applyLateInitialValues(initialValues: InitialValues) {
-        with(zoomPanState) {
-            val offsetX = initialValues.screenOffset.x * layoutSize.width
-            val offsetY = initialValues.screenOffset.y * layoutSize.height
-
-            val destScrollX = initialValues.x * fullWidth * scale + offsetX
-            val destScrollY = initialValues.y * fullHeight * scale + offsetY
-
-            setScroll(destScrollX, destScrollY)
+            left = (zoomPanState.cameraX * zoomPanState.scale).toInt() - width / 2
+            top = (zoomPanState.cameraY * zoomPanState.scale).toInt() - height / 2
+            right = left + width
+            bottom = top + height
         }
     }
 }
@@ -205,9 +169,8 @@ class InitialValues internal constructor() {
     internal var screenOffset: Offset = Offset(-0.5f, -0.5f)
     internal var scale: Double = 1.0
     internal var minScale: Double = Double.MIN_VALUE
-    internal var maxScale: Double = 2.0
+    internal var maxScale: Double = 4.0
     internal var magnifyingFactor = 0
-    internal var highFidelityColors: Boolean = true
     internal var preloadingPadding: Int = 0
     internal var isFilteringBitmap: (MapState) -> Boolean = { true }
     internal var gestureConfiguration: GestureConfiguration = GestureConfiguration()
@@ -242,7 +205,7 @@ class InitialValues internal constructor() {
     }
 
     /**
-     * Set the maximum allowed scale. Defaults to 2.0.
+     * Set the maximum allowed scale. Defaults to 4.0.
      */
     fun maxScale(maxScale: Double) = apply {
         this.maxScale = maxScale
@@ -256,19 +219,6 @@ class InitialValues internal constructor() {
      */
     fun magnifyingFactor(magnifyingFactor: Int) = apply {
         this.magnifyingFactor = magnifyingFactor.coerceAtLeast(0)
-    }
-
-    /**
-     * On API level 29 and above, HARDWARE bitmaps are used and this api is irrelevant.
-     * On API 28 and below, by default bitmaps are loaded using ARGB_8888, which is best suited for
-     * most usages.
-     * However, if you're only loading images without alpha channel and high fidelity color isn't
-     * a requirement, RGB_565 can be used instead for less memory usage (by setting this to false).
-     * Beware, however, that some types of images can't be loaded using RGB_565 (such as PNGs with
-     * alpha channel). Unless you know what you're doing, let this parameter be true.
-     */
-    fun highFidelityColors(enabled: Boolean) = apply {
-        this.highFidelityColors = enabled
     }
 
     /**

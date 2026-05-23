@@ -14,14 +14,8 @@ import ovh.plrapps.mapcompose.ui.state.MapState
 
 const val CHUNK_DIMENSION = 16
 const val RENDER_SCALE = 16
-
-//TODO the maximum world size is way bigger than the world size that this app can handle (due to render glitches & rounding errors)
-//WORLD_SIZE has to be a power of 2! (It must be perfectly divisible by TILE_SIZE, which is a power of two)
-const val WORLD_DIMENSION = 1 shl 21
-const val HALF_WORLD_DIMENSION = WORLD_DIMENSION / 2
-const val ORIGIN_OFFSET = HALF_WORLD_DIMENSION / CHUNK_DIMENSION
 const val TILE_DIMENSION = CHUNK_DIMENSION * RENDER_SCALE
-const val MAP_DIMENSION = WORLD_DIMENSION * RENDER_SCALE
+const val ZOOM_LEVELS = 3
 
 
 sealed interface InitState {
@@ -42,13 +36,8 @@ class WorldEditorModel : ViewModel() {
 
     @JvmField
     val map: MapState = MapState(
-        levelCount = 1,
-        fullWidth = MAP_DIMENSION,
-        fullHeight = MAP_DIMENSION,
-        tileSize = TILE_DIMENSION,
-        initialValuesBuilder = {
-            scale(2.0)
-        }
+        levelCount = ZOOM_LEVELS,
+        tileSize = TILE_DIMENSION
     )
 
     override fun onCleared() {

@@ -51,9 +51,7 @@ import java.util.concurrent.TimeUnit
  * @author p-lr on 22/06/19
  */
 internal class TileCollector(
-    private val workerCount: Int,
-    private val optimizeForLowEndDevices: Boolean,
-    private val tileSize: Int
+    private val workerCount: Int
 ) {
     @Volatile
     var isIdle: Boolean = true

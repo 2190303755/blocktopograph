@@ -49,14 +49,14 @@ internal fun TileCanvas(
          * Since the translate function of the Canvas works with floats, we perform a change of
          * referential so that we only need to translate the canvas by an amount which can be
          * precisely represented as a float. */
-        val x0 = ((ceil(zoomPanState.scrollX / grid) * grid) / zoomPanState.scale).toInt()
-        val y0 = ((ceil(zoomPanState.scrollY / grid) * grid) / zoomPanState.scale).toInt()
+        val refX = ceil(zoomPanState.cameraX / grid).toInt() * grid
+        val refY = ceil(zoomPanState.cameraY / grid).toInt() * grid
 
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(
-                left = (-zoomPanState.scrollX + x0 * zoomPanState.scale).toFloat(),
-                top = (-zoomPanState.scrollY + y0 * zoomPanState.scale).toFloat()
+                left = size.width / 2.0F - ((zoomPanState.cameraX - refX) * zoomPanState.scale).toFloat(),
+                top = size.height / 2.0F - ((zoomPanState.cameraY - refY) * zoomPanState.scale).toFloat()
             )
             scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
@@ -68,36 +68,17 @@ internal fun TileCanvas(
                 val scaleForLevel = visibleTilesResolver.getScaleForLevel(tile.zoom)
                     ?: continue
                 val tileScaled = (tileSize / scaleForLevel).toInt()
-                val phases = tile.phases
 
-                if (phases == null) {
-                    drawTile(
-                        tile = tile,
-                        tileScaled = tileScaled,
-                        phi = 0,
-                        x0 = x0,
-                        y0 = y0,
-                        dest = dest,
-                        colorFilterProvider = colorFilterProvider,
-                        paint = paint,
-                        bitmap = bitmap,
-                    )
-                } else {
-                    val colCount = visibleTilesResolver.getColCountForLevel(tile.zoom) ?: continue
-                    for (i in phases) {
-                        drawTile(
-                            tile = tile,
-                            tileScaled = tileScaled,
-                            phi = i * colCount,
-                            x0 = x0,
-                            y0 = y0,
-                            dest = dest,
-                            colorFilterProvider = colorFilterProvider,
-                            paint = paint,
-                            bitmap = bitmap,
-                        )
-                    }
-                }
+                drawTile(
+                    tile = tile,
+                    tileScaled = tileScaled,
+                    refX = refX,
+                    refY = refY,
+                    dest = dest,
+                    colorFilterProvider = colorFilterProvider,
+                    paint = paint,
+                    bitmap = bitmap,
+                )
 
                 /* If a tile isn't fully opaque, increase its alpha state by the alpha tick */
                 if (tile.alpha < 1f) {
@@ -114,20 +95,17 @@ internal fun TileCanvas(
 private fun DrawScope.drawTile(
     tile: Tile,
     tileScaled: Int,
-    phi: Int,
-    x0: Int,
-    y0: Int,
+    refX: Int,
+    refY: Int,
     dest: Rect,
     colorFilterProvider: ColorFilterProvider?,
     paint: Paint,
     bitmap: Bitmap,
 ) {
-    val l = tile.col * tileScaled + phi * tileScaled
-    val t = tile.row * tileScaled
-    val r = l + tileScaled
-    val b = t + tileScaled
-    /* The change of referential is done by offsetting coordinates by (x0, y0) */
-    dest.set(l - x0, t - y0, r - x0, b - y0)
+    /* The change of referential is done by offsetting coordinates by (refX, refY) */
+    val left = tile.col * tileScaled - refX
+    val top = tile.row * tileScaled - refY
+    dest.set(left, top, left + tileScaled, top + tileScaled)
 
     val colorFilter = colorFilterProvider?.getColorFilter(tile.row, tile.col, tile.zoom)
 

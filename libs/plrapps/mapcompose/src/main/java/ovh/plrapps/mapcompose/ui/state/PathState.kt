@@ -22,10 +22,7 @@ import ovh.plrapps.mapcompose.utils.getDistanceFromBox
 import ovh.plrapps.mapcompose.utils.getNearestPoint
 import ovh.plrapps.mapcompose.utils.isInsideBox
 
-internal class PathState(
-    val fullWidth: Int,
-    val fullHeight: Int
-) {
+internal class PathState {
     val pathState = mutableStateMapOf<String, DrawablePathState>()
 
     var pathClickCb: PathClickCb? = null
@@ -117,10 +114,6 @@ internal class PathState(
     fun onHit(x: Double, y: Double, scale: Double, hitType: HitType): Boolean {
         if (!hasClickable.value) return false
 
-        /* Compute pixel coordinates, at scale 1 because path coordinates (see below) are at scale 1 */
-        val xPx = x * fullWidth
-        val yPx = y * fullHeight
-
         val radius = dpToPx(12f)
         val threshold = radius / scale
 
@@ -142,9 +135,9 @@ internal class PathState(
 
             /* Don't compute the nearest point for a point outside of the bounding box and with a
              * distance to the bounding box greater than the threshold */
-            if (!isInsideBox(xPx, yPx, xMin, xMax, yMin, yMax) && getDistanceFromBox(xPx, yPx, xMin, xMax, yMin, yMax) > threshold) {
-                continue
-            }
+            if (!isInsideBox(x, y, xMin, xMax, yMin, yMax)
+                && getDistanceFromBox(x, y, xMin, xMax, yMin, yMax) > threshold
+            ) continue
 
             var d = Double.MAX_VALUE
             var nearestP1: Point? = null
@@ -155,7 +148,7 @@ internal class PathState(
                 if (i + 1 == points.size) break
                 val p1 = points[i]
                 val p2 = points[i + 1]
-                val dist = getDistance(xPx, yPx, p1.x, p1.y, p2.x, p2.y)
+                val dist = getDistance(x, y, p1.x, p1.y, p2.x, p2.y)
                 if (dist < threshold && dist < d) {
                     d = dist
                     nearestP1 = p1
@@ -165,9 +158,9 @@ internal class PathState(
 
             if (nearestP1 != null && nearestP2 != null) {
                 val nearest =
-                    getNearestPoint(xPx, yPx, nearestP1.x, nearestP1.y, nearestP2.x, nearestP2.y)
-                val xOnPath = nearest.x / fullWidth
-                val yOnPath = nearest.y / fullHeight
+                    getNearestPoint(x, y, nearestP1.x, nearestP1.y, nearestP2.x, nearestP2.y)
+                val xOnPath = nearest.x
+                val yOnPath = nearest.y
 
                 if (pathHitTraversalCb == null) {
                     when (hitType) {
@@ -203,15 +196,11 @@ internal class PathState(
     fun isPathWithinRange(id: String, rangePx: Int, x: Double, y: Double): Boolean {
         val drawablePathState = pathState[id] ?: return false
 
-        /* Compute pixel coordinates, at scale 1 because path coordinates (see below) are at scale 1 */
-        val xPx = x * fullWidth
-        val yPx = y * fullHeight
-
         for (i in 0 until drawablePathState.pathData.data.size) {
             if (i + 1 == drawablePathState.pathData.data.size) break
             val p1 = drawablePathState.pathData.data[i]
             val p2 = drawablePathState.pathData.data[i + 1]
-            val dist = getDistance(xPx, yPx, p1.x, p1.y, p2.x, p2.y)
+            val dist = getDistance(x, y, p1.x, p1.y, p2.x, p2.y)
             if (dist < rangePx) {
                 return true
             }

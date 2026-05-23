@@ -28,11 +28,11 @@ import kotlin.math.pow
  */
 internal suspend fun PointerInputScope.detectTransformGestures(
     panZoomLock: Boolean = false,
-    onGesture: (centroid: Offset, pan: Offset, zoom: Float) -> Unit,
+    onGesture: (pivot: Offset, pan: Offset, zoom: Float) -> Unit,
     onTouchDown: () -> Unit,
-    onTwoFingersTap: (centroid: Offset) -> Unit,
+    onTwoFingersTap: (pivot: Offset) -> Unit,
     onFling: (velocity: Velocity) -> Unit,
-    onFlingZoom: (centroid: Offset, velocity: Float) -> Unit
+    onFlingZoom: (velocity: Float, pivot: Offset) -> Unit
 ) {
     val flingVelocityThreshold = 200.dp.toPx().pow(2)
     val flingVelocityMaxRange = -8000f..8000f
@@ -142,7 +142,7 @@ internal suspend fun PointerInputScope.detectTransformGestures(
                 // Tolerate a slight delay between the release of the first and second finger
                 && (lastTime - lastTwoFingersDown) < twoFingersReleaseTolerance
             ) {
-                onFlingZoom(centroidTwoFingers, velocity / flingZoomVelocityFactor)
+                onFlingZoom(velocity / flingZoomVelocityFactor, centroidTwoFingers)
             }
 
             return@awaitEachGesture

@@ -41,36 +41,34 @@ var MapState.scale: Double
     }
 
 /**
- * Get the current [scroll] - the position of the top-left corner of the visible viewport.
+ * Get the current [camera] - the position of the canter of the visible viewport.
  * This is a low-level concept (returned value is in scaled pixels).
  */
-val MapState.scroll: Scroll
-    get() = Scroll(zoomPanState.scrollX, zoomPanState.scrollY)
+val MapState.camera: Camera
+    get() = Camera(zoomPanState.cameraX, zoomPanState.cameraY)
 
 
 /**
- * Set the [scroll] - the position of the top-left corner of the visible viewport. This is a
+ * Set the [camera] - the position of the center of the visible viewport. This is a
  * suspending call because it's required to wait the first composition. Otherwise, it's invoked
  * immediately.
- * This is a low-level concept (input value is expected to be in scaled pixels). To scroll to a
- * known position, prefer the [snapScrollTo] API.
  */
-suspend fun MapState.setScroll(scrollX: Double, scrollY: Double) {
+suspend fun MapState.setCamera(x: Double, y: Double) {
     with(zoomPanState) {
         awaitLayout()
 
-        setScroll(scrollX, scrollY)
+        setCamera(x, y)
     }
 }
 
 fun MapState.referentialSnapshotFlow(): Flow<ReferentialSnapshot> = snapshotFlow {
-    ReferentialSnapshot(zoomPanState.scale, scroll)
+    ReferentialSnapshot(zoomPanState.scale, camera)
 }
 
-data class ReferentialSnapshot(val scale: Double, val scroll: Scroll)
+data class ReferentialSnapshot(val scale: Double, val camera: Camera)
 
 /**
- * Get notified whenever the state ([scale] and/or [scroll]) changes.
+ * Get notified whenever the state ([scale] and/or [camera]) changes.
  *
  * @param cb An extension function with [MapState] as receiver type
  */
@@ -140,7 +138,7 @@ fun MapState.setVisibleAreaPadding(left: Int = 0, right: Int = 0, top: Int = 0, 
 }
 
 /**
- * The default maximum scale is [Double.MIN_VALUE].
+ * The default minimum scale is [Double.MIN_VALUE].
  * When changed, and if the current scale is smaller than the new [minScale], the current scale is
  * changed to be equal to [minScale].
  */
@@ -160,25 +158,6 @@ var MapState.maxScale: Double
     set(value) {
         zoomPanState.maxScale = value
     }
-
-/**
- * The scroll offset ratio allows to scroll past the default scroll limits. They are expressed in
- * percent of the layout dimensions.
- * Setting a scroll offset ratio is useful when rotation is enabled, so that edges of the map are
- * reachable.
- * The recommended value to try it out is 0.5f
- * Values must be in [0f..1f] range, or an [IllegalArgumentException] is thrown.
- *
- * This parameter has no effect in x dimension when infinite scroll is enabled.
- *
- * @param xRatio The horizontal scroll offset ratio. The scroll offset will be equal to this ratio
- * multiplied by the layout width.
- * @param yRatio The vertical scroll offset ratio. The scroll offset will be equal to this ratio
- * multiplied by the layout height.
- */
-fun MapState.setScrollOffsetRatio(xRatio: Float, yRatio: Float) {
-    zoomPanState.scrollOffsetRatio = Offset(xRatio, yRatio)
-}
 
 /**
  * Get the layout dimensions in pixels.
@@ -206,61 +185,27 @@ suspend fun MapState.getLayoutSizeFlow(): Flow<IntSize> {
 }
 
 /**
- * Scrolls to a position. Defaults to centering on the provided scroll destination.
- *
- * @param x The normalized X position on the map, in range [0..1]
- * @param y The normalized Y position on the map, in range [0..1]
- * @param screenOffset Offset of the screen relatively to its dimension. Default is
- * Offset(-0.5f, -0.5f), so moving the screen by half the width left and by half the height top,
- * effectively centering on the scroll destination.
- */
-suspend fun MapState.snapScrollTo(
-    x: Double,
-    y: Double,
-    screenOffset: Offset = Offset(-0.5f, -0.5f)
-) {
-    with(zoomPanState) {
-        awaitLayout()
-        val offsetX = screenOffset.x * layoutSize.width
-        val offsetY = screenOffset.y * layoutSize.height
-
-        val paddingOffset = visibleAreaPadding.getOffsetForScroll()
-        val destScrollX = x * fullWidth * scale + offsetX - paddingOffset.x
-        val destScrollY = y * fullHeight * scale + offsetY - paddingOffset.y
-
-        setScroll(destScrollX, destScrollY)
-    }
-}
-
-/**
  * Scrolls to a position, animating the scroll and the scale. Defaults to centering on the provided
  * scroll destination.
  *
- * @param x The normalized X position on the map, in range [0..1]
- * @param y The normalized Y position on the map, in range [0..1]
+ * @param x The absolute X position on the map
+ * @param y The absolute Y position on the map
  * @param destScale The destination scale. The default value is the current scale.
  * @param animationSpec The [AnimationSpec]. Default is [SpringSpec] with low stiffness.
- * @param screenOffset Offset of the screen relatively to its dimension. Default is
- * Offset(-0.5f, -0.5f), so moving the screen by half the width left and by half the height top,
- * effectively centering on the scroll destination.
  */
 suspend fun MapState.scrollTo(
     x: Double,
     y: Double,
     destScale: Double = scale,
     animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow),
-    screenOffset: Offset = Offset(-0.5f, -0.5f)
 ) {
     with(zoomPanState) {
         awaitLayout()
-        val offsetX = screenOffset.x * layoutSize.width
-        val offsetY = screenOffset.y * layoutSize.height
-
         val effectiveDstScale = constrainScale(destScale)
 
         val paddingOffset = visibleAreaPadding.getOffsetForScroll()
-        val destScrollX = x * fullWidth * effectiveDstScale + offsetX - paddingOffset.x
-        val destScrollY = y * fullHeight * effectiveDstScale + offsetY - paddingOffset.y
+        val destScrollX = x - paddingOffset.x / effectiveDstScale
+        val destScrollY = y - paddingOffset.y / effectiveDstScale
 
         withRetry(maxAnimationsRetries, animationsRetriesInterval) {
             smoothScrollScale(
@@ -288,7 +233,12 @@ suspend fun MapState.snapScrollTo(
         awaitLayout()
         val (center, scale) = calculateScrollTo(area, padding)
         setScale(scale)
-        snapScrollTo(center.x, center.y)
+
+        val paddingOffset = visibleAreaPadding.getOffsetForScroll()
+        val destScrollX = center.x - paddingOffset.x / this.scale
+        val destScrollY = center.y - paddingOffset.y / this.scale
+
+        setCamera(destScrollX, destScrollY)
     }
 }
 
@@ -326,11 +276,11 @@ private fun ZoomPanState.calculateScrollTo(
     val centerX = (area.xLeft + area.xRight) / 2
     val centerY = (area.yTop + area.yBottom) / 2
 
-    val areaWidth = fullWidth * (area.xRight - area.xLeft)
+    val areaWidth = area.xRight - area.xLeft
     val availableViewportWidth = (layoutSize.width - visibleAreaPadding.left - visibleAreaPadding.right) * (1 - padding.x)
     val horizontalScale = availableViewportWidth / areaWidth
 
-    val areaHeight = fullHeight * (area.yBottom - area.yTop)
+    val areaHeight = area.yBottom - area.yTop
     val availableViewportHeight = (layoutSize.height - visibleAreaPadding.top - visibleAreaPadding.bottom) * (1 - padding.y)
     val verticalScale = availableViewportHeight / areaHeight
 
@@ -341,25 +291,25 @@ private fun ZoomPanState.calculateScrollTo(
 }
 
 /**
- * The [centroidX] is the x coordinate of the center of the current viewport.
+ * The [cameraX] is the x coordinate of the center of the current viewport.
  * It changes with the scroll and the scale.
  * This is a low-level concept, and is only useful when defining custom views.
- * The value is a relative coordinate (in [0.0 .. 1.0] range).
+ * The value is a absolute coordinate.
  */
-val MapState.centroidX: Double
-    get() = zoomPanState.centroidX
+val MapState.cameraX: Double
+    get() = zoomPanState.cameraX
 
 /**
- * The [centroidY] is the y coordinate of the center of the current viewport.
+ * The [cameraY] is the y coordinate of the center of the current viewport.
  * It changes with the scroll and the scale.
  * This is a low-level concept, and is only useful when defining custom views.
- * The value is a relative coordinate (in [0.0 .. 1.0] range).
+ * The value is a absolute coordinate.
  */
-val MapState.centroidY: Double
-    get() = zoomPanState.centroidY
+val MapState.cameraY: Double
+    get() = zoomPanState.cameraY
 
 /**
- * Get the flow of centroid points. A centroid point contains the normalized coordinates of the
+ * Get the flow of centroid points. A centroid point contains the absolute coordinates of the
  * center of the map.
  * Useful for asynchronous processing using flow operators. Like every snapshot flow, it should be
  * collected from the main thread.
@@ -375,15 +325,9 @@ val MapState.centroidY: Double
  */
 fun MapState.centroidSnapshotFlow(): Flow<Point> {
     return snapshotFlow {
-        Point(zoomPanState.centroidX, zoomPanState.centroidY)
+        Point(zoomPanState.cameraX, zoomPanState.cameraY)
     }
 }
-
-/**
- * A convenience property. It corresponds to the size used when creating the [MapState].
- */
-val MapState.fullSize: IntSize
-    get() = IntSize(zoomPanState.fullWidth, zoomPanState.fullHeight)
 
 /**
  * Returns the level, an entire value belonging to [0 ; levelCount - 1], where `levelCount` is the
@@ -410,11 +354,15 @@ suspend fun MapState.visibleBoundingBox(): BoundingBox {
     return with(zoomPanState) {
         awaitLayout()
 
+        val width = layoutSize.width / scale
+        val height = layoutSize.height / scale
+        val left = cameraX - width / 2
+        val top = cameraY - height / 2
         BoundingBox(
-            xLeft = centroidX - layoutSize.width / (2 * fullWidth * scale),
-            yTop = centroidY - layoutSize.height / (2 * fullHeight * scale),
-            xRight = centroidX + layoutSize.width / (2 * fullWidth * scale),
-            yBottom = centroidY + layoutSize.height / (2 * fullHeight * scale)
+            xLeft = left,
+            yTop = top,
+            xRight = left + width,
+            yBottom = top + height
         )
     }
 }
@@ -437,11 +385,12 @@ data class BoundingBox(val xLeft: Double, val yTop: Double, val xRight: Double, 
 suspend fun MapState.visibleArea(padding: IntOffset = IntOffset.Zero): VisibleArea {
     return with(zoomPanState) {
         awaitLayout()
-
-        val xLeft = centroidX - (layoutSize.width + padding.x * 2) / (2 * fullWidth * scale)
-        val yTop = centroidY - (layoutSize.height + padding.y * 2) / (2 * fullHeight * scale)
-        val xRight = centroidX + (layoutSize.width + padding.x * 2) / (2 * fullWidth * scale)
-        val yBottom = centroidY + (layoutSize.height + padding.y * 2) / (2 * fullHeight * scale)
+        val width = (layoutSize.width + padding.x * 2) / scale
+        val height = (layoutSize.height + padding.y * 2) / scale
+        val xLeft = cameraX - width / 2
+        val yTop = cameraY - height / 2
+        val xRight = cameraX + width
+        val yBottom = cameraY + height
 
         visibleAreaMutex.withLock {
             val area = visibleArea
@@ -473,7 +422,7 @@ suspend fun MapState.visibleAreaFlow(
     throttleMillis: Long = 500
 ): Flow<VisibleArea> {
     return snapshotFlow {
-        centroidX.hashCode() + centroidY.hashCode() + scale.hashCode()
+        cameraX.hashCode() + cameraY.hashCode() + scale.hashCode()
     }.throttle(throttleMillis).map {
         visibleArea(padding)
     }
@@ -528,12 +477,12 @@ internal var visibleArea: VisibleArea? = null
  */
 fun MapState.viewportChangeFlow(): Flow<MapState> {
     return snapshotFlow {
-        centroidX.hashCode() + centroidY.hashCode() + scale.hashCode()
+        cameraX.hashCode() + cameraY.hashCode() + scale.hashCode()
     }.map { this }
 }
 
 /**
- * The [MapState] is considered idle when its [centroidX] and [centroidY] haven't changed for at
+ * The [MapState] is considered idle when its [cameraX] and [cameraY] haven't changed for at
  * least [thresholdMillis] which is 400ms by default.
  */
 fun MapState.idleStateFlow(thresholdMillis: Long = 400): StateFlow<Boolean> {
@@ -541,7 +490,7 @@ fun MapState.idleStateFlow(thresholdMillis: Long = 400): StateFlow<Boolean> {
 
     scope.launch {
         snapshotFlow {
-            "$centroidX,$centroidY"
+            "$cameraX,$cameraY"
         }.map {
             stateFlow.value = false
         }.collectLatest {

@@ -32,8 +32,8 @@ internal fun MarkerLayout(
     val origin by remember {
         derivedStateOf {
             IntOffset(
-                ((ceil(zoomPanState.scrollX / grid) * grid)).toInt(),
-                ((ceil(zoomPanState.scrollY / grid) * grid)).toInt()
+                ((ceil(zoomPanState.cameraX / grid) * grid)).toInt(),
+                ((ceil(zoomPanState.cameraY / grid) * grid)).toInt()
             )
         }
     }
@@ -43,8 +43,9 @@ internal fun MarkerLayout(
         content = content,
         modifier
             .graphicsLayer {
-                translationX = (-zoomPanState.scrollX + origin.x).toFloat()
-                translationY = (-zoomPanState.scrollY + origin.y).toFloat()
+                // fixme
+                translationX = -((zoomPanState.cameraX - origin.x) * zoomPanState.scale).toFloat()
+                translationY = -((zoomPanState.cameraY - origin.y) * zoomPanState.scale).toFloat()
             }
             .background(Color.Transparent)
             .fillMaxSize()
@@ -68,8 +69,8 @@ internal fun MarkerLayout(
                 val heightOffset =
                     placeable.measuredHeight * data.relativeOffset.y + with(density) { data.absoluteOffset.y.toPx() }
 
-                val x = data.x * zoomPanState.fullWidth * zoomPanState.scale + widthOffset
-                val y = data.y * zoomPanState.fullHeight * zoomPanState.scale + heightOffset
+                val x = data.x * zoomPanState.scale + widthOffset
+                val y = data.y * zoomPanState.scale + heightOffset
                 /* It's important to always update data even when visibility is set to false, so
                  * click handling works on updated data (a non-visible marker might be clickable) */
                 data.xPlacement = x

@@ -6,7 +6,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,7 +20,6 @@ import ovh.plrapps.mapcompose.api.BoundingBox
 import ovh.plrapps.mapcompose.api.ClusterScaleThreshold
 import ovh.plrapps.mapcompose.api.MarkerDataSnapshot
 import ovh.plrapps.mapcompose.api.VisibleArea
-import ovh.plrapps.mapcompose.api.fullSize
 import ovh.plrapps.mapcompose.api.maxScale
 import ovh.plrapps.mapcompose.api.referentialSnapshotFlow
 import ovh.plrapps.mapcompose.api.scrollTo
@@ -173,7 +171,7 @@ internal class Clusterer(
             ClusterScaleThreshold.MaxScale -> mapState.maxScale
         }
         val result = if (scale < maxScale) {
-            val densitySearchPass = processMarkers(markers, visibleMarkers, scale, epsilon)
+            val densitySearchPass = processMarkers(visibleMarkers, scale, epsilon)
             mergeClosest(densitySearchPass, epsilon, scale)
         } else {
             ClusteringResult(markers = visibleMarkers)
@@ -234,19 +232,18 @@ internal class Clusterer(
     }
 
     private fun processMarkers(
-        markers: List<Marker>, visibleMarkers: List<Marker>, scale: Double, epsilon: Float
+        visibleMarkers: List<Marker>, scale: Double, epsilon: Float
     ): ClusteringResult {
         val snapScale = getSnapScale(scale)
-        val mesh = Mesh(epsilon, snapScale, mapState.fullSize)
+        val mesh = Mesh(epsilon, snapScale)
         visibleMarkers.forEach { marker ->
             mesh.add(marker)
         }
 
-        return findNewClustersByDensity(markers, mesh, scale, epsilon)
+        return findNewClustersByDensity(mesh, scale, epsilon)
     }
 
     private fun findNewClustersByDensity(
-        markers: List<Marker>,
         mesh: Mesh,
         scale: Double,
         epsilon: Float,
@@ -382,8 +379,8 @@ internal class Clusterer(
         y2: Double,
         scale: Double
     ): Double {
-        val dx = (x2 - x1) * scale * mapState.fullSize.width
-        val dy = (y2 - y1) * scale * mapState.fullSize.height
+        val dx = (x2 - x1) * scale
+        val dy = (y2 - y1) * scale
         return dx * dx + dy * dy
     }
 
@@ -479,18 +476,16 @@ internal class Clusterer(
 private class Mesh(
     private val meshSize: Float,
     private val scale: Double,
-    private val fullSize: IntSize,
 ) {
     val gridMap = mutableMapOf<Key, MarkerWindow>()
     val markers = mutableListOf<Marker>()
 
     private fun getKey(marker: Marker, meshSize: Float, scale: Double): Key {
-        val relativeWidth = marker.x * fullSize.width * scale
-        val relativeHeight = marker.y * fullSize.height * scale
+        val factor = scale / meshSize
 
         return Key(
-            row = (relativeWidth / meshSize).toInt(),
-            col = (relativeHeight / meshSize).toInt()
+            row = (marker.x * factor).toInt(),
+            col = (marker.y * factor).toInt()
         )
     }
 

@@ -43,9 +43,9 @@ import kotlin.math.pow
  * @author P.Laurence on 04/06/2019
  */
 internal class TileCanvasState(
-    parentScope: CoroutineScope, tileSize: Int,
+    parentScope: CoroutineScope,
     private val visibleTilesResolver: VisibleTilesResolver,
-    workerCount: Int, highFidelityColors: Boolean
+    workerCount: Int
 ) {
 
     /* This view-model uses a background thread for its computations */
@@ -116,9 +116,7 @@ internal class TileCanvasState(
 
         /* Launch the TileCollector */
         tileCollector = TileCollector(
-            workerCount = workerCount.coerceAtLeast(1),
-            optimizeForLowEndDevices = !highFidelityColors,
-            tileSize = tileSize
+            workerCount = workerCount.coerceAtLeast(1)
         )
         scope.launch {
             _layerFlow.collectLatest { layers ->

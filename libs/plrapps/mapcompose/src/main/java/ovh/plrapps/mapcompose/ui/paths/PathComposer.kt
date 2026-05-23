@@ -70,15 +70,15 @@ internal fun PathCanvas(
     val origin by produceState(
         initialValue = IntOffset.Zero,
         key1 = zoomPanState.scale,
-        key2 = zoomPanState.scrollX,
-        key3 = zoomPanState.scrollY
+        key2 = zoomPanState.cameraX,
+        key3 = zoomPanState.cameraY
     ) {
         val scale = zoomPanState.scale
 
         val formerX0 = value.x
         val formerY0 = value.y
-        val x0 = ((ceil(zoomPanState.scrollX / grid) * grid) / scale).toInt()
-        val y0 = ((ceil(zoomPanState.scrollY / grid) * grid) / scale).toInt()
+        val x0 = (ceil(zoomPanState.cameraX / grid) * grid).toInt()
+        val y0 = (ceil(zoomPanState.cameraY / grid) * grid).toInt()
 
         val shouldUpdate = (abs(x0 - formerX0) * scale > grid) ||
                 (abs(y0 - formerY0) * scale > grid)
@@ -185,8 +185,8 @@ internal fun PathCanvas(
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(
-                left = (-zoomPanState.scrollX + path.origin.x * zoomPanState.scale).toFloat(),
-                top = (-zoomPanState.scrollY + path.origin.y * zoomPanState.scale).toFloat()
+                left = size.width / 2.0F - ((zoomPanState.cameraX - path.origin.x) * zoomPanState.scale).toFloat(),
+                top = size.height / 2.0F - ((zoomPanState.cameraY - path.origin.y) * zoomPanState.scale).toFloat()
             )
             scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
@@ -216,10 +216,7 @@ class PathData internal constructor(
 }
 
 @Suppress("unused")
-class PathDataBuilder internal constructor(
-    private val fullWidth: Int,
-    private val fullHeight: Int
-) {
+class PathDataBuilder internal constructor() {
     private val points = mutableListOf<Point>()
     private var xMin: Double? = null
     private var xMax: Double? = null
@@ -227,7 +224,7 @@ class PathDataBuilder internal constructor(
     private var yMax: Double? = null
 
     /**
-     * Add a point to the path. Values are relative coordinates (in range [0f..1f]).
+     * Add a point to the path. Values are absolute coordinates.
      */
     @Synchronized
     fun addPoint(x: Double, y: Double) = apply {
@@ -235,7 +232,7 @@ class PathDataBuilder internal constructor(
     }
 
     /**
-     * Add points to the path. Values are relative coordinates (in range [0f..1f]).
+     * Add points to the path. Values are absolute coordinates.
      */
     @Synchronized
     fun addPoints(points: List<Pair<Double, Double>>) = apply {
@@ -243,7 +240,7 @@ class PathDataBuilder internal constructor(
     }
 
     private fun createPoint(x: Double, y: Double): Point {
-        return Point(x * fullWidth, y * fullHeight).also {
+        return Point(x, y).also {
             updateBoundingBox(it.x, it.y)
         }
     }

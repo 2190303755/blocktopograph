@@ -51,7 +51,7 @@ internal fun MarkerComposer(
                                         if (interceptor != null) {
                                             invokeDragInterceptor(
                                                 data,
-                                                zoomPanState,
+                                                zoomPanState.scale,
                                                 dragAmount,
                                                 change.position
                                             )
@@ -106,8 +106,8 @@ private fun invokeDragStartListener(
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
     val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffset.x.toDouble() / (zoomPanState.fullWidth * zoomPanState.scale)
-    val py = data.y + pointerOffset.y.toDouble() / (zoomPanState.fullHeight * zoomPanState.scale)
+    val px = data.x + pointerOffset.x / zoomPanState.scale
+    val py = data.y + pointerOffset.y / zoomPanState.scale
 
     data.dragStartListener?.onDragStart(
         id = data.id,
@@ -120,23 +120,20 @@ private fun invokeDragStartListener(
 
 private fun invokeDragInterceptor(
     data: MarkerData,
-    zoomPanState: ZoomPanState,
+    scale: Double,
     deltaPx: Offset,
     position: Offset
 ) {
     /* Compute the displacement */
-    val dx = deltaPx.x.toDouble()
-    val dy = deltaPx.y.toDouble()
-
-    val deltaX = dx / (zoomPanState.fullWidth * zoomPanState.scale)
-    val deltaY = dy / (zoomPanState.fullHeight * zoomPanState.scale)
+    val deltaX = deltaPx.x / scale
+    val deltaY = deltaPx.y / scale
 
     /* Compute the pointer offset */
     val origin = Offset(- data.measuredWidth * data.relativeOffset.x, - data.measuredHeight * data.relativeOffset.y)
     val pointerOffset = position - origin // TODO: inline
 
-    val px = data.x + pointerOffset.x.toDouble() / (zoomPanState.fullWidth * zoomPanState.scale)
-    val py = data.y + pointerOffset.y.toDouble() / (zoomPanState.fullHeight * zoomPanState.scale)
+    val px = data.x + pointerOffset.x / scale
+    val py = data.y + pointerOffset.y / scale
 
     data.dragInterceptor?.onMove(
         id = data.id,
