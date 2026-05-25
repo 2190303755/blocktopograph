@@ -32,16 +32,21 @@ internal class VisibleTilesResolver(
     /**
      * Last level is at scale 1.0, others are at scale 1.0 / power_of_2
      */
-    private val scaleForLevel: Map<Int, Double> = (0 until levelCount).associateWith {
-        (1.0 / 2.0.pow((levelCount - it - 1)))
+    private val scaleForLevel: DoubleArray = DoubleArray(
+        levelCount,
+        this::calculateScaleForLevel
+    )
+
+    fun calculateScaleForLevel(level: Int): Double {
+        return 0.5.pow((levelCount - level - 1))
     }
 
     /**
      * Get the scale for a given [level] (also called zoom).
      * @return the scale or null if no such level was configured.
      */
-    fun getScaleForLevel(level: Int): Double? {
-        return scaleForLevel[level]
+    fun getScaleForLevel(level: Int): Double {
+        return scaleForLevel.getOrElse(level, this::calculateScaleForLevel)
     }
 
     /**
@@ -68,7 +73,7 @@ internal class VisibleTilesResolver(
     fun getVisibleTiles(viewport: Viewport): VisibleTiles {
         val scale = scaleProvider.getScale()
         val level = getLevel(scale, magnifyingFactor)
-        val scaleAtLevel = requireNotNull(scaleForLevel[level])
+        val scaleAtLevel = getScaleForLevel(level)
         val relativeScale = scale / scaleAtLevel
 
         val scaledTileSize = tileSize.toDouble() * relativeScale
@@ -86,8 +91,9 @@ internal class VisibleTilesResolver(
 
     // internal for test purposes
     internal fun getSubSample(scale: Double): Int {
-        return if (scale < (scaleForLevel[0] ?: Double.MIN_VALUE)) {
-            ceil(ln((scaleForLevel[0] ?: error("")) / scale) / ln(2.0)).toInt()
+        val max = getScaleForLevel(0)
+        return if (scale < max) {
+            ceil(ln(max / scale) / ln(2.0)).toInt()
         } else {
             0
         }

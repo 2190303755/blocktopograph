@@ -188,7 +188,7 @@ fun MapState.removeLayer(layerId: String) {
 fun MapState.setLayerOpacity(layerId: String, opacity: Float) {
     val newLayers = tileCanvasState.layerFlow.value.map {
         if (it.id == layerId) {
-            it.copy(alpha = opacity.coerceIn(0f..1f))
+            it.copy(alpha = opacity.coerceIn(0f, 1f))
         } else it
     }
     setLayers(newLayers)

@@ -1,16 +1,12 @@
 package com.mithrilmania.blocktopograph.util
 
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.StringRes
-import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 
-const val INDICATOR_NAV_MODE_ANDROID = 2
-const val INDICATOR_NAV_MODE_HARMONY = 105
 const val VIEW_DOCUMENT_FLAG =
     Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
@@ -20,9 +16,6 @@ fun Context.upcoming() {
 
 fun Context.toast(@StringRes text: Int) =
     Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
-
-val Context.clipboard
-    get() = this.getSystemService<ClipboardManager>()
 
 inline fun FragmentManager.popAndTransit(action: FragmentTransaction.() -> Unit) {
     this.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)

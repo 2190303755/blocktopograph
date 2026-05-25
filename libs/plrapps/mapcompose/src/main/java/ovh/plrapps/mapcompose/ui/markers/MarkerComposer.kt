@@ -113,8 +113,8 @@ private fun invokeDragStartListener(
         id = data.id,
         x = data.x,
         y = data.y,
-        px = if (data.isConstrainedInBounds) px.coerceIn(0.0, 1.0) else px,
-        py = if (data.isConstrainedInBounds) py.coerceIn(0.0, 1.0) else py
+        px = px,
+        py = py
     )
 }
 
@@ -141,7 +141,7 @@ private fun invokeDragInterceptor(
         y = data.y,
         dx = deltaX,
         dy = deltaY,
-        px = if (data.isConstrainedInBounds) px.coerceIn(0.0, 1.0) else px,
-        py = if (data.isConstrainedInBounds) py.coerceIn(0.0, 1.0) else py
+        px = px,
+        py = py
     )
 }

@@ -2,12 +2,11 @@ package com.mithrilmania.blocktopograph.map.renderer;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class BlockLightRenderer implements MapRenderer {
@@ -40,7 +39,7 @@ public class BlockLightRenderer implements MapRenderer {
                 color = (l << 16) | (l << 8) | (l) | 0xff000000;
 
                 paint.setColor(color);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
 
             }
 

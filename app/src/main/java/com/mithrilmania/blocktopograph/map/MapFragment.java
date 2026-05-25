@@ -1332,25 +1332,6 @@ public class MapFragment extends Fragment {
 
     }
 
-//    private class MapTileView extends TileView{@Override
-//    public void onLongPress(MotionEvent event) {
-//
-//        Dimension dimension = worldProvider.get().getDimension();
-//
-//        // 1 chunk per tile on scale 1.0
-//        int pixelsPerBlockW_unscaled = MCTileProvider.TILESIZE / dimension.chunkW;
-//        int pixelsPerBlockL_unscaled = MCTileProvider.TILESIZE / dimension.chunkL;
-//
-//        float pixelsPerBlockScaledW = pixelsPerBlockW_unscaled * this.getScale();
-//        float pixelsPerBlockScaledL = pixelsPerBlockL_unscaled * this.getScale();
-//
-//
-//        double worldX = (((this.getScrollX() + event.getX()) / pixelsPerBlockScaledW) - MCTileProvider.HALF_WORLDSIZE) / dimension.dimensionScale;
-//        double worldZ = (((this.getScrollY() + event.getY()) / pixelsPerBlockScaledL) - MCTileProvider.HALF_WORLDSIZE) / dimension.dimensionScale;
-//
-//        MapFragment.this.onLongClick(worldX, worldZ);
-//    }}
-
     public static class MarkerListAdapter extends ArrayAdapter<AbstractMarker> {
 
 

@@ -20,7 +20,6 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.pow
 
 /**
  * A modified version of [detectTransformGestures] from the framework, which adds fling and
@@ -34,7 +33,7 @@ internal suspend fun PointerInputScope.detectTransformGestures(
     onFling: (velocity: Velocity) -> Unit,
     onFlingZoom: (velocity: Float, pivot: Offset) -> Unit
 ) {
-    val flingVelocityThreshold = 200.dp.toPx().pow(2)
+    val flingVelocityThreshold = 40000.dp.toPx()
     val flingVelocityMaxRange = -8000f..8000f
 
     val flingZoomThreshold = 1f
@@ -159,14 +158,16 @@ internal suspend fun PointerInputScope.detectTransformGestures(
             val velocity = runCatching {
                 panVelocityTracker.calculateVelocity()
             }.getOrDefault(Velocity.Zero)
-            val velocitySquared = velocity.x.pow(2) + velocity.y.pow(2)
-            val velocityCapped = Velocity(
-                velocity.x.coerceIn(flingVelocityMaxRange),
-                velocity.y.coerceIn(flingVelocityMaxRange)
-            )
+            val velocityX = velocity.x
+            val velocityY = velocity.y
 
-            if (velocitySquared > flingVelocityThreshold) {
-                onFling(velocityCapped)
+            if (velocityX * velocityX + velocityY * velocityY > flingVelocityThreshold) {
+                onFling(
+                    Velocity(
+                        velocityX.coerceIn(flingVelocityMaxRange),
+                        velocityY.coerceIn(flingVelocityMaxRange)
+                    )
+                )
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.editor.nbt
 
 import android.content.ClipData
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -97,7 +96,7 @@ import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
 import kotlinx.coroutines.launch
 
-fun NBTEditorModel.saveAsync(context: Context) {
+fun NBTEditorModel.saveAsync() {
     val source = this.source
     if (source === null) {
         this.buildExporter()
@@ -244,7 +243,7 @@ fun NBTEditor(
                                 resources.getString(R.string.action_file_save),
                                 editor.nodes.isNotEmpty()
                             ) {
-                                editor.saveAsync(context)
+                                editor.saveAsync()
                                 showMenu.value = false
                             }
                             DropdownMenuItem(
@@ -325,7 +324,7 @@ fun NBTEditor(
                     TooltipBox("save") { tooltip ->
                         OutlinedIconButton(
                             onClick = {
-                                editor.saveAsync(context)
+                                editor.saveAsync()
                             },
                             enabled = editor.nodes.isNotEmpty(),
                             colors = IconButtonDefaults.outlinedIconButtonColors(

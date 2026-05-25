@@ -53,12 +53,14 @@ import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
+import com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorActivity
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.WorldDetail
 import kotlinx.coroutines.launch
 import java.util.Date
+import com.mithrilmania.blocktopograph.editor.world.WorldEditorActivity as OldWorldEditorActivity
 
 @Composable
 fun WorldDetailEntry(
@@ -155,6 +157,16 @@ fun WorldDetailDialog(
                 val shape = MaterialTheme.shapes.medium
                 val center = Modifier.gridItem(alignment = Alignment.Center)
                 val shaped = center
+                    .clickable { // debug. TODO remove
+                        context.startActivity(
+                            detail.applyTo(
+                                Intent(
+                                    context,
+                                    OldWorldEditorActivity::class.java
+                                )
+                            )
+                        )
+                    }
                     .size(210.dp, 120.dp)
                     .border(CardDefaults.outlinedCardBorder(), shape)
                     .clip(shape)
@@ -242,9 +254,17 @@ fun WorldDetailDialog(
             }
             BottomSheetActionButton(
                 text = stringResource(R.string.edit_world),
-                modifier = Modifier.weight(1.0F),
-                onClick = onEditWorld
-            )
+                modifier = Modifier.weight(1.0F)
+            ) {
+                context.startActivity(
+                    detail.applyTo(
+                        Intent(
+                            context,
+                            WorldEditorActivity::class.java
+                        )
+                    )
+                )
+            }
         }
     }
 }

@@ -1,0 +1,3 @@
+- [x] clickable markers
+- [x] draggable markers
+- [x] all path features

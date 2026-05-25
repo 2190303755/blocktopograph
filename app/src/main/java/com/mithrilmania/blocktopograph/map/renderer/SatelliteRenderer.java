@@ -1,9 +1,10 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 
@@ -90,16 +91,14 @@ public class SatelliteRenderer implements MapRenderer {
     }
 
     public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException {
-
         Chunk dataW = storage.getChunk(chunkX - 1, chunkZ, dimension);
         Chunk dataN = storage.getChunk(chunkX, chunkZ - 1, dimension);
-        var rect = new Rect();
 
         boolean west = dataW != null && !dataW.isVoid(),
                 north = dataN != null && !dataN.isVoid();
 
-        for (int z = 0, tY = pY; z < 16; z++, tY += pL) {
-            for (int x = 0, tX = pX; x < 16; x++, tX += pW) {
+        for (int z = 0, tY = pY; z < CHUNK_DIMENSION; z++, tY += pL) {
+            for (int x = 0, tX = pX; x < CHUNK_DIMENSION; x++, tX += pW) {
 
                 int y = chunk.getHeightMapValue(x, z);
                 if (y == 0) continue;
@@ -111,13 +110,9 @@ public class SatelliteRenderer implements MapRenderer {
                                 : chunk.getHeightMapValue(x, z - 1)//within chunk
                 );
                 paint.setColor(color);
-                rect.set(tX, tY, tX + pW, tY + pL);
-                canvas.drawRect(rect, paint);
-
-
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
             }
         }
-
     }
 
     // shading Amp, possible range: [0, 2] (or use negative for reverse shading)

@@ -74,7 +74,6 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
-import com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorActivity
 import com.mithrilmania.blocktopograph.ui.WorldDetailDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
@@ -264,14 +263,6 @@ class WorldListActivity : ComponentActivity() {
                             state = sheetState,
                             onDismiss = { viewModel.selected = null },
                         ) {
-                            this@WorldListActivity.startActivity(
-                                selected.applyTo(
-                                    Intent(
-                                        this@WorldListActivity,
-                                        WorldEditorActivity::class.java
-                                    )
-                                )
-                            )
                         }
                     }
                 }

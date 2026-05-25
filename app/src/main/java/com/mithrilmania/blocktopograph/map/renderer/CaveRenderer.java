@@ -4,7 +4,6 @@ package com.mithrilmania.blocktopograph.map.renderer;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
@@ -109,7 +108,7 @@ public class CaveRenderer implements MapRenderer {
                 int color = (r << 16) | (g << 8) | b | 0xff000000;
 
                 paint.setColor(color);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
 
             }
         }

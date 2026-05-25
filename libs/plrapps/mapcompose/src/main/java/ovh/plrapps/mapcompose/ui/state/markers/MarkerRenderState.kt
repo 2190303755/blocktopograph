@@ -108,8 +108,8 @@ internal class MarkerRenderState {
 
     fun moveCallout(id: String, x: Double, y: Double) {
         callouts[id]?.markerData?.also {
-            it.x = if (it.isConstrainedInBounds) x.coerceIn(0.0, 1.0) else x
-            it.y = if (it.isConstrainedInBounds) y.coerceIn(0.0, 1.0) else y
+            it.x = x
+            it.y = y
         }
     }
 

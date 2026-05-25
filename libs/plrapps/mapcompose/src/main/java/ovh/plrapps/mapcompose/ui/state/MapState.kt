@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,9 +163,6 @@ class MapState(
  */
 @Suppress("unused")
 class InitialValues internal constructor() {
-    internal var x = 0.5
-    internal var y = 0.5
-    internal var screenOffset: Offset = Offset(-0.5f, -0.5f)
     internal var scale: Double = 1.0
     internal var minScale: Double = Double.MIN_VALUE
     internal var maxScale: Double = 4.0
@@ -174,21 +170,6 @@ class InitialValues internal constructor() {
     internal var preloadingPadding: Int = 0
     internal var isFilteringBitmap: (MapState) -> Boolean = { true }
     internal var gestureConfiguration: GestureConfiguration = GestureConfiguration()
-
-    /**
-     * Init the scroll position. Defaults to centering on the provided scroll destination.
-     *
-     * @param x The normalized X position on the map, in range [0..1]
-     * @param y The normalized Y position on the map, in range [0..1]
-     * @param screenOffset Offset of the screen relatively to its dimension. Default is
-     * Offset(-0.5f, -0.5f), so moving the screen by half the width left and by half the height top,
-     * effectively centering on the scroll destination.
-     */
-    fun scroll(x: Double, y: Double, screenOffset: Offset = Offset(-0.5f, -0.5f)) = apply {
-        this.screenOffset = screenOffset
-        this.x = x
-        this.y = y
-    }
 
     /**
      * Set the initial scale. Defaults to 1.0.

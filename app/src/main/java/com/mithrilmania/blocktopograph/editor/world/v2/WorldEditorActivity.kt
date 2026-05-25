@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph.editor.world.v2
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.BottomSheetScaffold
@@ -35,15 +35,18 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.set
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.application
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,7 +55,6 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.map.CustomIcon
-import com.mithrilmania.blocktopograph.map.Entity
 import com.mithrilmania.blocktopograph.map.MCTileProvider
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
@@ -64,6 +66,7 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
 import com.mithrilmania.blocktopograph.storage.file
+import com.mithrilmania.blocktopograph.ui.component.Marker
 import com.mithrilmania.blocktopograph.ui.component.PartiallyOrFullyExpanded
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
@@ -77,11 +80,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.api.addLayer
+import ovh.plrapps.mapcompose.api.addMarker
 import ovh.plrapps.mapcompose.api.scrollTo
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
 import java.io.IOException
-
 
 class WorldEditorActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -93,16 +96,15 @@ class WorldEditorActivity : ComponentActivity() {
             val world = this.intent.resolveWorld(this)
             if (world === null) {
                 Log.e(APP_TAG, "Failed to open world")
-                Toast.makeText(this, "cannot open: world == null", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Invalid world", Toast.LENGTH_SHORT).show()
                 //WTF, try going back to the previous screen by finishing this hopeless activity...
                 this.finish()
                 return
             }
-            val application = this.application
             viewModel.viewModelScope.launch {
                 viewModel.initialization = InitState.Initializing
                 val storage = withContext(Dispatchers.IO) {
-                    world.open(application)
+                    world.open(viewModel.application)
                 }
                 viewModel.initialization = if (storage === null) {
                     InitState.Failed
@@ -113,19 +115,8 @@ class WorldEditorActivity : ComponentActivity() {
         }
         val assets = this.assets
         this.lifecycleScope.launch(Dispatchers.IO) {
-            // TODO: lazy and async loading
-            try {
-                Entity.loadEntityBitmaps(assets)
-            } catch (e: IOException) {
-                LogUtil.d(this, e)
-            }
             try {
                 KnownBlockRepr.loadBitmaps(assets)
-            } catch (e: IOException) {
-                LogUtil.d(this, e)
-            }
-            try {
-                CustomIcon.loadCustomBitmaps(assets)
             } catch (e: IOException) {
                 LogUtil.d(this, e)
             }
@@ -134,9 +125,10 @@ class WorldEditorActivity : ComponentActivity() {
             WorldEditorScaffold(viewModel) { info ->
                 val coroutineScope = rememberCoroutineScope()
                 LaunchedEffect(Unit) {
+                    // TODO: it is too loooooooooooooooooooooooooooooong
                     if (viewModel.majorLayerId == null) {
                         viewModel.majorLayerId = viewModel.map.addLayer({ row, col, zoomLvl ->
-                            val chunks = 1 shl (ZOOM_LEVELS - zoomLvl)
+                            val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
                             val tileSize = TILE_DIMENSION * chunks
                             val storage = info.storage
                             val dimension = viewModel.dimension
@@ -221,21 +213,18 @@ class WorldEditorActivity : ComponentActivity() {
                                 }
                             }
 
-
                             //draw tile-edges white
-                            for (i in 0 until tileSize) {
-                                //horizontal edges
-                                bitmap[i, 0] = Color.WHITE
-                                bitmap[i, tileSize - 1] = Color.WHITE
-                                //vertical edges
-                                bitmap[0, i] = Color.WHITE
-                                bitmap[tileSize - 1, i] = Color.WHITE
-                            }
+                            val edge = tileSize.toFloat() - 1F
+                            paint.setColor(-1)
+                            canvas.drawLine(0F, 0F, edge, 1F, paint)
+                            canvas.drawLine(0F, 0F, 1F, edge, paint)
+                            canvas.drawLine(0F, edge, edge, edge, paint)
+                            canvas.drawLine(edge, 0F, edge, edge, paint)
 
                             MCTileProvider.drawText(
                                 "(${col * CHUNK_DIMENSION * chunks}; ${row * CHUNK_DIMENSION * chunks})",
                                 bitmap,
-                                Color.WHITE,
+                                -1,
                                 0
                             )
 
@@ -267,26 +256,28 @@ class WorldEditorActivity : ComponentActivity() {
                                 val z: Float = playerPos.z
                                 LogUtil.d(
                                     this,
-                                    "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]"
-                                )/*
-                                localPlayerMarker = AbstractMarker(
-                                    x.toInt(),
-                                    y.toInt(),
-                                    z.toInt(),
-                                    playerPos.dimension,
-                                    CustomNamedBitmapProvider(Entity.PLAYER, "~local_player"),
-                                    false
+                                    "Placed player marker at: $x;$y;$z [${playerPos.dimension.name}]"
                                 )
-                                this.staticMarkers.add(localPlayerMarker)
-                                addMarker(localPlayerMarker)*/
+                                viewModel.map.addMarker(
+                                    "builtin:local_player",
+                                    x.toDouble() * RENDER_SCALE,
+                                    z.toDouble() * RENDER_SCALE
+                                ) {
+                                    Marker(
+                                        viewModel.entityIcons.collectAsState().value,
+                                        IntOffset(112, 0),
+                                        IntSize(16, 16),
+                                        Modifier.size(16.dp)
+                                    )
+                                }
                                 if (playerPos.dimension != viewModel.dimension) {
                                     viewModel.dimension = playerPos.dimension
                                     //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
                                 }
                                 coroutineScope.launch {
                                     viewModel.map.scrollTo(
-                                        x.toDouble(),
-                                        z.toDouble()
+                                        x.toDouble() * RENDER_SCALE,
+                                        z.toDouble() * RENDER_SCALE
                                     )
                                 }
                                 framedToPlayer = true
@@ -296,15 +287,20 @@ class WorldEditorActivity : ComponentActivity() {
                         }
 
                         try {
-                            val spawnPos: DimensionVector3<Int> =
-                                info.world.resolveSpawnPoint(this@WorldEditorActivity)
-                            /* spawnMarker = AbstractMarker(
-                                 spawnPos.x!!, spawnPos.y!!, spawnPos.z!!, spawnPos.dimension,
-                                 CustomNamedBitmapProvider(CustomIcon.SPAWN_MARKER, "Spawn"), false
-                             )
-                             this.staticMarkers.add(spawnMarker)
-                             addMarker(spawnMarker)x - HALF_WORLD_DIMENSION
- */
+                            val spawnPos = info.world.resolveSpawnPoint(this@WorldEditorActivity)
+                            viewModel.map.addMarker(
+                                "builtin:spawn_point",
+                                spawnPos.x.toDouble() * RENDER_SCALE,
+                                spawnPos.z.toDouble() * RENDER_SCALE
+                            ) {
+                                val spec = CustomIcon.SPAWN_MARKER.sprite
+                                Marker(
+                                    viewModel.customIcons.collectAsState().value,
+                                    IntOffset(spec.left, spec.top),
+                                    IntSize(spec.width, spec.height),
+                                    Modifier.size(16.dp)
+                                )
+                            }
                             if (!framedToPlayer) {
                                 if (spawnPos.dimension != viewModel.dimension) {
                                     viewModel.dimension = spawnPos.dimension
@@ -312,12 +308,13 @@ class WorldEditorActivity : ComponentActivity() {
                                 }
                                 coroutineScope.launch {
                                     viewModel.map.scrollTo(
-                                        spawnPos.x.toDouble(),
-                                        spawnPos.z.toDouble()
+                                        spawnPos.x.toDouble() * RENDER_SCALE,
+                                        spawnPos.z.toDouble() * RENDER_SCALE
                                     )
                                 }
                             }
                         } catch (e: Exception) {
+                            LogUtil.d(this, "Failed to place spawn pos marker.", e)
                         }
                     }
                 }
@@ -403,7 +400,7 @@ fun WorldEditorScaffold(
 
                     Toast.makeText(
                         context,
-                        "cannot open: storage == null",
+                        "Missing leveldb",
                         Toast.LENGTH_SHORT
                     ).show()
                     owner?.onBackPressedDispatcher?.onBackPressed()

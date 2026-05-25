@@ -85,18 +85,13 @@ internal class MarkerState(
     }
 
     /**
-     * Move a marker by the provided delta (normalized) coordinates.
+     * Move a marker by the provided absolute delta coordinates.
      */
     fun moveMarkerBy(id: String, deltaX: Double, deltaY: Double) {
         getMarker(id)?.apply {
-            x = (x + deltaX).let {
-                if (isConstrainedInBounds) it.coerceIn(0.0, 1.0) else it
-            }
-            y = (y + deltaY).let {
-                if (isConstrainedInBounds) it.coerceIn(0.0, 1.0) else it
-            }
-        }.also {
-            if (it != null) onMarkerMove(it, deltaX, deltaY)
+            x += deltaX
+            y += deltaY
+            onMarkerMove(this, deltaX, deltaY)
         }
     }
 
@@ -109,8 +104,8 @@ internal class MarkerState(
         with(markerData) {
             val prevX = this.x
             val prevY = this.y
-            this.x = if (isConstrainedInBounds) x.coerceIn(0.0, 1.0) else x
-            this.y = if (isConstrainedInBounds) y.coerceIn(0.0, 1.0) else y
+            this.x = x
+            this.y = y
             onMarkerMove(this, this.x - prevX, this.y - prevY)
         }
     }

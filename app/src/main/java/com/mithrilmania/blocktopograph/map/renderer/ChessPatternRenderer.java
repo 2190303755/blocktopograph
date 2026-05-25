@@ -1,11 +1,9 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
 import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
-import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.RENDER_SCALE;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
@@ -23,18 +21,16 @@ public class ChessPatternRenderer implements MapRenderer {
     }
 
     public void renderToBitmap(Chunk chunk, Canvas canvas, Dimension dimension, int chunkX, int chunkZ, int pX, int pY, int pW, int pL, Paint paint, WorldStorage storage) throws Version.VersionException {
-        var rect = new Rect(pX, pY, pX + CHUNK_DIMENSION * pW, pY + CHUNK_DIMENSION * pL);
         paint.setColor(this.lightShade);
-        canvas.drawRect(rect, paint);
+        canvas.drawRect(pX, pY, pX + CHUNK_DIMENSION * pW, pY + CHUNK_DIMENSION * pL, paint);
         paint.setColor(this.darkShade);
         int step = pW * 2;
         int steps = CHUNK_DIMENSION / 2;
         int x, z, tX, tY;
 
         for (z = 0, tY = pY; z < CHUNK_DIMENSION; z++, tY += pL) {
-            for (x = 0, tX = ((z & 1) == 0 ? pX : pX + RENDER_SCALE); x < steps; x++, tX += step) {
-                rect.set(tX, tY, tX + pW, tY + pL);
-                canvas.drawRect(rect, paint);
+            for (x = 0, tX = ((z & 1) == 0 ? pX : pX + pW); x < steps; x++, tX += step) {
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
             }
         }
     }

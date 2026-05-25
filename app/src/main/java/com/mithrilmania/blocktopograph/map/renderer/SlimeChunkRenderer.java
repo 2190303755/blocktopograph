@@ -2,13 +2,12 @@ package com.mithrilmania.blocktopograph.map.renderer;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.util.MTwister;
+import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
 public class SlimeChunkRenderer implements MapRenderer {
@@ -53,7 +52,7 @@ public class SlimeChunkRenderer implements MapRenderer {
                 color = (color & 0xFF000000) | (r << 16) | (g << 8) | b;
 
                 paint.setColor(color);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
 
             }
         }
@@ -92,31 +91,12 @@ public class SlimeChunkRenderer implements MapRenderer {
         MTwister random = new MTwister();
         random.init_genrand(seed);
 
-        // The output of the random function, first operand of the asm umull instruction
         long n = random.genrand_int32();
-
-        // The other operand, magic bit number that keeps characteristics
-        // In binary: 1100 1100 1100 1100 1100 1100 1100 1101
-        long m = 0xcccccccdL;
-
-        // umull (unsigned long multiplication)
-        // Stores the result of multiplying two int32 integers in two registers (lo and hi).
-        // Java workaround: store the result in a 64 bit long, instead of two 32 bit registers.
-        long product = n * m;
-
-        // The umull instruction puts the result in a lo and a hi register, the lo one is not used.
-        long hi = (product >> 32) & 0xffffffffL;
-
-        // Make room for 3 bits, preparation for decrease of randomness by a factor 10.
-        long hi_shift3 = (hi >> 0x3) & 0xffffffffL;
-
-        // Multiply with 10 (3 bits)
-        // ---> effect: the 3 bit randomness decrease expresses a 1 in a 10 chance.
-        long res = (((hi_shift3 + (hi_shift3 * 0x4)) & 0xffffffffL) * 0x2) & 0xffffffffL;
 
         // Final check: is the input equal to 10 times less random, but comparable, output.
         // Every chunk has a 1 in 10 chance to be a slime-chunk.
-        return n == res;
+
+        return 0 == n % 10; // let's trust jit/aot :)
     }
 
 }

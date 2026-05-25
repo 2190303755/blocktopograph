@@ -4,7 +4,6 @@ package com.mithrilmania.blocktopograph.map.renderer;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
@@ -158,7 +157,7 @@ public class NetherRenderer implements MapRenderer {
                 }
 
                 paint.setColor((r << 16) | (g << 8) | b | 0xff000000);
-                canvas.drawRect(new Rect(tX, tY, tX + pW, tY + pL), paint);
+                canvas.drawRect(tX, tY, tX + pW, tY + pL, paint);
             }
         }
     }

@@ -3,11 +3,12 @@ package com.mithrilmania.blocktopograph.map;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+
 import androidx.annotation.NonNull;
+import androidx.compose.ui.unit.IntRect;
 
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
-import com.mithrilmania.blocktopograph.util.UV;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -17,24 +18,24 @@ import java.util.HashMap;
  */
 public enum CustomIcon implements NamedBitmapProviderHandle, NamedBitmapProvider {
 
-    DEFAULT_MARKER("default_marker", UV.ab(0, 0, 32, 32)),
-    BLUE_MARKER("blue_marker", UV.ab(0, 32, 32, 64)),
-    GREEN_MARKER("green_marker", UV.ab(32, 0, 64, 32)),
-    RED_MARKER("red_marker", UV.ab(32, 32, 64, 64)),
-    AQUA_MARKER("aqua_marker", UV.ab(64, 0, 96, 32)),
-    ORANGE_MARKER("orange_marker", UV.ab(64, 32, 96, 64)),
-    YELLOW_MARKER("yellow_marker", UV.ab(96, 0, 128, 32)),
-    PURPLE_MARKER("purple_marker", UV.ab(96, 32, 128, 64)),
-    SPAWN_MARKER("spawn_marker", UV.ab(64, 64, 128, 128));
+    DEFAULT_MARKER("default_marker", new IntRect(0, 0, 32, 32)),
+    BLUE_MARKER("blue_marker", new IntRect(0, 32, 32, 64)),
+    GREEN_MARKER("green_marker", new IntRect(32, 0, 64, 32)),
+    RED_MARKER("red_marker", new IntRect(32, 32, 64, 64)),
+    AQUA_MARKER("aqua_marker", new IntRect(64, 0, 96, 32)),
+    ORANGE_MARKER("orange_marker", new IntRect(64, 32, 96, 64)),
+    YELLOW_MARKER("yellow_marker", new IntRect(96, 0, 128, 32)),
+    PURPLE_MARKER("purple_marker", new IntRect(96, 32, 128, 64)),
+    SPAWN_MARKER("spawn_marker", new IntRect(64, 64, 128, 128));
 
     public final String iconName;
-    public final UV uv;
+    public final IntRect sprite;
 
     public Bitmap bitmap;
 
-    CustomIcon(String iconName, UV uv){
+    CustomIcon(String iconName, IntRect sprite) {
         this.iconName = iconName;
-        this.uv = uv;
+        this.sprite = sprite;
     }
 
     @Override
@@ -65,11 +66,18 @@ public enum CustomIcon implements NamedBitmapProviderHandle, NamedBitmapProvider
 
         Bitmap sheet = BitmapFactory.decodeStream(assetManager.open("custom_icons.png"));
         for(CustomIcon icon : CustomIcon.values()){
-            if(icon.bitmap == null && icon.uv != null){
-                icon.bitmap = Bitmap.createBitmap(sheet,
-                        icon.uv.uX, icon.uv.uY,
-                        icon.uv.vX - icon.uv.uX, icon.uv.vY - icon.uv.uY,
-                        null, false);
+            if (icon.bitmap == null) {
+                var spec = icon.sprite;
+                if (spec == null) continue;
+                icon.bitmap = Bitmap.createBitmap(
+                        sheet,
+                        spec.getLeft(),
+                        spec.getTop(),
+                        spec.getWidth(),
+                        spec.getHeight(),
+                        null,
+                        false
+                );
             }
         }
     }
