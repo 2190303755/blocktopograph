@@ -1,6 +1,8 @@
 package com.mithrilmania.blocktopograph.ui.component
 
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
@@ -62,4 +64,33 @@ fun BottomSheetActionButton(
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         )
     ) { Text(text) }
+}
+
+@Composable
+fun BottomSheetActionButton(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shapes = ButtonDefaults.shapes(),
+        modifier = modifier,
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        contentPadding = ButtonDefaults.contentPaddingFor(
+            buttonHeight = ButtonDefaults.MinHeight,
+            hasStartIcon = true
+        )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)),
+        )
+        Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
+        Text(text)
+    }
 }

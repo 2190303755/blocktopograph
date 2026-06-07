@@ -1,16 +1,14 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,7 +18,9 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
-import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
+import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
+import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
+import com.mithrilmania.blocktopograph.util.upcoming
 import java.util.TreeMap
 
 class MapNode(
@@ -39,7 +39,16 @@ class MapNode(
     }
 
     override val type: Byte get() = TAG_COMPOUND
+    override val canBeHeterogeneous: Boolean get() = true
     override val children: Collection<NBTNode> get() = this.nodes.values
+    override fun makePath(child: String): String {
+        val builder = StringBuilder(this.path)
+        if (builder.isNotEmpty()) {
+            builder.append('.')
+        }
+        return builder.appendSafeLiteral(child).toString()
+    }
+
     override fun toBinaryTag(): CompoundTag = CompoundTag(
         this.nodes.mapValuesTo(HashMap()) { it.value.toBinaryTag() }
     )
@@ -65,28 +74,32 @@ class MapNode(
     }
 
     @Composable
-    override fun Content(modifier: Modifier) {
-        Row(modifier = modifier.padding(start = 4.dp)) {
-            Icon(
-                painter = painterResource(R.drawable.ic_tag_compound),
-                contentDescription = null,
-                tint = Color.Unspecified
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = key.toString()
-            )
-        }
-    }
+    override fun icon() = painterResource(R.drawable.ic_tag_compound)
 
     @Composable
-    override fun ContextMenu(editor: NBTEditorModel) {
-        DropdownMenuItem(
-            Icons.Filled.Add,
-            stringResource(R.string.action_insert)
+    override fun summary() = "${this.children.size}个键值对" // TODO i18n
+
+    @Composable
+    override fun Editor(editor: NBTEditorModel) {
+        Row(
+            Modifier.padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            this.showContextMenu = false
-            editor.insertion = InsertionRequest(this)
+            val context = LocalContext.current
+            BottomSheetActionButton(
+                icon = Icons.Filled.Search,
+                text = "查找", // TODO i18n
+                modifier = Modifier.weight(1.0F)
+            ) {
+                context.upcoming()
+            }
+            BottomSheetActionButton(
+                icon = Icons.Filled.Add,
+                text = stringResource(R.string.action_insert),
+                modifier = Modifier.weight(1.0F)
+            ) {
+                editor.insertion = InsertionRequest(this@MapNode)
+            }
         }
     }
 }

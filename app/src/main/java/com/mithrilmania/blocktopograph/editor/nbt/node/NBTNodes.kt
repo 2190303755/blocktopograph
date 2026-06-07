@@ -1,10 +1,12 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
@@ -29,7 +31,9 @@ import kotlin.contracts.ExperimentalExtendedContracts
 private val UID: AtomicInteger = AtomicInteger()
 
 interface RootLike {
+    val canBeHeterogeneous: Boolean
     val depth: Int
+    fun makePath(child: String): String
 }
 
 sealed class NBTNode(
@@ -37,19 +41,23 @@ sealed class NBTNode(
     key: Any
 ) {
     val uid: Int = UID.getAndIncrement()
-    var key: Any by mutableStateOf(key)
     val depth: Int = parent.depth + 1
-    var showContextMenu: Boolean by mutableStateOf(false)
+    var key: Any by mutableStateOf(key)
+    val path: String by derivedStateOf {
+        parent.makePath(this.key.toString())
+    }
     abstract val type: Byte
     abstract var expanded: Boolean
     abstract val children: Collection<NBTNode>
     abstract fun toBinaryTag(): BinaryTag
+    @Composable
+    abstract fun icon(): Painter
 
     @Composable
-    abstract fun Content(modifier: Modifier = Modifier)
+    abstract fun summary(): String
 
     @Composable
-    abstract fun ContextMenu(editor: NBTEditorModel)
+    abstract fun Editor(editor: NBTEditorModel)
 }
 
 sealed class RootNode(
@@ -73,7 +81,7 @@ sealed class ValueNode(
     abstract override fun toBinaryTag(): PrimitiveTag
 
     @Composable
-    override fun ContextMenu(editor: NBTEditorModel) {
+    override fun Editor(editor: NBTEditorModel) {
 
     }
 }
@@ -84,7 +92,7 @@ sealed class CollectionNode<N : NBTNode, T : BinaryTag>(
     tag: T?
 ) : RootNode(parent, key) {
     override val children: MutableList<N> = if (tag === null) {
-        mutableListOf()
+        mutableStateListOf()
     } else {
         this.buildNodes(tag)
     }
@@ -96,7 +104,12 @@ sealed class CollectionNode<N : NBTNode, T : BinaryTag>(
         if (key is Number) {
             val value = this.cast(node)
             if (value !== null) {
-                this.children.add(key.toInt(), value)
+                var index = key.toInt()
+                this.children.add(index, value)
+                val iterator = this.children.listIterator(++index)
+                while (iterator.hasNext()) {
+                    iterator.next().key = index++
+                }
                 return true
             }
         }
@@ -119,9 +132,14 @@ sealed class CollectionNode<N : NBTNode, T : BinaryTag>(
 
     override fun remove(key: Any): NBTNode? {
         if (key is Number) {
-            val index = key.toInt()
+            var index = key.toInt()
             if (index in 0 until children.size) {
-                return this.children.removeAt(index)
+                val node = this.children.removeAt(index)
+                val iterator = this.children.listIterator(index)
+                while (iterator.hasNext()) {
+                    iterator.next().key = index++
+                }
+                return node
             }
         }
         return null

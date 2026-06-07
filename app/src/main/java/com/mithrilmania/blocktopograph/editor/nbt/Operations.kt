@@ -22,6 +22,9 @@ class Insert(
     }
 
     override fun undo(editor: NBTEditorModel) {
+        if (editor.focused === this.child) {
+            editor.focused = null
+        }
         editor.adjustChild(this.parent) {
             this.parent.remove(this.child.key)
         }
@@ -33,6 +36,9 @@ class Delete(
     val child: NBTNode
 ) : Operation {
     override fun redo(editor: NBTEditorModel) {
+        if (editor.focused === this.child) {
+            editor.focused = null
+        }
         editor.adjustChild(this.parent) {
             this.parent.remove(this.child.key)
         }
@@ -81,6 +87,9 @@ class Replace(
                 this.parent.insert(this.neo.key, this.neo)
             }
         }
+        if (editor.focused === this.old) {
+            editor.focused = this.neo
+        }
     }
 
     override fun undo(editor: NBTEditorModel) {
@@ -95,6 +104,9 @@ class Replace(
                 this.parent.remove(this.neo.key)
                 this.parent.insert(this.old.key, this.old)
             }
+        }
+        if (editor.focused === this.neo) {
+            editor.focused = this.old
         }
     }
 }

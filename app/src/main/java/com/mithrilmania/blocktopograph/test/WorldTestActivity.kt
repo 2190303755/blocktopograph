@@ -248,9 +248,8 @@ class WorldTestActivity : ComponentActivity() {
                                     .padding(vertical = 4.dp)
                                     .toggleable(
                                         value = majorModel.isHexed,
-                                        onValueChange = { majorModel.isHexed = it },
                                         role = Role.Switch,
-                                    )
+                                    ) { majorModel.isHexed = it }
                                     .applyInfoBarPadding()
                             ) {
                                 Switch(
@@ -358,7 +357,8 @@ class WorldTestActivity : ComponentActivity() {
                                         )
                                         DropdownMenu(
                                             expanded = expanded,
-                                            onDismissRequest = { expanded = false }) {
+                                            onDismissRequest = { expanded = false }
+                                        ) {
                                             DropdownMenuItem(
                                                 text = { Text("Copy Key (Plain)") },
                                                 onClick = { },

@@ -111,9 +111,8 @@ fun NBTExportDialog(
                             modifier = Modifier
                                 .toggleable(
                                     value = exporter.prettify,
-                                    onValueChange = { exporter.prettify = it },
                                     role = Role.Switch,
-                                )
+                                ) { exporter.prettify = it }
                                 .applyInfoBarPadding(horizontal = 32.dp)
                         ) {
                             Switch(
@@ -126,9 +125,8 @@ fun NBTExportDialog(
                             modifier = Modifier
                                 .toggleable(
                                     value = exporter.heterogeneous,
-                                    onValueChange = { exporter.heterogeneous = it },
                                     role = Role.Switch,
-                                )
+                                ) { exporter.heterogeneous = it }
                                 .applyInfoBarPadding(horizontal = 32.dp)
                         ) {
                             Switch(
@@ -160,9 +158,8 @@ fun NBTExportDialog(
                             modifier = Modifier
                                 .toggleable(
                                     value = exporter.compressed,
-                                    onValueChange = { exporter.compressed = it },
                                     role = Role.Switch,
-                                )
+                                ) { exporter.compressed = it }
                                 .applyInfoBarPadding(horizontal = 32.dp)
                         ) {
                             Switch(
@@ -176,9 +173,8 @@ fun NBTExportDialog(
                                 .toggleable(
                                     value = exporter.attachHeader,
                                     enabled = isHeaderAvailable,
-                                    onValueChange = { exporter.attachHeader = it },
                                     role = Role.Switch,
-                                )
+                                ) { exporter.attachHeader = it }
                                 .applyInfoBarPadding(horizontal = 32.dp)
                         ) {
                             Switch(

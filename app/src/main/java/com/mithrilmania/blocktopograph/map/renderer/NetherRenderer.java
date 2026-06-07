@@ -130,7 +130,7 @@ public class NetherRenderer implements MapRenderer {
 
                     //some x-ray for important stuff like portals
                     BlockTemplate blockTemplate = chunk.getBlockTemplate(x, y, z, 0);
-                    var blockName = blockTemplate.getBlock().name;
+                    var blockName = blockTemplate.getBlock().typeId;
                     if ("minecraft:mob_spawner".equals(blockName)) {//monster spawner
                         r = g = b = 255;
                     } else if ("minecraft:chest".equals(blockName)) {//chest

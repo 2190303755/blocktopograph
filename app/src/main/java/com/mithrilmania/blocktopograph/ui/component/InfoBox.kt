@@ -6,19 +6,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+val indicatorSize = 20.dp
 
 @Composable
 fun Descriptor(
@@ -44,19 +44,6 @@ fun Descriptor(
 }
 
 @Composable
-fun Indicator(
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    description: String? = null
-) {
-    Icon(
-        imageVector = icon,
-        contentDescription = description,
-        modifier = modifier.size(20.dp)
-    )
-}
-
-@Composable
 fun InfoBar(
     title: String,
     modifier: Modifier = Modifier,
@@ -72,14 +59,15 @@ fun InfoBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         icon?.invoke(this)
+        val fill = if (footer === null) Modifier.fillMaxWidth() else Modifier.weight(1F)
         if (description === null) {
             Text(
                 text = title,
-                modifier = Modifier.weight(1.0F),
+                modifier = fill,
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
-            Descriptor(title, description, Modifier.weight(1.0F), enableMarquee)
+            Descriptor(title, description, fill, enableMarquee)
         }
         footer?.invoke(this)
     }

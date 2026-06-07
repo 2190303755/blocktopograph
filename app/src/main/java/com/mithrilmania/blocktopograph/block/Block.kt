@@ -62,7 +62,7 @@ fun BedrockNBTOutput.writeBlockIntoV1d2d13TerrainSubChunk(block: Block) {
         }
     }
     states.putAll(block.customProperties)
-    root[BlockStorage.PALETTE_KEY_NAME] = StringTag(block.name)
+    root[BlockStorage.PALETTE_KEY_NAME] = StringTag(block.typeId)
     root[BlockStorage.PALETTE_KEY_STATES] = CompoundTag(states)
     root[BlockStorage.PALETTE_KEY_VERSION] = IntTag(2012)
     this.writeNBT(BlockStorage.PALETTE_KEY_ROOT, CompoundTag(root))
@@ -70,7 +70,7 @@ fun BedrockNBTOutput.writeBlockIntoV1d2d13TerrainSubChunk(block: Block) {
 
 class Block internal constructor(
     @JvmField
-    val name: String,
+    val typeId: String,
     @JvmField
     val type: BlockType?,
     @JvmField
@@ -132,7 +132,7 @@ class Block internal constructor(
         fun build(): Block = if (this.type === null) {
             Block(requireNotNull(this.name), null, null, this.customProperties)
         } else {
-            Block(this.type.name, this.type, this.knownProperties, this.customProperties)
+            Block(this.type.typeId, this.type, this.knownProperties, this.customProperties)
         }
     }
 }

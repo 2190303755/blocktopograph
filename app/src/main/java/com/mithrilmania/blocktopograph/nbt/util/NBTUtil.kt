@@ -23,7 +23,7 @@ val SIMPLE_VALUE: Regex = "[A-Za-z0-9._+-]+".toRegex()
 
 fun String.parseSNBT() = try {
     SNBTParser(SNBTStringReader(this)).parseRoot()
-} catch (e: Exception) {
+} catch (_: Exception) {
     null
 }
 
@@ -59,28 +59,6 @@ fun StringBuilder.appendSafeLiteral(
     this.appendQuoted(text)
 }
 
-fun StringBuilder.indent(unit: String, depth: Int): StringBuilder {
-    repeat(depth) { this.append(unit) }
-    return this
-}
-
-inline fun <reified T> StringBuilder.append(
-    iterable: Iterable<T>,
-    indent: StringBuilder.() -> Unit,
-    action: (T) -> Unit
-) {
-    val iterator = iterable.iterator()
-    if (iterator.hasNext()) {
-        this.indent()
-        action(iterator.next())
-        while (iterator.hasNext()) {
-            this.append(',')
-            this.indent()
-            action(iterator.next())
-        }
-    }
-}
-
 inline fun <T> StringBuilder.append(
     iterable: Iterable<T>,
     indentation: Indentation,
@@ -97,11 +75,6 @@ inline fun <T> StringBuilder.append(
         }
         indentation.endStructure(this)
     }
-}
-
-fun Char.isQuote() = when (this) {
-    DOUBLE_QUOTE, SINGLE_QUOTE -> true
-    else -> false
 }
 
 fun Char.isSafeLiteral() = when (this) {
@@ -130,7 +103,7 @@ fun BinaryTag?.extracted(): BinaryTag? = when (this) {
     is LongArrayTag -> this.elements.firstOrNull()?.let(::LongTag)
     is ListTag -> this.firstOrNull()
     is CompoundTag -> this.unbox()
-    else -> null
+    else -> this
 }
 
 fun BinaryTag?.toByteTag(): ByteTag = when (val tag = this.extracted()) {

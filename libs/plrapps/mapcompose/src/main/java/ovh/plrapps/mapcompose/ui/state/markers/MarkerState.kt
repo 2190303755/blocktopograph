@@ -75,7 +75,7 @@ internal class MarkerState(
 
     fun removeMarker(id: String): Boolean {
         return getMarker(id)?.let {
-            markers.value = markers.value - it
+            markers.value -= it
             true
         } ?: false
     }

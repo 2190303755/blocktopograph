@@ -31,7 +31,7 @@ val FLOAT_LIKE_PATTERN = Regex(
 )
 val INVALID_NUMERIC_LITERAL = Regex("(?<!\\d)_|_(?!\\d)")
 
-val BUILTIN_FUNCTIONS: Map<String, NBTFunction> = mapOf(
+val BUILTIN_FUNCTIONS: Map<String, NBTFunction> = hashMapOf(
     "bool" to {
         if (it.size != 1) throw IllegalArgumentException("Too many arguments")
         val tag = it.first()

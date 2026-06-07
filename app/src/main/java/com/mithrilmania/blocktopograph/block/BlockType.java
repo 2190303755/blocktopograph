@@ -299,16 +299,16 @@ public enum BlockType implements Serializable {
 
     private static final Map<String, BlockType> blockTypes = new HashMap<>();
 
-    private final String name;
+    public final String typeId;
 
     private final BlockProperty[] knownProperties;
 
     static {
-        for (var block : BlockType.values()) blockTypes.put(block.name, block);
+        for (var block : BlockType.values()) blockTypes.put(block.typeId, block);
     }
 
-    BlockType(String name, BlockProperty[] knownProperties) {
-        this.name = name;
+    BlockType(String typeId, BlockProperty[] knownProperties) {
+        this.typeId = typeId;
         this.knownProperties = knownProperties;
     }
 
@@ -318,7 +318,7 @@ public enum BlockType implements Serializable {
     }
 
     public String getName() {
-        return name;
+        return typeId;
     }
 
     public BlockProperty[] getKnownProperties() {

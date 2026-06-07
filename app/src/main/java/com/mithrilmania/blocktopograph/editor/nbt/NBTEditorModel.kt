@@ -35,7 +35,7 @@ enum class ConfirmationRequest {
 value class InsertionRequest(val parent: RootNode)
 
 @JvmInline
-value class ReplacementRequest(val node: NBTNode)
+value class ReplacingRequest(val node: NBTNode)
 
 @JvmInline
 value class RenamingRequest(val node: NBTNode)
@@ -55,18 +55,21 @@ fun NBTNode.countOfVisibleNodes(): Int {
 }
 
 class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig, RootLike {
+    override val canBeHeterogeneous: Boolean get() = true
     override val depth: Int get() = 0
+    override fun makePath(child: String): String = ""
     var navigation: Pair<NBTSource, NBTImportConfig>? = null
     var modified: Boolean by mutableStateOf(false)
     var flattening: Boolean by mutableStateOf(false)
     var confirmation: ConfirmationRequest? by mutableStateOf(null)
     var insertion: InsertionRequest? by mutableStateOf(null)
-    var replacement: ReplacementRequest? by mutableStateOf(null)
+    var replacing: ReplacingRequest? by mutableStateOf(null)
     var renaming: RenamingRequest? by mutableStateOf(null)
     var toolbarVisible: Boolean by mutableStateOf(true)
     var source: NBTSource? by mutableStateOf(null)
     var exporter: NBTExportModel? by mutableStateOf(null)
     var importer: NBTImportModel? by mutableStateOf(null)
+    var focused: NBTNode? by mutableStateOf(null)
     override var stringify: Boolean by mutableStateOf(false)
     override var prettify: Boolean by mutableStateOf(true)
     override var compressed: Boolean by mutableStateOf(false)

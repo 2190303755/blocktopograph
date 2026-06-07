@@ -42,13 +42,20 @@ import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
-val HiddenOrExpanded = setOf(
+val HiddenOrExpanded: Set<SheetValue> = hashSetOf(
     SheetValue.Hidden,
     SheetValue.Expanded
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
-val PartiallyOrFullyExpanded = setOf(
+val PartiallyOrFullyExpanded: Set<SheetValue> = hashSetOf(
+    SheetValue.PartiallyExpanded,
+    SheetValue.Expanded
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+val AllSheetValues: Set<SheetValue> = hashSetOf(
+    SheetValue.Hidden,
     SheetValue.PartiallyExpanded,
     SheetValue.Expanded
 )
@@ -199,11 +206,7 @@ fun PastableDialog(
 @Composable
 fun <T : Any> AnimatedBottomSheetDialog(
     targetState: T?,
-    enabledValues: Set<SheetValue> = setOf(
-        SheetValue.Hidden,
-        SheetValue.PartiallyExpanded,
-        SheetValue.Expanded
-    ),
+    enabledValues: Set<SheetValue> = AllSheetValues,
     content: @Composable (SheetState, T) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()

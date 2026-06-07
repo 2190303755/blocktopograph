@@ -50,7 +50,7 @@ fun List<FlatLayer>.toJson(
         val layers = JSONArray()
         this.forEach {
             val layer = JSONObject()
-            layer.put(KEY_BLOCK_NAME, it.state.block.name)
+            layer.put(KEY_BLOCK_NAME, it.state.block.typeId)
             layer.put(KEY_COUNT, it.height)
             layers.put(layer)
         }

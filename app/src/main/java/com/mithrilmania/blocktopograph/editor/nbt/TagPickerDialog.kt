@@ -169,7 +169,6 @@ fun TagPickerDialog(
         onCancel = onCancel,
         isValid = type.intValue in 1..KINDS_OF_SELECTABLE_TAGS,
         onPaste = {
-            pasted = it.second
             val typeId = it.second.type.typeId.toInt()
             if (!exclude || typeId != initial) {
                 type.intValue = typeId

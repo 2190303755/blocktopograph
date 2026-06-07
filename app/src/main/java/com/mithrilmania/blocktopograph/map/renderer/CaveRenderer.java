@@ -56,7 +56,7 @@ public class CaveRenderer implements MapRenderer {
                         // but avoid trees by skipping the first layer
                         if (intoSurface) cavyness++;
                     } else {
-                        var blockName = blockTemplate.getBlock().name;
+                        var blockName = blockTemplate.getBlock().typeId;
                         if ("minecraft:rail".equals(blockName)) {//rail
                             if (b < 150) {
                                 b = 150;

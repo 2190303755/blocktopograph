@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,7 +67,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -348,19 +348,18 @@ class CreateWorldActivity : ComponentActivity() {
                                         }
                                     )
                                     InfoBar(
-                                        title = state.block.name,
-                                        description = "${state.block.name} ×${layer.height}",
+                                        title = state.block.typeId,
+                                        description = "${state.block.typeId} ×${layer.height}",
                                         icon = {
                                             val modifier = handle.size(32.dp)
                                             val icon = state.icon.getIcon(context)
                                             if (icon === null) {
                                                 Spacer(modifier)
                                             } else {
-                                                Icon(
+                                                Image(
                                                     bitmap = icon.asImageBitmap(),
                                                     contentDescription = null,
-                                                    modifier = modifier,
-                                                    tint = Color.Unspecified
+                                                    modifier = modifier
                                                 )
                                             }
                                         },

@@ -4,19 +4,24 @@ import android.content.ClipData
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.plus
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -33,57 +38,67 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoveDown
 import androidx.compose.material.icons.filled.MoveUp
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AppBarRow
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
-import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.ListNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.RootLike
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.buildNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.toTagType
+import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
+import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
+import com.mithrilmania.blocktopograph.ui.component.AnimatedExpanderIndicator
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
-import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
@@ -118,7 +133,40 @@ inline fun NBTEditorModel.requestOrExecute(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun NBTSummary(
+    expandable: RootNode?,
+    icon: Painter,
+    key: String,
+    summary: String,
+    modifier: Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(painter = icon, contentDescription = null)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = key,
+                style = MaterialTheme.typography.labelMedium
+            )
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        if (expandable !== null) {
+            AnimatedExpanderIndicator(
+                expandable.expanded,
+                SplitButtonDefaults.TrailingIconSize
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NBTEditor(
     editor: NBTEditorModel = viewModel(),
@@ -226,7 +274,19 @@ fun NBTEditor(
                 },
                 actions = {
                     val resources = LocalResources.current
-                    AppBarRow(maxItemCount = 2) {
+                    AppBarRow(maxItemCount = 4) {
+                        clickableItem(
+                            Icons.AutoMirrored.Filled.Undo,
+                            "Undo", // TODO: i18n
+                            editor.undo.isNotEmpty(),
+                            editor::performUndo
+                        )
+                        clickableItem(
+                            Icons.AutoMirrored.Filled.Redo,
+                            "Redo", // TODO: i18n
+                            editor.redo.isNotEmpty(),
+                            editor::performRedo
+                        )
                         cascadingMenu(
                             Icons.Filled.Inventory2,
                             resources.getString(R.string.action_file)
@@ -256,7 +316,7 @@ fun NBTEditor(
                             DropdownMenuItem(
                                 resources.getString(R.string.action_file_reload),
                                 editor.source !== null
-                            ) click@{
+                            ) {
                                 editor.requestOrExecute(ConfirmationRequest.RELOAD, onConfirm)
                                 showMenu.value = false
                             }
@@ -279,215 +339,212 @@ fun NBTEditor(
             )
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = editor.flattening,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .zIndex(1.0F)
-                    .padding(top = padding.calculateTopPadding())
-            ) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Column(Modifier.fillMaxSize()) {
+            NBTTree(padding, editor, Modifier.weight(1F))
+            var showActions by rememberSaveable(editor.focused) {
+                mutableStateOf(false)
             }
-            HorizontalFloatingToolbar(
-                expanded = true,
-                modifier =
-                    Modifier
-                        .padding(padding)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = -ScreenOffset)
-                        .zIndex(1.0F),
-                leadingContent = {
-                    TooltipBox("undo") { tooltip ->
-                        IconButton(
-                            Icons.AutoMirrored.Filled.Undo,
-                            tooltip,
-                            editor.undo.isNotEmpty()
+            AnimatedContent(
+                targetState = editor.focused,
+                transitionSpec = {
+                    fadeIn() togetherWith fadeOut()
+                }
+            ) { focused ->
+                if (focused === null) {
+                    Box(Modifier)
+                } else {
+                    Column(Modifier.padding(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            editor.performUndo()
-                        }
-                    }
-                    TooltipBox("redo") { tooltip ->
-                        IconButton(
-                            Icons.AutoMirrored.Filled.Redo,
-                            tooltip,
-                            editor.redo.isNotEmpty()
-                        ) {
-                            editor.performRedo()
-                        }
-                    }
-                },
-                trailingContent = {
-                    TooltipBox("save") { tooltip ->
-                        OutlinedIconButton(
-                            onClick = {
-                                editor.saveAsync()
-                            },
-                            enabled = editor.nodes.isNotEmpty(),
-                            colors = IconButtonDefaults.outlinedIconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            Image(
+                                painter = focused.icon(),
+                                contentDescription = null
                             )
-                        ) {
-                            Icon(Icons.Filled.Save, tooltip)
-                        }
-                    }
-                }
-            ) {
-                TooltipBox("search") { tooltip ->
-                    IconButton(Icons.Filled.Search, tooltip, editor.nodes.isNotEmpty()) {
-                        context.upcoming()
-                    }
-                }
-            }
-            LazyColumn(
-                contentPadding = padding + PaddingValues(bottom = 80.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .horizontalScroll(rememberScrollState())
-            ) {
-                items(
-                    items = editor.nodes,
-                    key = { it.uid },
-                    contentType = { it.type },
-                ) { node ->
-                    Box(
-                        Modifier
-                            .animateItem()
-                            .widthIn(max = 512.dp)
-                            .padding(start = (node.depth * 16).dp)
-                    ) {
-                        node.Content(
-                            Modifier.combinedClickable(
-                                onLongClick = { node.showContextMenu = true }
-                            ) {
-                                if (node is RootLike && node.parent is NBTNode) {
-                                    val expanded = !node.expanded
-                                    if (expanded) {
-                                        editor.expandNode(node)
-                                    } else {
-                                        editor.collapsesNode(node)
-                                    }
-                                    node.expanded = expanded
-                                }
+                            val root = editor.nodes.firstOrNull()
+                            if (focused === root) {
+                                Text(
+                                    text = StringBuilder().appendSafeLiteral(focused.key.toString())
+                                        .toString(),
+                                    textDecoration = TextDecoration.Underline,
+                                    modifier = Modifier
+                                        .weight(1F)
+                                        .horizontalScroll(rememberScrollState(Int.MAX_VALUE))
+                                )
+                            } else {
+                                Text(
+                                    text = focused.path,
+                                    modifier = Modifier
+                                        .weight(1F)
+                                        .horizontalScroll(rememberScrollState(Int.MAX_VALUE))
+                                )
                             }
-                        )
-                        val coroutineScope = rememberCoroutineScope()
-                        val clipboard = LocalClipboard.current
-                        DropdownMenu(
-                            expanded = node.showContextMenu,
-                            onDismissRequest = { node.showContextMenu = false },
-                            scrollState = rememberScrollState(),
-                        ) {
-                            DropdownMenuItem(
-                                Icons.Filled.ContentCopy,
-                                stringResource(R.string.edit_copy)
-                            ) {
-                                node.showContextMenu = false
-                                coroutineScope.launch {
-                                    clipboard.setClipEntry(
-                                        ClipEntry(
-                                            ClipData.newPlainText(
-                                                null,
-                                                node.stringify()
+                            Box {
+                                val context = LocalContext.current
+                                val clipboard = LocalClipboard.current
+                                val coroutineScope = rememberCoroutineScope()
+                                SplitButtonLayout(
+                                    leadingButton = {
+                                        SplitButtonDefaults.TonalLeadingButton(onClick = {
+                                            coroutineScope.launch {
+                                                clipboard.setClipEntry(
+                                                    ClipEntry(
+                                                        ClipData.newPlainText(
+                                                            null,
+                                                            focused.stringify()
+                                                        )
+                                                    )
+                                                )
+                                            }
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Filled.ContentCopy,
+                                                modifier = Modifier.size(SplitButtonDefaults.LeadingIconSize),
+                                                contentDescription = stringResource(R.string.action_copy),
                                             )
-                                        )
-                                    )
-                                }
-                            }
-                            node.ContextMenu(editor)
-                            val parent = node.parent
-                            if (parent is RootNode) {
-                                if (parent is MapNode) {
-                                    DropdownMenuItem(
-                                        Icons.Filled.Edit,
-                                        stringResource(R.string.edit_rename)
-                                    ) {
-                                        node.showContextMenu = false
-                                        editor.renaming = RenamingRequest(node)
+                                        }
+                                    },
+                                    trailingButton = {
+                                        TooltipBox("Toggle Button") { tooltip ->
+                                            SplitButtonDefaults.TonalTrailingButton(
+                                                checked = showActions,
+                                                onCheckedChange = { showActions = it },
+                                                modifier =
+                                                    Modifier.semantics {
+                                                        stateDescription =
+                                                            if (showActions) "Expanded" else "Collapsed"
+                                                        contentDescription = tooltip
+                                                    },
+                                            ) {
+                                                AnimatedExpanderIndicator(
+                                                    showActions,
+                                                    SplitButtonDefaults.TrailingIconSize
+                                                )
+                                            }
+                                        }
                                     }
-                                    DropdownMenuItem(
-                                        Icons.Filled.SwapHoriz,
-                                        stringResource(R.string.action_replace)
-                                    ) {
-                                        node.showContextMenu = false
-                                        editor.replacement = ReplacementRequest(node)
-                                    }
-                                } else if (parent is CollectionNode<*, *>) {
-                                    if (node !== parent.children.firstOrNull()) {
+                                )
+                                DropdownMenu(
+                                    expanded = showActions,
+                                    onDismissRequest = { showActions = false }
+                                ) {
+                                    if (focused.parent is CollectionNode<*, *>) {
                                         DropdownMenuItem(
-                                            Icons.Filled.MoveUp,
-                                            stringResource(R.string.action_move_up)
+                                            icon = Icons.Filled.MoveUp,
+                                            label = stringResource(R.string.action_move_up),
+                                            enabled = focused !== focused.parent.children.firstOrNull()
                                         ) {
-                                            node.showContextMenu = false
-                                            val children = node.parent.children
-                                            val index = children.indexOf(node)
+                                            val children = focused.parent.children
+                                            val index = children.indexOf(focused)
                                             if (index in 1 until children.size) {
                                                 editor.performOperation(
                                                     Swap(
-                                                        node.parent,
+                                                        focused.parent,
                                                         index - 1,
                                                         index
                                                     )
                                                 )
+                                            } else {
+                                                showActions = false
                                             }
                                         }
-                                    }
-                                    if (node !== parent.children.lastOrNull()) {
                                         DropdownMenuItem(
-                                            Icons.Filled.MoveDown,
-                                            stringResource(R.string.action_move_dowm)
+                                            icon = Icons.Filled.MoveDown,
+                                            label = stringResource(R.string.action_move_dowm),
+                                            enabled = focused !== focused.parent.children.lastOrNull()
                                         ) {
-                                            node.showContextMenu = false
-                                            val children = node.parent.children
-                                            val index = children.indexOf(node)
+                                            val children = focused.parent.children
+                                            val index = children.indexOf(focused)
                                             if (index in 0 until children.size - 1) {
                                                 editor.performOperation(
                                                     Swap(
-                                                        node.parent,
+                                                        focused.parent,
                                                         index,
                                                         index + 1
                                                     )
                                                 )
+                                            } else {
+                                                showActions = false
                                             }
                                         }
-                                    }
-                                    if (parent is ListNode) {
+                                    } else {
                                         DropdownMenuItem(
-                                            Icons.Filled.SwapHoriz,
-                                            stringResource(R.string.action_replace)
+                                            icon = Icons.Filled.Edit,
+                                            label = stringResource(R.string.rename)
                                         ) {
-                                            node.showContextMenu = false
-                                            editor.replacement = ReplacementRequest(node)
+                                            editor.renaming = RenamingRequest(focused)
+                                            showActions = false
                                         }
                                     }
-                                }
-                                DropdownMenuItem(
-                                    Icons.Filled.Delete,
-                                    stringResource(R.string.edit_delete)
-                                ) {
-                                    node.showContextMenu = false
-                                    editor.performOperation(Delete(node.parent, node))
-                                }
-                            } else {
-                                DropdownMenuItem(
-                                    Icons.Filled.Edit,
-                                    stringResource(R.string.edit_rename)
-                                ) {
-                                    node.showContextMenu = false
-                                    editor.renaming = RenamingRequest(node)
-                                }
-                                DropdownMenuItem(
-                                    Icons.Filled.SwapHoriz,
-                                    stringResource(R.string.action_replace)
-                                ) {
-                                    node.showContextMenu = false
-                                    editor.replacement = ReplacementRequest(node)
+                                    DropdownMenuItem(
+                                        icon = Icons.Filled.SwapHoriz,
+                                        label = stringResource(R.string.action_replace)
+                                    ) {
+                                        if (focused.parent.canBeHeterogeneous) {
+                                            editor.replacing = ReplacingRequest(focused)
+                                        } else {
+                                            coroutineScope.launch {
+                                                val tag = clipboard.getClipEntry()
+                                                    ?.clipData
+                                                    ?.collectText()
+                                                    ?.parseSNBT()
+                                                    ?.second
+                                                if (tag === null) {
+                                                    context.toast(R.string.clipboard_is_empty) // fixme: invalid snbt
+                                                } else {
+                                                    editor.performOperation(
+                                                        Replace(
+                                                            focused.parent as? RootNode,
+                                                            focused,
+                                                            focused.type
+                                                                .toTagType()
+                                                                .transform(tag)
+                                                                .buildNode(
+                                                                    focused.parent,
+                                                                    focused.key
+                                                                )
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        showActions = false
+                                    }
+                                    HorizontalDivider()
+                                    val warn = MaterialTheme.colorScheme.error
+                                    CompositionLocalProvider(
+                                        LocalContentColor provides warn
+                                    ) {
+                                        val label = stringResource(R.string.action_delete)
+                                        DropdownMenuItem(
+                                            text = { Text(text = label) },
+                                            enabled = focused.parent is RootNode,
+                                            colors = MenuDefaults.itemColors(
+                                                textColor = warn,
+                                                leadingIconColor = warn
+                                            ),
+                                            onClick = {
+                                                if (focused.parent is RootNode) {
+                                                    editor.performOperation(
+                                                        Delete(focused.parent, focused)
+                                                    )
+                                                }
+                                                showActions = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Delete,
+                                                    contentDescription = label,
+                                                    modifier = Modifier.size(MenuDefaults.LeadingIconSize)
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
+                        focused.Editor(editor)
                     }
                 }
             }
@@ -502,13 +559,7 @@ fun NBTEditor(
             ) { name, tag ->
                 editor.insertion = null
                 editor.performOperation(
-                    Insert(
-                        parent,
-                        tag.buildNode(
-                            parent,
-                            name
-                        )
-                    )
+                    Insert(parent, tag.buildNode(parent, name))
                 )
             }
         }
@@ -521,36 +572,30 @@ fun NBTEditor(
             ) {
                 editor.insertion = null
                 editor.performOperation(
-                    Insert(
-                        parent,
-                        it.buildNode(
-                            parent,
-                            parent.children.size
-                        )
-                    )
+                    Insert(parent, it.buildNode(parent, parent.children.size))
                 )
             }
         }
 
         null -> {}
     }
-    val replacement = editor.replacement?.node
-    if (replacement !== null) {
+    val replacing = editor.replacing?.node
+    if (replacing !== null && replacing.parent.canBeHeterogeneous) {
         TagPickerDialog(
             title = stringResource(R.string.action_replace),
-            initial = replacement.type.toInt(),
-            source = replacement,
+            initial = replacing.type.toInt(),
+            source = replacing,
             exclude = true,
-            onCancel = { editor.replacement = null }
+            onCancel = { editor.replacing = null }
         ) {
-            editor.replacement = null
+            editor.replacing = null
             editor.performOperation(
                 Replace(
-                    replacement.parent as? RootNode,
-                    replacement,
+                    replacing.parent as? RootNode,
+                    replacing,
                     it.buildNode(
-                        replacement.parent,
-                        replacement.key
+                        replacing.parent,
+                        replacing.key
                     )
                 )
             )
@@ -580,7 +625,7 @@ fun NBTEditor(
                             Rename(renaming.parent, renaming.key.toString(), key)
                         )
                     }
-                } else {
+                } else if (renaming.parent !is NBTNode) {
                     editor.renaming = null
                     if (key != renaming.key) {
                         editor.performOperation(
@@ -604,9 +649,7 @@ fun NBTEditor(
             exporter = exporter,
             creator = creator,
             state = sheetState,
-            onDismiss = {
-                editor.exporter = null
-            }
+            onDismiss = { editor.exporter = null }
         ) { file ->
             editor.viewModelScope.launch {
                 editor.saveToFile(file)
@@ -620,12 +663,77 @@ fun NBTEditor(
         NBTImportDialog(
             importer = importer,
             state = sheetState,
-            onDismiss = {
-                editor.importer = null
-            }
+            onDismiss = { editor.importer = null }
         ) {
             editor.viewModelScope.launch {
                 editor.readFromFile(importer.source, importer)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun NBTTree(
+    padding: PaddingValues,
+    editor: NBTEditorModel,
+    modifier: Modifier
+) {
+    Box(modifier) {
+        AnimatedVisibility(
+            visible = editor.flattening,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .zIndex(1.0F)
+                .padding(top = padding.calculateTopPadding())
+        ) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        val itemShape = MaterialTheme.shapes.small
+        LazyColumn(
+            contentPadding = padding,
+            modifier = Modifier
+                .fillMaxSize()
+                .horizontalScroll(rememberScrollState())
+        ) {
+            items(
+                items = editor.nodes,
+                key = { it.uid },
+                contentType = { it.type },
+            ) { node ->
+                val indent = Modifier
+                    .padding(start = (node.depth * 32 - 16).dp)
+                NBTSummary(
+                    expandable = node as? RootNode,
+                    icon = node.icon(),
+                    key = node.key.toString(),
+                    summary = node.summary(),
+                    modifier = (if (node === editor.focused) indent.background(
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                        itemShape
+                    ) else indent)
+                        .clip(itemShape)
+                        .clickable {
+                            if (editor.focused === node
+                                && node is RootNode
+                                && node.parent is NBTNode
+                            ) {
+                                val expanded = !node.expanded
+                                if (expanded) {
+                                    editor.expandNode(node)
+                                } else {
+                                    editor.collapsesNode(node)
+                                }
+                                node.expanded = expanded
+                            }
+                            editor.focused = node
+                        }
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .animateItem()
+                )
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.ui
 
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -58,18 +59,17 @@ fun BlockStatePreview(
     onSelect: (BlockTemplate) -> Unit
 ) {
     InfoBar(
-        title = state.block.name,
-        description = state.subName ?: state.block.name,
+        title = state.block.typeId,
+        description = state.subName ?: state.block.typeId,
         icon = {
             val icon = state.icon.getIcon(context)
             if (icon === null) {
                 Spacer(Modifier.size(32.dp))
             } else {
-                Icon(
+                Image(
                     bitmap = icon.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = Color.Unspecified
+                    modifier = Modifier.size(32.dp)
                 )
             }
         },
@@ -127,7 +127,7 @@ fun BlockPicker(
                         BlockTemplates.getAll().collect(Collectors.toList())
                     } else {
                         BlockTemplates.getAll().filter {
-                            it.block.name.contains(keyword, ignoreCase = true)
+                            it.block.typeId.contains(keyword, ignoreCase = true)
                                     || (it.subName?.contains(keyword, ignoreCase = true) ?: false)
                         }.collect(Collectors.toList())
                     }
@@ -138,7 +138,7 @@ fun BlockPicker(
         LazyColumn(Modifier.sizeIn(maxHeight = 512.dp)) {
             items(
                 items = templates,
-                key = { it.block.name + it.block.hashCode() }
+                key = { it.block.typeId + it.block.hashCode() }
             ) {
                 BlockStatePreview(it, Modifier.animateItem(), context, RectangleShape, onSelect)
             }
