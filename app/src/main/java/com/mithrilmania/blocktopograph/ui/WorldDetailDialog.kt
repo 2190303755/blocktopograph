@@ -128,8 +128,7 @@ fun WorldDetailEntry(
 fun WorldDetailDialog(
     detail: WorldDetail,
     state: SheetState,
-    onDismiss: () -> Unit,
-    onEditWorld: () -> Unit
+    onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,

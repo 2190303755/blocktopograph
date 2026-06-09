@@ -4,7 +4,6 @@ import android.app.Application
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,9 +54,6 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     val enabledLayers: MutableSet<MapLayer> = mutableStateSetOf()
     var dimension: Dimension = Dimension.OVERWORLD
     var majorLayerId: String? = null
-
-    @JvmField
-    val snackbar: SnackbarHostState = SnackbarHostState()
 
     @JvmField
     val map: MapState = MapState(

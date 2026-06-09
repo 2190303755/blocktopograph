@@ -262,8 +262,7 @@ class WorldListActivity : ComponentActivity() {
                             detail = selected,
                             state = sheetState,
                             onDismiss = { viewModel.selected = null },
-                        ) {
-                        }
+                        )
                     }
                 }
             }

@@ -380,6 +380,8 @@ internal class ZoomPanState(
             ct.resume(Unit)
         }
         onLayoutContinuations.clear()
+
+        notifyStateChanged()
     }
 
     internal fun constrainScale(scale: Double): Double {

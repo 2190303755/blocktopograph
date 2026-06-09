@@ -22,20 +22,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LayersClear
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
@@ -44,12 +45,9 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,24 +58,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.constrainHeight
-import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.application
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.composeunstyled.SheetDetent
+import com.composeunstyled.rememberBottomSheetState
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
@@ -95,7 +90,8 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
 import com.mithrilmania.blocktopograph.storage.file
-import com.mithrilmania.blocktopograph.ui.component.AllSheetValues
+import com.mithrilmania.blocktopograph.ui.component.BottomSheet
+import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
 import com.mithrilmania.blocktopograph.ui.component.Expander
 import com.mithrilmania.blocktopograph.ui.component.ExpanderIndicator
@@ -354,28 +350,25 @@ class WorldEditorActivity : ComponentActivity() {
                         }
                     }
                 }
-                val scaffoldState = rememberBottomSheetScaffoldState(
-                    bottomSheetState = rememberBottomSheetState(
-                        initialValue = SheetValue.PartiallyExpanded,
-                        enabledValues = AllSheetValues
-                    ),
-                    snackbarHostState = viewModel.snackbar
-                )
                 NBTEditingHost(viewModel) {
-                    val cutout = WindowInsets.systemBars.union(
-                        WindowInsets.displayCutout
-                    )
-                    val bottomCutout = with(LocalDensity.current) {
-                        cutout.getBottom(this).toDp()
-                    }
-                    val sheetMagic = 36.dp + bottomCutout
-                    // fixme: sheet height
-                    BottomSheetScaffold(
-                        modifier = Modifier
-                            .padding(top = sheetMagic)
-                            .offset(0.dp, -sheetMagic),
-                        scaffoldState = scaffoldState,
-                        sheetContent = {
+                    Box(contentAlignment = Alignment.Center) {
+                        MapUI(state = viewModel.map)
+                        val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                        val density = LocalDensity.current
+                        val collapse = SheetDetent("collapse") { _, _ ->
+                            with(density) {
+                                cutout.getBottom(this).toDp()
+                            } + DragHandleConsumedHeight
+                        }
+                        val partialExpanded = SheetDetent(
+                            "partial-expanded"
+                        ) { containerHeight, _ -> containerHeight * 0.4F }
+                        BottomSheet(
+                            rememberBottomSheetState(
+                                collapse,
+                                listOf(collapse, partialExpanded, SheetDetent.FullyExpanded)
+                            )
+                        ) {
                             PrimaryTabRow(selectedTabIndex = viewModel.tabPager.currentPage) {
                                 val coroutineScope = rememberCoroutineScope()
                                 arrayOf(
@@ -402,24 +395,12 @@ class WorldEditorActivity : ComponentActivity() {
                             }
                             HorizontalPager(viewModel.tabPager) {
                                 when (it) {
-                                    1 -> MarkerTab(viewModel, info, bottomCutout)
-                                    2 -> StorageTab(viewModel, info, bottomCutout)
-                                    else -> ViewModeTab(viewModel, info, bottomCutout)
+                                    1 -> MarkerTab(viewModel, info)
+                                    2 -> StorageTab(viewModel, info)
+                                    else -> ViewModeTab(viewModel, info)
                                 }
                             }
                         }
-                    ) { padding ->
-                        MapUI(Modifier.layout { measurable, constraints ->
-                            val magic = sheetMagic.roundToPx()
-                            val placeable = measurable.measure(
-                                constraints.offset(0, magic)
-                            )
-                            val width = constraints.constrainWidth(placeable.width)
-                            val height = constraints.constrainHeight(placeable.height + magic)
-                            layout(width, height) {
-                                placeable.placeRelative(0, 0)
-                            }
-                        }, state = viewModel.map)
                     }
                 }
             }
@@ -507,17 +488,19 @@ fun NBTEditingHost(
 @Composable
 fun ViewModeTab(
     viewModel: WorldEditorModel,
-    info: InitState.Succeed,
-    bottom: Dp
+    info: InitState.Succeed
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(
-                top = 6.dp,
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 6.dp + bottom
+                vertical = 6.dp,
+                horizontal = 16.dp
+            )
+            .windowInsetsPadding(
+                WindowInsets.systemBars
+                    .union(WindowInsets.displayCutout)
+                    .only(WindowInsetsSides.Bottom)
             ),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -596,8 +579,7 @@ fun ViewModeTab(
 @Composable
 fun MarkerTab(
     viewModel: WorldEditorModel,
-    info: InitState.Succeed,
-    bottom: Dp
+    info: InitState.Succeed
 ) {
     Spacer(Modifier.fillMaxSize())
 }
@@ -605,8 +587,7 @@ fun MarkerTab(
 @Composable
 fun StorageTab(
     viewModel: WorldEditorModel,
-    info: InitState.Succeed,
-    bottom: Dp
+    info: InitState.Succeed
 ) {
     val coroutineScope = rememberCoroutineScope()
     LazyColumn(Modifier.fillMaxSize()) {

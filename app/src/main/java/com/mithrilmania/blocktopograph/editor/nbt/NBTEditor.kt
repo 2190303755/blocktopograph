@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -18,10 +20,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,8 +49,8 @@ import androidx.compose.material.icons.filled.MoveDown
 import androidx.compose.material.icons.filled.MoveUp
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AppBarRow
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -50,13 +59,16 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,6 +82,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -97,6 +110,7 @@ import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedExpanderIndicator
+import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
@@ -249,111 +263,39 @@ fun NBTEditor(
         }
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = {
-                    Text(
-                        editor.source?.resolveName(context)
-                            ?: stringResource(R.string.nbt_editor)
-                    )
-                },
-                subtitle = editor.storageVersion?.let { version ->
-                    {
-                        Text(
-                            stringResource(
-                                R.string.activity_nbt_editor_subtitle,
-                                version.toLong()
-                            )
-                        )
-                    }
-                },
-                actions = {
-                    val resources = LocalResources.current
-                    AppBarRow(maxItemCount = 4) {
-                        clickableItem(
-                            Icons.AutoMirrored.Filled.Undo,
-                            "Undo", // TODO: i18n
-                            editor.undo.isNotEmpty(),
-                            editor::performUndo
-                        )
-                        clickableItem(
-                            Icons.AutoMirrored.Filled.Redo,
-                            "Redo", // TODO: i18n
-                            editor.redo.isNotEmpty(),
-                            editor::performRedo
-                        )
-                        cascadingMenu(
-                            Icons.Filled.Inventory2,
-                            resources.getString(R.string.action_file)
-                        ) { showMenu ->
-                            DropdownMenuItem(resources.getString(R.string.action_file_create)) {
-                                editor.requestOrExecute(ConfirmationRequest.NEW, onConfirm)
-                                showMenu.value = false
-                            }
-                            DropdownMenuItem(resources.getString(R.string.action_file_open)) {
-                                editor.requestOrExecute(ConfirmationRequest.OPEN, onConfirm)
-                                showMenu.value = false
-                            }
-                            DropdownMenuItem(
-                                resources.getString(R.string.action_file_save),
-                                editor.nodes.isNotEmpty()
-                            ) {
-                                editor.saveAsync()
-                                showMenu.value = false
-                            }
-                            DropdownMenuItem(
-                                resources.getString(R.string.action_file_save_as),
-                                editor.nodes.isNotEmpty()
-                            ) {
-                                editor.buildExporter(true)
-                                showMenu.value = false
-                            }
-                            DropdownMenuItem(
-                                resources.getString(R.string.action_file_reload),
-                                editor.source !== null
-                            ) {
-                                editor.requestOrExecute(ConfirmationRequest.RELOAD, onConfirm)
-                                showMenu.value = false
-                            }
-                        }
-                        clickableItem(
-                            Icons.Filled.Info,
-                            resources.getString(R.string.action_file_info),
-                            false
-                        ) {
-                            context.upcoming()
-                        }
-                        clickableItem(
-                            Icons.AutoMirrored.Filled.ExitToApp,
-                            resources.getString(R.string.action_quit)
-                        ) {
-                            editor.requestOrExecute(ConfirmationRequest.EXIT, onConfirm)
-                        }
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(Modifier.fillMaxSize()) {
-            NBTTree(padding, editor, Modifier.weight(1F))
+    val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+    val scaffoldState = rememberBottomSheetScaffoldState()
+    LaunchedEffect(editor.focused) {
+        scaffoldState.bottomSheetState.expand()
+    }
+    BottomSheetScaffold(
+        sheetContent = {
             var showActions by rememberSaveable(editor.focused) {
                 mutableStateOf(false)
             }
             AnimatedContent(
                 targetState = editor.focused,
                 transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
+                    val spec = fadeIn() togetherWith fadeOut()
+                    if (scaffoldState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                        spec using SizeTransform { _, _ -> snap() }
+                    } else spec
                 }
             ) { focused ->
                 if (focused === null) {
-                    Box(Modifier)
+                    Box(Modifier.fillMaxWidth())
                 } else {
-                    Column(Modifier.padding(8.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars
+                                    .union(WindowInsets.displayCutout)
+                                    .only(WindowInsetsSides.Bottom)
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -517,7 +459,7 @@ fun NBTEditor(
                                         LocalContentColor provides warn
                                     ) {
                                         val label = stringResource(R.string.action_delete)
-                                        DropdownMenuItem(
+                                        androidx.compose.material3.DropdownMenuItem(
                                             text = { Text(text = label) },
                                             enabled = focused.parent is RootNode,
                                             colors = MenuDefaults.itemColors(
@@ -548,7 +490,104 @@ fun NBTEditor(
                     }
                 }
             }
+        },
+        modifier = Modifier.fillMaxSize(),
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = with(LocalDensity.current) {
+            cutout.getBottom(this).toDp()
+        } + DragHandleConsumedHeight,
+        topBar = {
+            TopAppBar(
+                scrollBehavior = scrollBehavior,
+                title = {
+                    Text(
+                        editor.source?.resolveName(context)
+                            ?: stringResource(R.string.nbt_editor)
+                    )
+                },
+                subtitle = editor.storageVersion?.let { version ->
+                    {
+                        Text(
+                            stringResource(
+                                R.string.activity_nbt_editor_subtitle,
+                                version.toLong()
+                            )
+                        )
+                    }
+                },
+                actions = {
+                    val resources = LocalResources.current
+                    AppBarRow(maxItemCount = 4) {
+                        clickableItem(
+                            Icons.AutoMirrored.Filled.Undo,
+                            "Undo", // TODO: i18n
+                            editor.undo.isNotEmpty(),
+                            editor::performUndo
+                        )
+                        clickableItem(
+                            Icons.AutoMirrored.Filled.Redo,
+                            "Redo", // TODO: i18n
+                            editor.redo.isNotEmpty(),
+                            editor::performRedo
+                        )
+                        cascadingMenu(
+                            Icons.Filled.Inventory2,
+                            resources.getString(R.string.action_file)
+                        ) { showMenu ->
+                            DropdownMenuItem(resources.getString(R.string.action_file_create)) {
+                                editor.requestOrExecute(ConfirmationRequest.NEW, onConfirm)
+                                showMenu.value = false
+                            }
+                            DropdownMenuItem(resources.getString(R.string.action_file_open)) {
+                                editor.requestOrExecute(ConfirmationRequest.OPEN, onConfirm)
+                                showMenu.value = false
+                            }
+                            DropdownMenuItem(
+                                resources.getString(R.string.action_file_save),
+                                editor.nodes.isNotEmpty()
+                            ) {
+                                editor.saveAsync()
+                                showMenu.value = false
+                            }
+                            DropdownMenuItem(
+                                resources.getString(R.string.action_file_save_as),
+                                editor.nodes.isNotEmpty()
+                            ) {
+                                editor.buildExporter(true)
+                                showMenu.value = false
+                            }
+                            DropdownMenuItem(
+                                resources.getString(R.string.action_file_reload),
+                                editor.source !== null
+                            ) {
+                                editor.requestOrExecute(ConfirmationRequest.RELOAD, onConfirm)
+                                showMenu.value = false
+                            }
+                        }
+                        clickableItem(
+                            Icons.Filled.Info,
+                            resources.getString(R.string.action_file_info),
+                            false
+                        ) {
+                            context.upcoming()
+                        }
+                        clickableItem(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            resources.getString(R.string.action_quit)
+                        ) {
+                            editor.requestOrExecute(ConfirmationRequest.EXIT, onConfirm)
+                        }
+                    }
+                }
+            )
         }
+    ) { padding ->
+        NBTTree(
+            padding,
+            editor,
+            scaffoldState.bottomSheetState,
+            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+        )
     }
     when (val parent = editor.insertion?.parent) {
         is MapNode -> {
@@ -672,11 +711,12 @@ fun NBTEditor(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NBTTree(
     padding: PaddingValues,
     editor: NBTEditorModel,
+    sheetState: SheetState,
     modifier: Modifier
 ) {
     Box(modifier) {
@@ -693,6 +733,7 @@ fun NBTTree(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
         val itemShape = MaterialTheme.shapes.small
+        val coroutineScope = rememberCoroutineScope()
         LazyColumn(
             contentPadding = padding,
             modifier = Modifier
@@ -717,7 +758,8 @@ fun NBTTree(
                     ) else indent)
                         .clip(itemShape)
                         .clickable {
-                            if (editor.focused === node
+                            val isFocused = editor.focused === node
+                            if (isFocused
                                 && node is RootNode
                                 && node.parent is NBTNode
                             ) {
@@ -730,6 +772,11 @@ fun NBTTree(
                                 node.expanded = expanded
                             }
                             editor.focused = node
+                            if (isFocused) {
+                                coroutineScope.launch {
+                                    sheetState.expand()
+                                }
+                            }
                         }
                         .padding(horizontal = 8.dp, vertical = 6.dp)
                         .animateItem()

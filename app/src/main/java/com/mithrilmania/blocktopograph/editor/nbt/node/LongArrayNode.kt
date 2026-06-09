@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph.editor.nbt.node
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -70,10 +69,7 @@ class LongArrayNode(
 
     @Composable
     override fun Editor(editor: NBTEditorModel) {
-        Row(
-            Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             val context = LocalContext.current
             BottomSheetActionButton(
                 icon = Icons.Filled.Search,
