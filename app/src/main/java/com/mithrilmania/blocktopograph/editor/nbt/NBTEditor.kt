@@ -66,6 +66,7 @@ import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -108,6 +109,7 @@ import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.storage.SAFFile
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
+import com.mithrilmania.blocktopograph.ui.component.AllSheetValues
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedExpanderIndicator
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
@@ -264,9 +266,18 @@ fun NBTEditor(
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-    val scaffoldState = rememberBottomSheetScaffoldState()
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = AllSheetValues,
+        ) { it != SheetValue.Hidden || editor.focused === null }
+    )
     LaunchedEffect(editor.focused) {
-        scaffoldState.bottomSheetState.expand()
+        if (editor.focused === null) {
+            scaffoldState.bottomSheetState.hide()
+        } else {
+            scaffoldState.bottomSheetState.expand()
+        }
     }
     BottomSheetScaffold(
         sheetContent = {
@@ -277,9 +288,11 @@ fun NBTEditor(
                 targetState = editor.focused,
                 transitionSpec = {
                     val spec = fadeIn() togetherWith fadeOut()
-                    if (scaffoldState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                    if (editor.focused !== null
+                        && scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
+                    ) spec else {
                         spec using SizeTransform { _, _ -> snap() }
-                    } else spec
+                    }
                 }
             ) { focused ->
                 if (focused === null) {
@@ -348,7 +361,7 @@ fun NBTEditor(
                                         }
                                     },
                                     trailingButton = {
-                                        TooltipBox("Toggle Button") { tooltip ->
+                                        TooltipBox("Options") { tooltip -> // TODO i18n
                                             SplitButtonDefaults.TonalTrailingButton(
                                                 checked = showActions,
                                                 onCheckedChange = { showActions = it },

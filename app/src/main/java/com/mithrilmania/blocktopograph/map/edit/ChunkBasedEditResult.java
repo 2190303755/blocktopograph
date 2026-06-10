@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.map.edit;
 
-import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.Dimension;
 
 /**
  * Used to publish result for every chunks in chunk-cased edit.

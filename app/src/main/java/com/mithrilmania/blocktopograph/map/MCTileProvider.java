@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.map;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -12,6 +14,7 @@ import android.text.TextPaint;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 import com.qozix.tileview.graphics.BitmapProvider;
@@ -29,8 +32,8 @@ public class MCTileProvider implements BitmapProvider {
     HALF_WORLDSIZE = 1 << 20;
 
     public static int worldSizeInBlocks = 2 * HALF_WORLDSIZE,
-            viewSizeW = worldSizeInBlocks * TILESIZE / Dimension.OVERWORLD.chunkW,
-            viewSizeL = worldSizeInBlocks * TILESIZE / Dimension.OVERWORLD.chunkL;
+            viewSizeW = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION,
+            viewSizeL = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION;
 
     public final WorldMapModel world;
     public final WorldModel worldModel;

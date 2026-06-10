@@ -13,12 +13,15 @@ import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
@@ -67,6 +70,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -214,229 +219,267 @@ class CreateWorldActivity : ComponentActivity() {
                     }
                 }
             ) { padding ->
-                Column(Modifier.padding(PaddingValues(top = padding.calculateTopPadding()))) {
-                    val inset = HorizontalPadding(padding)
-                    val spacing = Modifier.padding(
-                        inset + PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp)
-                    )
-                    OutlinedTextField(
-                        state = viewModel.name,
-                        modifier = spacing.fillMaxWidth(),
-                        lineLimits = TextFieldLineLimits.SingleLine,
-                        label = { Text(stringResource(R.string.create_world_name)) },
-                        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
-                        placeholder = { Text(stringResource(R.string.world_default_name)) },
-                    )
-                    DropdownMenuField(
-                        options = listOf(Unit),
-                        label = stringResource(R.string.create_world_version),
-                        selected = Unit,
-                        modifier = spacing.fillMaxWidth(),
-                        onSelect = { }
-                    ) {
-                        stringResource(R.string.create_world_version_aqua)
+                val inset = HorizontalPadding(padding)
+                val hapticFeedback = LocalHapticFeedback.current
+                val listState = rememberLazyListState()
+                val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
+                    viewModel.layers.apply {
+                        add(to.index - 2, removeAt(from.index - 2))
                     }
-                    DropdownMenuField(
-                        options = Biome.entries,
-                        label = stringResource(R.string.biomes),
-                        selected = viewModel.biome,
-                        modifier = spacing.fillMaxWidth(),
-                        onSelect = { viewModel.biome = it }
-                    ) { "${it.name} (${it.id})" }
-                    val hapticFeedback = LocalHapticFeedback.current
-                    val listState = rememberLazyListState()
-                    val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
-                        viewModel.layers.apply {
-                            add(to.index, removeAt(from.index))
-                        }
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-                    }
-                    Row(
-                        modifier = spacing.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(R.string.create_world_layers),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        FilledTonalButton(
-                            onClick = {
-                                viewModel.snackbar.currentSnackbarData?.dismiss()
-                                viewModel.layers.add(0, FlatLayer())
-                            },
-                            shapes = ButtonDefaults.shapes(),
-                            contentPadding = ButtonDefaults.contentPaddingFor(
-                                ButtonDefaults.MinHeight,
-                                hasStartIcon = true
-                            )
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                }
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
+                    state = listState,
+                    modifier = Modifier
+                        .padding(PaddingValues(top = padding.calculateTopPadding()))
+                        .fillMaxSize()
+                ) {
+                    item {
+                        Column(
+                            modifier = Modifier.padding(
+                                inset + PaddingValues(horizontal = 16.dp)
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                contentDescription = "添加层",
-                                modifier = Modifier.size(ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)),
+                            OutlinedTextField(
+                                state = viewModel.name,
+                                modifier = Modifier.fillMaxWidth(),
+                                lineLimits = TextFieldLineLimits.SingleLine,
+                                label = { Text(stringResource(R.string.create_world_name)) },
+                                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
+                                placeholder = { Text(stringResource(R.string.world_default_name)) },
                             )
-                            Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
-                            Text("添加层")
+                            DropdownMenuField(
+                                options = listOf(Unit),
+                                label = stringResource(R.string.create_world_version),
+                                selected = Unit,
+                                modifier = Modifier.fillMaxWidth(),
+                                onSelect = { }
+                            ) {
+                                stringResource(R.string.create_world_version_aqua)
+                            }
+                            DropdownMenuField(
+                                options = Biome.entries,
+                                label = stringResource(R.string.biomes),
+                                selected = viewModel.biome,
+                                modifier = Modifier.fillMaxWidth(),
+                                onSelect = { viewModel.biome = it }
+                            ) { "${it.name} (${it.id})" }
                         }
                     }
-                    val context = LocalContext.current
-                    val scope = rememberCoroutineScope()
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
-                        state = listState,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(
-                            count = viewModel.layers.size,
-                            key = { viewModel.layers[it].uid }
-                        ) { index ->
-                            val layer = viewModel.layers[index]
-                            ReorderableItem(reorderableState, layer.uid) { _ ->
-                                val dismissState = rememberSwipeToDismissBoxState()
-                                SwipeToDismissBox(
-                                    state = dismissState,
-                                    enableDismissFromStartToEnd = false,
-                                    backgroundContent = {
-                                        val color by animateColorAsState(
-                                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                                MaterialTheme.colorScheme.errorContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.surface
-                                            }
+                    stickyHeader {
+                        Box {
+                            val background = MaterialTheme.colorScheme.background
+                            Box(
+                                Modifier
+                                    .align(Alignment.BottomStart)
+                                    .fillMaxWidth()
+                                    .height(16.dp)
+                                    .offset(y = 16.dp)
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                background.copy(alpha = 1.0F),
+                                                background.copy(alpha = 0.8F),
+                                                Color.Transparent
+                                            )
                                         )
-                                        Icon(
-                                            imageVector = Icons.Filled.Delete,
-                                            contentDescription = "Remove item",
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(color)
-                                                .wrapContentSize(Alignment.CenterEnd)
-                                                .padding(end = 16.dp),
-                                            tint = MaterialTheme.colorScheme.onErrorContainer
-                                        )
+                                    )
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .background(background)
+                                    .padding(
+                                        inset + PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                                    )
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.create_world_layers),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                FilledTonalButton(
+                                    onClick = {
+                                        viewModel.snackbar.currentSnackbarData?.dismiss()
+                                        viewModel.layers.add(0, FlatLayer())
                                     },
-                                    onDismiss = { direction ->
-                                        if (direction == SwipeToDismissBoxValue.EndToStart) {
-                                            viewModel.snackbar.currentSnackbarData?.dismiss()
-                                            viewModel.layers.removeAt(index)
-                                            scope.launch {
-                                                viewModel.snackbar.showSnackbar(
-                                                    message = "已删除",
-                                                    actionLabel = "撤销",
-                                                    duration = SnackbarDuration.Long
-                                                ) {
-                                                    viewModel.layers.add(index, layer.copy())
-                                                }
-                                            }
-                                        } else {
-                                            scope.launch { dismissState.reset() }
-                                        }
-                                    },
+                                    shapes = ButtonDefaults.shapes(),
+                                    contentPadding = ButtonDefaults.contentPaddingFor(
+                                        ButtonDefaults.MinHeight,
+                                        hasStartIcon = true
+                                    )
                                 ) {
-                                    val state = layer.state
-                                    val handle = Modifier.draggableHandle(
-                                        onDragStarted = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.GestureThresholdActivate
-                                            )
-                                        },
-                                        onDragStopped = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.GestureEnd
-                                            )
+                                    Icon(
+                                        Icons.Filled.Add,
+                                        contentDescription = "添加层",
+                                        modifier = Modifier.size(
+                                            ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)
+                                        )
+                                    )
+                                    Spacer(
+                                        Modifier.size(
+                                            ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)
+                                        )
+                                    )
+                                    Text("添加层")
+                                }
+                            }
+                        }
+                    }
+                    items(
+                        count = viewModel.layers.size,
+                        key = { viewModel.layers[it].uid }
+                    ) { index ->
+                        val layer = viewModel.layers[index]
+                        ReorderableItem(reorderableState, layer.uid) { _ ->
+                            val dismissState = rememberSwipeToDismissBoxState()
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    val color by animateColorAsState(
+                                        if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                                            MaterialTheme.colorScheme.errorContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
                                         }
                                     )
-                                    InfoBar(
-                                        title = state.block.typeId,
-                                        description = "${state.block.typeId} ×${layer.height}",
-                                        icon = {
-                                            val modifier = handle.size(32.dp)
-                                            val icon = state.icon.getIcon(context)
-                                            if (icon === null) {
-                                                Spacer(modifier)
-                                            } else {
-                                                Image(
-                                                    bitmap = icon.asImageBitmap(),
-                                                    contentDescription = null,
-                                                    modifier = modifier
-                                                )
-                                            }
-                                        },
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Remove item",
                                         modifier = Modifier
-                                            .background(MaterialTheme.colorScheme.surface)
-                                            .clickable {
-                                                viewModel.selected = layer
-                                                viewModel.picked = null
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .wrapContentSize(Alignment.CenterEnd)
+                                            .padding(end = 16.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onDismiss = { direction ->
+                                    if (direction == SwipeToDismissBoxValue.EndToStart) {
+                                        viewModel.snackbar.currentSnackbarData?.dismiss()
+                                        viewModel.layers.removeAt(index)
+                                        scope.launch {
+                                            viewModel.snackbar.showSnackbar(
+                                                message = "已删除",
+                                                actionLabel = "撤销",
+                                                duration = SnackbarDuration.Long
+                                            ) {
+                                                viewModel.layers.add(index, layer.copy())
                                             }
-                                            .padding(inset)
-                                            .applyInfoBarPadding()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.DragHandle,
-                                            contentDescription = null,
-                                            modifier = handle
+                                        }
+                                    } else {
+                                        scope.launch { dismissState.reset() }
+                                    }
+                                },
+                            ) {
+                                val state = layer.state
+                                val handle = Modifier.draggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.GestureThresholdActivate
+                                        )
+                                    },
+                                    onDragStopped = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.GestureEnd
                                         )
                                     }
+                                )
+                                InfoBar(
+                                    title = state.block.typeId,
+                                    description = "${state.block.typeId} ×${layer.height}",
+                                    icon = {
+                                        val modifier = handle.size(32.dp)
+                                        val icon = state.icon.getIcon(context)
+                                        if (icon === null) {
+                                            Spacer(modifier)
+                                        } else {
+                                            Image(
+                                                bitmap = icon.asImageBitmap(),
+                                                contentDescription = null,
+                                                modifier = modifier
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .clickable {
+                                            viewModel.selected = layer
+                                            viewModel.picked = null
+                                        }
+                                        .padding(inset)
+                                        .applyInfoBarPadding()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.DragHandle,
+                                        contentDescription = null,
+                                        modifier = handle
+                                    )
                                 }
                             }
                         }
                     }
-                    AnimatedBottomSheetDialog(
-                        targetState = viewModel.selected,
-                        enabledValues = HiddenOrExpanded
-                    ) { sheetState, selected ->
-                        var picking by rememberSaveable { mutableStateOf(false) }
-                        ModalBottomSheet(
-                            onDismissRequest = { viewModel.selected = null },
-                            sheetState = sheetState
+                }
+                AnimatedBottomSheetDialog(
+                    targetState = viewModel.selected,
+                    enabledValues = HiddenOrExpanded
+                ) { sheetState, selected ->
+                    var picking by rememberSaveable { mutableStateOf(false) }
+                    ModalBottomSheet(
+                        onDismissRequest = { viewModel.selected = null },
+                        sheetState = sheetState
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 32.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            val textFieldState =
+                                rememberTextFieldState(selected.height.toString())
+                            BlockStatePreview(
+                                state = viewModel.picked ?: selected.state,
+                                context = context,
+                                shape = MaterialTheme.shapes.extraSmall // to match with text field
                             ) {
-                                val textFieldState =
-                                    rememberTextFieldState(selected.height.toString())
-                                BlockStatePreview(
-                                    state = viewModel.picked ?: selected.state,
-                                    context = context,
-                                    shape = MaterialTheme.shapes.extraSmall // to match with text field
-                                ) {
-                                    picking = true
-                                }
-                                OutlinedTextField(
-                                    state = textFieldState,
-                                    lineLimits = TextFieldLineLimits.SingleLine,
-                                    label = { Text(stringResource(R.string.edit_layer_amount)) },
-                                    labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
-                                    placeholder = { Text(selected.height.toString()) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    inputTransformation = InputTransformation.then {
-                                        if (!this.asCharSequence().isDigitsOnly()) {
-                                            revertAllChanges()
-                                        }
+                                picking = true
+                            }
+                            OutlinedTextField(
+                                state = textFieldState,
+                                lineLimits = TextFieldLineLimits.SingleLine,
+                                label = { Text(stringResource(R.string.edit_layer_amount)) },
+                                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
+                                placeholder = { Text(selected.height.toString()) },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                inputTransformation = InputTransformation.then {
+                                    if (!this.asCharSequence().isDigitsOnly()) {
+                                        revertAllChanges()
                                     }
-                                )
-                                BottomSheetActionButton(
-                                    text = stringResource(android.R.string.ok),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    viewModel.picked?.let { selected.state = it }
-                                    textFieldState.text.toString().toIntOrNull()?.let {
-                                        selected.height = it
-                                    }
-                                    viewModel.selected = null
                                 }
+                            )
+                            BottomSheetActionButton(
+                                text = stringResource(android.R.string.ok),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                viewModel.picked?.let { selected.state = it }
+                                textFieldState.text.toString().toIntOrNull()?.let {
+                                    selected.height = it
+                                }
+                                viewModel.selected = null
                             }
                         }
-                        if (picking) {
-                            PickBlockDialog(onCancel = { picking = false }) {
-                                viewModel.picked = it
-                                picking = false
-                            }
+                    }
+                    if (picking) {
+                        PickBlockDialog(onCancel = { picking = false }) {
+                            viewModel.picked = it
+                            picking = false
                         }
                     }
                 }

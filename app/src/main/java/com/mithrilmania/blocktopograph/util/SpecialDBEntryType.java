@@ -14,7 +14,8 @@ public enum SpecialDBEntryType {
     AUTONOMOUS_ENTITIES("AutonomousEntities"),
     DIMENSION_0("dimension0"),
     DIMENSION_1("dimension1"),
-    DIMENSION_2("dimension2");
+    DIMENSION_2("dimension2"),
+    DIMENSION_REGISTRY("DimensionNameIdTable");
 
     public final String keyName;
     public final byte[] keyBytes;

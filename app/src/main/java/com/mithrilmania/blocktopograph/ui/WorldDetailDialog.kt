@@ -19,9 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DataUsage
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.CardDefaults
@@ -57,6 +61,7 @@ import com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorActivity
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.util.toast
+import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldDetail
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -68,10 +73,9 @@ fun WorldDetailEntry(
     label: String,
     content: String,
     modifier: Modifier = Modifier,
-    copyable: Boolean = false
+    indicator: ImageVector? = null
 ) {
     Surface(
-        modifier = modifier,
         shape = CardDefaults.outlinedShape,
         border = CardDefaults.outlinedCardBorder(),
         color = MaterialTheme.colorScheme.surface,
@@ -79,27 +83,7 @@ fun WorldDetailEntry(
         tonalElevation = 2.dp
     ) {
         Row(
-            modifier = (if (copyable) {
-                val clipboard = LocalClipboard.current
-                val coroutineScope = rememberCoroutineScope()
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    val context = LocalContext.current
-                    Modifier.clickable {
-                        coroutineScope.launch {
-                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
-                            context.toast(R.string.toast_copy_success)
-                        }
-                    }
-                } else {
-                    Modifier.clickable {
-                        coroutineScope.launch {
-                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
-                        }
-                    }
-                }
-            } else {
-                Modifier
-            })
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(
                     vertical = 6.dp,
@@ -109,7 +93,7 @@ fun WorldDetailEntry(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(imageVector = icon, contentDescription = label)
-            Column {
+            Column(Modifier.weight(1F)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall
@@ -119,8 +103,43 @@ fun WorldDetailEntry(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+            if (indicator !== null) {
+                Icon(imageVector = indicator, contentDescription = null, Modifier.size(16.dp))
+            }
         }
     }
+}
+
+@Composable
+fun CopyableWorldDetailEntry(
+    icon: ImageVector,
+    label: String,
+    content: String,
+    indicator: ImageVector? = Icons.Filled.ContentCopy
+) {
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
+    WorldDetailEntry(
+        icon,
+        label,
+        content,
+        modifier = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            val context = LocalContext.current
+            Modifier.clickable {
+                coroutineScope.launch {
+                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
+                    context.toast(R.string.toast_copy_success)
+                }
+            }
+        } else {
+            Modifier.clickable {
+                coroutineScope.launch {
+                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
+                }
+            }
+        },
+        indicator = indicator
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalGridApi::class)
@@ -192,11 +211,10 @@ fun WorldDetailDialog(
                     textAlign = TextAlign.Center
                 )
             }
-            WorldDetailEntry(
+            CopyableWorldDetailEntry(
                 Icons.Filled.LocationOn,
                 stringResource(R.string.world_detail_location),
-                detail.location.location,
-                copyable = true
+                detail.location.location
             )
             Grid(config = grid, modifier = Modifier.padding(bottom = 6.dp)) {
                 val played = remember(detail, context) {
@@ -223,16 +241,33 @@ fun WorldDetailDialog(
                     stringResource(R.string.world_detail_size),
                     detail.size ?: stringResource(R.string.calculating_size)
                 )
-                WorldDetailEntry(
+                CopyableWorldDetailEntry(
                     Icons.Filled.TravelExplore,
                     stringResource(R.string.world_detail_seed),
-                    detail.seed,
-                    copyable = true
+                    detail.seed
+                )
+                WorldDetailEntry(
+                    Icons.Filled.PhotoLibrary,
+                    "资源包",
+                    detail.resources.toString(),
+                    modifier = Modifier.clickable {
+                        context.upcoming()
+                    },
+                    indicator = Icons.Filled.Edit
+                )
+                WorldDetailEntry(
+                    Icons.AutoMirrored.Filled.LibraryBooks,
+                    "行为包",
+                    detail.behaviors.toString(),
+                    modifier = Modifier.clickable {
+                        context.upcoming()
+                    },
+                    indicator = Icons.Filled.Edit
                 )
             }
         }
         Row(
-            Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             BottomSheetActionButton(

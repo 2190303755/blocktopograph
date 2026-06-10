@@ -5,62 +5,41 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
+import android.util.SparseArray
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LayersClear
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -78,33 +57,23 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.map.CustomIcon
-import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.MCTileProvider
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
-import com.mithrilmania.blocktopograph.nbt.io.LocalPlayerSource
-import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
-import com.mithrilmania.blocktopograph.storage.file
 import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
-import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
-import com.mithrilmania.blocktopograph.ui.component.Expander
-import com.mithrilmania.blocktopograph.ui.component.ExpanderIndicator
-import com.mithrilmania.blocktopograph.ui.component.InfoBar
-import com.mithrilmania.blocktopograph.ui.component.InfoBox
 import com.mithrilmania.blocktopograph.ui.component.Marker
-import com.mithrilmania.blocktopograph.ui.component.TextButton
-import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
-import com.mithrilmania.blocktopograph.ui.component.applyInfoBoxPadding
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
-import com.mithrilmania.blocktopograph.util.math.DimensionVector3
+import com.mithrilmania.blocktopograph.util.math.Vector3
+import com.mithrilmania.blocktopograph.world.CustomDimension
+import com.mithrilmania.blocktopograph.world.Dimension
+import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.extractPlayerPos
 import com.mithrilmania.blocktopograph.world.resolveSpawnPoint
 import com.mithrilmania.blocktopograph.world.resolveWorld
@@ -138,11 +107,41 @@ class WorldEditorActivity : ComponentActivity() {
                 val storage = withContext(Dispatchers.IO) {
                     world.open(viewModel.application)
                 }
-                viewModel.initialization = if (storage === null) {
-                    InitState.Failed
-                } else {
-                    InitState.Succeed(world, storage)
+                if (storage === null) {
+                    viewModel.initialization = InitState.Failed
+                    return@launch
                 }
+                val bytes = storage.db.get(SpecialDBEntryType.DIMENSION_REGISTRY.keyBytes)
+                if (bytes !== null) {
+                    val dimensions = (BedrockNBTInput(
+                        ByteArrayInputStream(bytes)
+                    ).readNamedTag().second as? CompoundTag)?.get("entries")
+                    if (dimensions is CompoundTag) {
+                        val registry = SparseArray<Dimension>()
+                        registry[0] = VanillaDimension.Overworld
+                        registry[1] = VanillaDimension.Nether
+                        registry[2] = VanillaDimension.End
+                        for (pair in dimensions) {
+                            val id = (pair.value as? NumericTag ?: continue).toInt()
+                            registry[id] = CustomDimension(pair.key, id)
+                        }
+                        val values = ArrayList<Dimension>(registry.size())
+                        for (i in 0 until registry.size()) {
+                            values.add(registry.valueAt(i))
+                        }
+                        viewModel.initialization = InitState.Succeed(world, storage, values)
+                        return@launch
+                    }
+                }
+                viewModel.initialization = InitState.Succeed(
+                    world,
+                    storage,
+                    listOf(
+                        VanillaDimension.Overworld,
+                        VanillaDimension.Nether,
+                        VanillaDimension.End
+                    )
+                )
             }
         }
         val assets = this.assets
@@ -264,7 +263,7 @@ class WorldEditorActivity : ComponentActivity() {
                         })
                         var framedToPlayer = false
                         try {
-                            val playerPos: DimensionVector3<Float>? = try {
+                            val playerPos: Pair<Int, Vector3<Float>>? = try {
                                 val data: ByteArray? =
                                     info.storage.db.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
                                 val player: BinaryTag? = if (data === null) {
@@ -282,37 +281,43 @@ class WorldEditorActivity : ComponentActivity() {
                                 LogUtil.d(this, e)
                                 null
                             }
-                            if (playerPos != null) {
-                                val x: Float = playerPos.x
-                                val y: Float = playerPos.y
-                                val z: Float = playerPos.z
-                                LogUtil.d(
-                                    this,
-                                    "Placed player marker at: $x;$y;$z [${playerPos.dimension.name}]"
-                                )
-                                viewModel.map.addMarker(
-                                    "builtin:local_player",
-                                    x.toDouble() * RENDER_SCALE,
-                                    z.toDouble() * RENDER_SCALE
-                                ) {
-                                    Marker(
-                                        viewModel.entityIcons.value,
-                                        IntOffset(112, 0),
-                                        IntSize(16, 16),
-                                        Modifier.size(16.dp)
+                            if (playerPos !== null) {
+                                val dimension = info.dimensions.firstOrNull {
+                                    it.id == playerPos.first
+                                }
+                                if (dimension !== null) {
+                                    val pos = playerPos.second
+                                    val x: Float = pos.x
+                                    val y: Float = pos.y
+                                    val z: Float = pos.z
+                                    LogUtil.d(
+                                        this,
+                                        "Placed player marker at: $x;$y;$z [${dimension.name}]"
                                     )
-                                }
-                                if (playerPos.dimension != viewModel.dimension) {
-                                    viewModel.dimension = playerPos.dimension
-                                    //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
-                                }
-                                coroutineScope.launch {
-                                    viewModel.map.scrollTo(
+                                    viewModel.map.addMarker(
+                                        "builtin:local_player",
                                         x.toDouble() * RENDER_SCALE,
                                         z.toDouble() * RENDER_SCALE
-                                    )
+                                    ) {
+                                        Marker(
+                                            viewModel.entityIcons.value,
+                                            IntOffset(112, 0),
+                                            IntSize(16, 16),
+                                            Modifier.size(16.dp)
+                                        )
+                                    }
+                                    if (dimension != viewModel.dimension) {
+                                        viewModel.dimension = dimension
+                                        //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
+                                    }
+                                    coroutineScope.launch {
+                                        viewModel.map.scrollTo(
+                                            x.toDouble() * RENDER_SCALE,
+                                            z.toDouble() * RENDER_SCALE
+                                        )
+                                    }
+                                    framedToPlayer = true
                                 }
-                                framedToPlayer = true
                             }
                         } catch (e: Exception) {
                             LogUtil.d(this, "Failed to place player marker.", e)
@@ -360,14 +365,21 @@ class WorldEditorActivity : ComponentActivity() {
                                 cutout.getBottom(this).toDp()
                             } + DragHandleConsumedHeight
                         }
-                        val partialExpanded = SheetDetent(
-                            "partial-expanded"
-                        ) { containerHeight, _ -> containerHeight * 0.4F }
                         BottomSheet(
-                            rememberBottomSheetState(
+                            sheetState = rememberBottomSheetState(
                                 collapse,
-                                listOf(collapse, partialExpanded, SheetDetent.FullyExpanded)
-                            )
+                                listOf(
+                                    collapse,
+                                    SheetDetent(
+                                        "partial-expanded-0.4"
+                                    ) { containerHeight, _ -> containerHeight * 0.4F },
+                                    SheetDetent(
+                                        "partial-expanded-0.6"
+                                    ) { containerHeight, _ -> containerHeight * 0.6F },
+                                    SheetDetent.FullyExpanded
+                                )
+                            ),
+                            sheetContainerColor = MaterialTheme.colorScheme.background
                         ) {
                             PrimaryTabRow(selectedTabIndex = viewModel.tabPager.currentPage) {
                                 val coroutineScope = rememberCoroutineScope()
@@ -485,136 +497,3 @@ fun NBTEditingHost(
     }
 }
 
-@Composable
-fun ViewModeTab(
-    viewModel: WorldEditorModel,
-    info: InitState.Succeed
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                vertical = 6.dp,
-                horizontal = 16.dp
-            )
-            .windowInsetsPadding(
-                WindowInsets.systemBars
-                    .union(WindowInsets.displayCutout)
-                    .only(WindowInsetsSides.Bottom)
-            ),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        var expanded: Boolean by remember {
-            mutableStateOf(false)
-        }
-        InfoBox {
-            InfoBar(
-                title = "维度",
-                modifier = Modifier.applyInfoBoxPadding()
-            ) {
-                DropdownMenuChip(
-                    options = Dimension.entries,
-                    selected = viewModel.dimension,
-                    onSelect = {}
-                ) { it.dataName }
-            }
-        }
-        Expander(
-            expanded = expanded,
-            header = {
-                InfoBar(
-                    title = "叠加层",
-                    modifier = Modifier
-                        .toggleable(expanded) {
-                            expanded = it
-                        }
-                        .fillMaxWidth()
-                        .applyInfoBoxPadding()
-                ) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            viewModel.enabledLayers.clear()
-                        },
-                        enabled = viewModel.enabledLayers.isNotEmpty(),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(Icons.Filled.LayersClear, null)
-                    }
-                    ExpanderIndicator(expanded)
-                }
-            }
-        ) {
-            AnimatedVisibility(viewModel.dimension === Dimension.OVERWORLD) {
-                InfoBar(
-                    title = "史莱姆区块",
-                    modifier = Modifier
-                        .toggleable(
-                            value = viewModel.enabledLayers.contains(
-                                MapLayer.SLIME_CHUNKS
-                            ),
-                            role = Role.Switch,
-                        ) {
-                            if (it) {
-                                viewModel.enabledLayers.add(MapLayer.SLIME_CHUNKS)
-                            } else {
-                                viewModel.enabledLayers.remove(
-                                    MapLayer.SLIME_CHUNKS
-                                )
-                            }
-                        }
-                        .applyInfoBarPadding()
-                ) {
-                    Switch(
-                        checked = viewModel.enabledLayers.contains(
-                            MapLayer.SLIME_CHUNKS
-                        ),
-                        onCheckedChange = null
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MarkerTab(
-    viewModel: WorldEditorModel,
-    info: InitState.Succeed
-) {
-    Spacer(Modifier.fillMaxSize())
-}
-
-@Composable
-fun StorageTab(
-    viewModel: WorldEditorModel,
-    info: InitState.Succeed
-) {
-    val coroutineScope = rememberCoroutineScope()
-    LazyColumn(Modifier.fillMaxSize()) {
-        item {
-            TextButton("test") {
-                coroutineScope.launch(Dispatchers.IO) {
-                    val db = info.storage.db
-                    val file = db.file(SpecialDBEntryType.LOCAL_PLAYER)
-                    if (file.isPresent()) {
-                        viewModel.editing.emit(
-                            file to NBTImportConfigImpl(
-                                NBTFormat.LITTLE_ENDIAN,
-                                HeaderPresence.UNCERTAIN
-                            )
-                        )
-                    } else {
-                        viewModel.editing.emit(
-                            LocalPlayerSource(
-                                info.world.config
-                            ) to NBTImportConfigImpl(
-                                NBTFormat.LITTLE_ENDIAN,
-                                HeaderPresence.PRESENT
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}

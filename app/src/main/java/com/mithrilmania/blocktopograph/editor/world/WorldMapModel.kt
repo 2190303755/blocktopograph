@@ -2,18 +2,20 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.map.renderer.MapType
+import com.mithrilmania.blocktopograph.world.Dimension
+import com.mithrilmania.blocktopograph.world.VanillaDimension
+import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
 
 class WorldMapModel : ViewModel() {
     val markers: MutableLiveData<ArrayList<AbstractMarker>> =
         MutableLiveData<ArrayList<AbstractMarker>>(arrayListOf())
 
-    var dimension: Dimension = Dimension.OVERWORLD
+    var dimension: Dimension = VanillaDimension.Overworld
 
     val mapType: MutableLiveData<MapType> =
-        MutableLiveData<MapType>(Dimension.OVERWORLD.defaultMapType)
+        MutableLiveData<MapType>(VanillaDimension.Overworld.defaultMapTypeCompat())
 
     val showActionBar: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)

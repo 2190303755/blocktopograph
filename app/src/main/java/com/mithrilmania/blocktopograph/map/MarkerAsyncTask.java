@@ -15,6 +15,7 @@ import com.mithrilmania.blocktopograph.nbt.IntTag;
 import com.mithrilmania.blocktopograph.nbt.ListTag;
 import com.mithrilmania.blocktopograph.nbt.NumericTag;
 import com.mithrilmania.blocktopograph.nbt.StringTag;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 

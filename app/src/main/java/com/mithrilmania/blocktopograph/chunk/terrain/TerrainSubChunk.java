@@ -5,8 +5,8 @@ import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
-import com.mithrilmania.blocktopograph.map.Dimension;
 
 import org.iq80.leveldb.DBException;
 

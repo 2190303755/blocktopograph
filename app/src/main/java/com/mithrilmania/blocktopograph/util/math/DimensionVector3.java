@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.util.math;
 
-import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.Dimension;
 
 public class DimensionVector3<T extends Number> extends Vector3<T> {
 

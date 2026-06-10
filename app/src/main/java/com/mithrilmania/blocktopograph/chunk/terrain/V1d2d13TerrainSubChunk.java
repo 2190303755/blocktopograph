@@ -11,9 +11,9 @@ import com.mithrilmania.blocktopograph.block.BlockKt;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
-import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput;
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 import org.iq80.leveldb.DBException;

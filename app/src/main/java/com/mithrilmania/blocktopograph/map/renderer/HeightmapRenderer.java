@@ -1,11 +1,13 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
@@ -33,13 +35,13 @@ public class HeightmapRenderer implements MapRenderer {
 
                 if (y < 0) continue;
 
-                yNorm = (float) y / (float) dimension.chunkH;
+                yNorm = (float) y / (float) CHUNK_DIMENSION;
                 yNorm2 = yNorm * yNorm;
                 yNorm = ((6f * yNorm2) - (15f * yNorm) + 10f) * yNorm2 * yNorm;
 
-                yW = (x == 0) ? (west ? dataW.getHeightMapValue(dimension.chunkW - 1, z) : y)//chunk edge
+                yW = (x == 0) ? (west ? dataW.getHeightMapValue(CHUNK_DIMENSION - 1, z) : y)//chunk edge
                         : chunk.getHeightMapValue(x - 1, z);//within chunk
-                yN = (z == 0) ? (north ? dataN.getHeightMapValue(x, dimension.chunkL - 1) : y)//chunk edge
+                yN = (z == 0) ? (north ? dataN.getHeightMapValue(x, CHUNK_DIMENSION - 1) : y)//chunk edge
                         : chunk.getHeightMapValue(x, z - 1);//within chunk
 
                 heightShading = SatelliteRenderer.getHeightShading(y, yW, yN);

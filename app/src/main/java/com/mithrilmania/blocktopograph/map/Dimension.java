@@ -1,7 +1,9 @@
 package com.mithrilmania.blocktopograph.map;
 
 
-import androidx.annotation.StringRes;
+import android.content.res.Resources;
+
+import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
@@ -9,7 +11,8 @@ import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import java.util.HashMap;
 import java.util.Map;
 
-public enum Dimension {
+@Deprecated
+public enum Dimension implements com.mithrilmania.blocktopograph.world.Dimension {
 
     OVERWORLD(0, "overworld", "Overworld", 16, 16, 128, 1, MapType.OVERWORLD_SATELLITE),
     NETHER(1, "nether", "Nether", 16, 16, 128, 1, MapType.NETHER),
@@ -32,19 +35,10 @@ public enum Dimension {
         this.defaultMapType = defaultMapType;
     }
 
-    @StringRes
-
-    public int getName() {
-        switch (this) {
-            case OVERWORLD:
-                return R.string.overworld;
-            case NETHER:
-                return R.string.nether;
-            case END:
-                return R.string.the_end;
-            default:
-                return 0;
-        }
+    @NonNull
+    @Override
+    public String getName() {
+        return this.name;
     }
 
     private static Map<String, Dimension> dimensionMap = new HashMap<>();
@@ -67,4 +61,18 @@ public enum Dimension {
         return null;
     }
 
+    @Override
+    public int getId() {
+        return this.id;
+    }
+
+    @NonNull
+    @Override
+    public String getDisplayName(@NonNull Resources res) {
+        return res.getString(switch (this) {
+            case OVERWORLD -> R.string.overworld;
+            case NETHER -> R.string.nether;
+            case END -> R.string.the_end;
+        });
+    }
 }

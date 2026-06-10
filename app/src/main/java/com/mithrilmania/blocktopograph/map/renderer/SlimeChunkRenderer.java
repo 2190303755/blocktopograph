@@ -1,12 +1,14 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.util.MTwister;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
@@ -34,9 +36,9 @@ public class SlimeChunkRenderer implements MapRenderer {
                 int y = chunk.getHeightMapValue(x, z);
 
                 color = SatelliteRenderer.getColumnColour(chunk, x, y, z,
-                        (x == 0) ? (west ? dataW.getHeightMapValue(dimension.chunkW - 1, z) : y)//chunk edge
+                        (x == 0) ? (west ? dataW.getHeightMapValue(CHUNK_DIMENSION - 1, z) : y)//chunk edge
                                 : chunk.getHeightMapValue(x - 1, z),//within chunk
-                        (z == 0) ? (north ? dataN.getHeightMapValue(x, dimension.chunkL - 1) : y)//chunk edge
+                        (z == 0) ? (north ? dataN.getHeightMapValue(x, CHUNK_DIMENSION - 1) : y)//chunk edge
                                 : chunk.getHeightMapValue(x, z - 1)//within chunk
                 );
                 r = (color >> 16) & 0xff;

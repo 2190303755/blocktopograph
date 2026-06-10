@@ -106,6 +106,7 @@ class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig,
     fun reset() {
         undo.clear()
         redo.clear()
+        focused = null
         nodes.clear()
         confirmation = null
         source = null
@@ -130,6 +131,7 @@ class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig,
         val flattened = withContext(Dispatchers.Default) {
             flattenTag(result.tag, result.name)
         }
+        focused = null
         nodes.clear()
         nodes.addAll(flattened)
         this.source = source

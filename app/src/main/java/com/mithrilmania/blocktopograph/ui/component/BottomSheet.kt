@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
@@ -32,9 +33,24 @@ val DockedDragHandleHeight = 4.dp
 val DockedDragHandleWidth = 32.dp
 val DragHandleConsumedHeight = DragHandleVerticalPadding * 2 + DockedDragHandleHeight
 
-class DetentHeightRef(var height: Dp = Dp.Hairline) : (Dp, Dp) -> Dp {
-    override fun invoke(containerHeight: Dp, sheetHeight: Dp): Dp = this.height
-}
+@OptIn(ExperimentalMaterial3Api::class)
+val HiddenOrExpanded: Set<SheetValue> = hashSetOf(
+    SheetValue.Hidden,
+    SheetValue.Expanded
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+val PartiallyOrFullyExpanded: Set<SheetValue> = hashSetOf(
+    SheetValue.PartiallyExpanded,
+    SheetValue.Expanded
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+val AllSheetValues: Set<SheetValue> = hashSetOf(
+    SheetValue.Hidden,
+    SheetValue.PartiallyExpanded,
+    SheetValue.Expanded
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

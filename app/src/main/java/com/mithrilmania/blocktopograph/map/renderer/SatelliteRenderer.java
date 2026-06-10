@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.map.Dimension;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
 
 
@@ -104,9 +104,9 @@ public class SatelliteRenderer implements MapRenderer {
                 if (y == 0) continue;
 
                 int color = getColumnColour(chunk, x, y, z,
-                        (x == 0) ? (west ? dataW.getHeightMapValue(dimension.chunkW - 1, z) : y)//chunk edge
+                        (x == 0) ? (west ? dataW.getHeightMapValue(CHUNK_DIMENSION - 1, z) : y)//chunk edge
                                 : chunk.getHeightMapValue(x - 1, z),//within chunk
-                        (z == 0) ? (north ? dataN.getHeightMapValue(x, dimension.chunkL - 1) : y)//chunk edge
+                        (z == 0) ? (north ? dataN.getHeightMapValue(x, CHUNK_DIMENSION - 1) : y)//chunk edge
                                 : chunk.getHeightMapValue(x, z - 1)//within chunk
                 );
                 paint.setColor(color);

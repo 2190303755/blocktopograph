@@ -7,6 +7,8 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
+import com.mithrilmania.blocktopograph.world.Dimension;
+import com.mithrilmania.blocktopograph.world.VanillaDimension;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -125,8 +127,9 @@ public class MarkerManager {
                                     int y = Integer.parseInt(matcher.group(5));
                                     int z = Integer.parseInt(matcher.group(6));
                                     String dimensionName = matcher.group(7).replace("\\\"", "\"");
-                                    Dimension dimension = Dimension.getDimension(dimensionName);
-                                    if (dimension == null) dimension = Dimension.OVERWORLD;
+                                    Dimension dimension = com.mithrilmania.blocktopograph.map.Dimension.getDimension(dimensionName);
+                                    if (dimension == null)
+                                        dimension = VanillaDimension.Overworld.INSTANCE;
                                     this.addMarker(markerFromData(markerDisplayName, iconName, x, y, z, dimension), false);
 
                                 }
@@ -176,7 +179,7 @@ public class MarkerManager {
                         marker.getNamedBitmapProvider().getBitmapDisplayName().replace("\"", "\\\""),
                         marker.getNamedBitmapProvider().getBitmapDataName().replace("\"", "\\\""),
                         marker.x, marker.y, marker.z,
-                        marker.dimension.dataName.replace("\"", "\\\""));
+                        marker.dimension.getName().toLowerCase().replace("\"", "\\\""));
             }
 
             out.close();

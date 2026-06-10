@@ -1,12 +1,14 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
-import com.mithrilmania.blocktopograph.map.Dimension;
 
 
 public class DebugRenderer implements MapRenderer {
@@ -15,8 +17,8 @@ public class DebugRenderer implements MapRenderer {
 
         int x, z, i, j, tX, tY;
 
-        int offsetX = chunkX * dimension.chunkW;
-        int offsetZ = chunkZ * dimension.chunkL;
+        int offsetX = chunkX * CHUNK_DIMENSION;
+        int offsetZ = chunkZ * CHUNK_DIMENSION;
 
         for (z = 0, tY = pY; z < 16; z++, tY += pL) {
             for (x = 0, tX = pX; x < 16; x++, tX += pW) {

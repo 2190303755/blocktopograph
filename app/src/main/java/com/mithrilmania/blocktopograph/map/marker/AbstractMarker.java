@@ -6,10 +6,12 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.IntegerPos;
+import com.mithrilmania.blocktopograph.world.Dimension;
+
+import java.util.Objects;
 
 public class AbstractMarker implements NamedBitmapProviderHandle {
 
@@ -32,7 +34,7 @@ public class AbstractMarker implements NamedBitmapProviderHandle {
     public String getPositionDescription(Context context) {
         return context.getString(R.string.player_position_desc,
                 Math.round(x), Math.round(y),
-                Math.round(z), context.getString(dimension.getName()));
+                Math.round(z), dimension.getDisplayName(context.getResources()));
     }
 
     public int getChunkX() {
@@ -83,9 +85,7 @@ public class AbstractMarker implements NamedBitmapProviderHandle {
                 && y == that.y
                 && z == that.z
                 && dimension == that.dimension
-                && (namedBitmapProvider != null
-                ? namedBitmapProvider.equals(that.namedBitmapProvider)
-                : that.namedBitmapProvider == null);
+                && (Objects.equals(namedBitmapProvider, that.namedBitmapProvider));
 
     }
 

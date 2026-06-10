@@ -1,5 +1,8 @@
 package com.mithrilmania.blocktopograph.map;
 
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.world.DimensionKt.defaultMapTypeCompat;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -64,6 +67,7 @@ import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
@@ -228,7 +232,7 @@ public class MapFragment extends Fragment {
 
             if (playerPos.dimension != this.model.getDimension()) {
                 this.model.setDimension(playerPos.dimension);
-                this.model.getMapType().postValue(playerPos.dimension.defaultMapType);
+                this.model.getMapType().postValue(defaultMapTypeCompat(playerPos.dimension));
             }
 
             frameTo((double) playerPos.x, (double) playerPos.z);
@@ -265,7 +269,7 @@ public class MapFragment extends Fragment {
                     .setAction("Action", null).show();
             if (spawnPos.dimension != this.model.getDimension()) {
                 this.model.setDimension(spawnPos.dimension);
-                this.model.getMapType().setValue(spawnPos.dimension.defaultMapType);
+                this.model.getMapType().setValue(defaultMapTypeCompat(spawnPos.dimension));
             }
             frameTo((double) spawnPos.x, (double) spawnPos.z);
         } catch (Exception e) {
@@ -663,14 +667,14 @@ public class MapFragment extends Fragment {
                 DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPos(handler, activity);
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
-                    LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.name + "]");
+                    LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.getName() + "]");
                     localPlayerMarker = new AbstractMarker((int) x, (int) y, (int) z,
                             playerPos.dimension, new CustomNamedBitmapProvider(Entity.PLAYER, "~local_player"), false);
                     this.staticMarkers.add(localPlayerMarker);
                     addMarker(localPlayerMarker);
                     if (localPlayerMarker.dimension != model.getDimension()) {
                         model.setDimension(localPlayerMarker.dimension);
-                        model.getMapType().setValue(localPlayerMarker.dimension.defaultMapType);
+                        model.getMapType().setValue(defaultMapTypeCompat(localPlayerMarker.dimension));
                     }
                     frameTo(x, z);
                     framedToPlayer = true;
@@ -690,7 +694,7 @@ public class MapFragment extends Fragment {
                 if (!framedToPlayer) {
                     if (spawnMarker.dimension != model.getDimension()) {
                         model.setDimension(spawnMarker.dimension);
-                        model.getMapType().postValue(spawnMarker.dimension.defaultMapType);
+                        model.getMapType().postValue(defaultMapTypeCompat(spawnMarker.dimension));
                     }
                     frameTo((double) spawnPos.x, (double) spawnPos.z);
                 }
@@ -860,8 +864,8 @@ public class MapFragment extends Fragment {
 
 
         mBinding.tileView.addMarker(markerView,
-                marker.dimension.dimensionScale * (double) marker.x / (double) MCTileProvider.HALF_WORLDSIZE,
-                marker.dimension.dimensionScale * (double) marker.z / (double) MCTileProvider.HALF_WORLDSIZE,
+                (double) marker.x / (double) MCTileProvider.HALF_WORLDSIZE,
+                (double) marker.z / (double) MCTileProvider.HALF_WORLDSIZE,
                 -0.5f, -0.5f);
     }
 
@@ -895,24 +899,24 @@ public class MapFragment extends Fragment {
         Dimension dimension = this.model.getDimension();
 
         // 1 chunk per tile on scale 1.0
-        int pixelsPerBlockW_unscaled = MCTileProvider.TILESIZE / dimension.chunkW;
-        int pixelsPerBlockL_unscaled = MCTileProvider.TILESIZE / dimension.chunkL;
+        int pixelsPerBlockW_unscaled = MCTileProvider.TILESIZE / CHUNK_DIMENSION;
+        int pixelsPerBlockL_unscaled = MCTileProvider.TILESIZE / CHUNK_DIMENSION;
 
         float scale = mBinding.tileView.getScale();
         float pixelsPerBlockScaledW = pixelsPerBlockW_unscaled * scale;
         float pixelsPerBlockScaledL = pixelsPerBlockL_unscaled * scale;
 
 
-        double worldX = (((mBinding.tileView.getScrollX() + event.getX()) / pixelsPerBlockScaledW) - MCTileProvider.HALF_WORLDSIZE) / dimension.dimensionScale;
-        double worldZ = (((mBinding.tileView.getScrollY() + event.getY()) / pixelsPerBlockScaledL) - MCTileProvider.HALF_WORLDSIZE) / dimension.dimensionScale;
+        double worldX = (((mBinding.tileView.getScrollX() + event.getX()) / pixelsPerBlockScaledW) - MCTileProvider.HALF_WORLDSIZE);
+        double worldZ = (((mBinding.tileView.getScrollY() + event.getY()) / pixelsPerBlockScaledL) - MCTileProvider.HALF_WORLDSIZE);
 
         //MapFragment.this.onLongClick(worldX, worldZ);
 
         final Activity activity = getActivity();
         if (activity == null) return;
 
-        double chunkX = worldX / dimension.chunkW;
-        double chunkZ = worldZ / dimension.chunkL;
+        double chunkX = worldX / CHUNK_DIMENSION;
+        double chunkZ = worldZ / CHUNK_DIMENSION;
 
         //negative doubles are rounded up when casting to int; floor them
         final int chunkXint = chunkX < 0 ? (((int) chunkX) - 1) : ((int) chunkX);
@@ -1291,13 +1295,10 @@ public class MapFragment extends Fragment {
      * see https://github.com/moagrius/TileView/wiki/FAQ
      */
     public void frameTo(final double worldX, final double worldZ) {
-        mBinding.tileView.post(() -> {
-            Dimension dimension = this.model.getDimension();
-            mBinding.tileView.scrollToAndCenter(
-                    dimension.dimensionScale * worldX / (double) MCTileProvider.HALF_WORLDSIZE,
-                    dimension.dimensionScale * worldZ / (double) MCTileProvider.HALF_WORLDSIZE
-            );
-        });
+        mBinding.tileView.post(() -> mBinding.tileView.scrollToAndCenter(
+                worldX / (double) MCTileProvider.HALF_WORLDSIZE,
+                worldZ / (double) MCTileProvider.HALF_WORLDSIZE
+        ));
     }
 
     public enum MarkerTapOption {
@@ -1501,7 +1502,7 @@ public class MapFragment extends Fragment {
                                         .setAction("Action", null).show();
                                 if (playerPos.dimension != fragment.model.getDimension()) {
                                     fragment.model.setDimension(playerPos.dimension);
-                                    fragment.model.getMapType().setValue(playerPos.dimension.defaultMapType);
+                                    fragment.model.getMapType().setValue(defaultMapTypeCompat(playerPos.dimension));
                                 }
 
                                 fragment.frameTo((double) playerPos.x, (double) playerPos.z);

@@ -5,8 +5,8 @@ import androidx.annotation.NonNull;
 import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
+import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
-import com.mithrilmania.blocktopograph.map.Dimension;
 
 
 public final class VoidChunk extends Chunk {

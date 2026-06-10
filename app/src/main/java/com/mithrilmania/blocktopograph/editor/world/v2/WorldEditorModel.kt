@@ -3,22 +3,24 @@ package com.mithrilmania.blocktopograph.editor.world.v2
 import android.app.Application
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.mithrilmania.blocktopograph.map.Dimension
+import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.util.APP_TAG
+import com.mithrilmania.blocktopograph.world.Dimension
+import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.World
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import kotlinx.coroutines.Dispatchers
@@ -33,15 +35,21 @@ const val RENDER_SCALE = 16
 const val TILE_DIMENSION = CHUNK_DIMENSION * RENDER_SCALE
 const val ZOOM_LEVELS = 4
 
-enum class MapLayer {
-    SLIME_CHUNKS
+enum class MapLayer(@JvmField @field:StringRes val display: Int) {
+    SATELLITE(R.string.satellite),
+    SLIME_CHUNKS(R.string.slime_chunks),
+    HEIGHT_MAP(R.string.heightmap)
 }
 
 sealed interface InitState {
     object Uninitialized : InitState
     object Failed : InitState
     object Initializing : InitState
-    class Succeed(val world: World, val storage: WorldStorage) : InitState
+    class Succeed(
+        val world: World,
+        val storage: WorldStorage,
+        val dimensions: List<Dimension>
+    ) : InitState
 }
 
 class WorldEditorModel(app: Application) : AndroidViewModel(app) {
@@ -51,8 +59,8 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     var selectedTab: Int by mutableIntStateOf(0)
     val tabPager: PagerState = PagerState(0, 0F) { 3 }
     var editing: MutableStateFlow<Pair<NBTSource, NBTImportConfig>?> = MutableStateFlow(null)
-    val enabledLayers: MutableSet<MapLayer> = mutableStateSetOf()
-    var dimension: Dimension = Dimension.OVERWORLD
+    var enabledLayer: MapLayer by mutableStateOf(MapLayer.SATELLITE)
+    var dimension: Dimension by mutableStateOf(VanillaDimension.Overworld)
     var majorLayerId: String? = null
 
     @JvmField

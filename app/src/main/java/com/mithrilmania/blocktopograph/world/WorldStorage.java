@@ -10,7 +10,6 @@ import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.chunk.Version;
-import com.mithrilmania.blocktopograph.map.Dimension;
 
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
@@ -45,8 +44,9 @@ public class WorldStorage implements Closeable {
         this.path = path;
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);
     }
+
     private static byte[] getChunkDataKey(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) {
-        if (dimension == Dimension.OVERWORLD) {
+        if (dimension.getId() == 0) {
             byte[] key = new byte[asSubChunk ? 10 : 9];
             fillReversedBytes(key, 0, x);
             fillReversedBytes(key, 4, z);
@@ -57,7 +57,7 @@ public class WorldStorage implements Closeable {
             byte[] key = new byte[asSubChunk ? 14 : 13];
             fillReversedBytes(key, 0, x);
             fillReversedBytes(key, 4, z);
-            fillReversedBytes(key, 8, dimension.id);
+            fillReversedBytes(key, 8, dimension.getId());
             key[12] = type.dataID;
             if (asSubChunk) key[13] = subChunk;
             return key;
@@ -93,7 +93,7 @@ public class WorldStorage implements Closeable {
         var it = this.db.iterator();
         int count = 0;
         var compareKey = getChunkDataKey(x, z, ChunkTag.DATA_2D, dimension, (byte) 0, false);
-        int baseKeyLength = dimension == Dimension.OVERWORLD ? 8 : 12;
+        int baseKeyLength = dimension.getId() == 0 ? 8 : 12;
         for (it.seekToFirst(); count < 800 && it.hasNext(); count++) {
             byte[] key = it.next().getKey();
             if (key.length > baseKeyLength && key.length <= baseKeyLength + 3 &&
@@ -185,13 +185,13 @@ public class WorldStorage implements Closeable {
 
         @Override
         public int hashCode() {
-            return (x * 31 + z) * 31 + dim.id;
+            return (x * 31 + z) * 31 + dim.getId();
         }
 
         @Override
         public boolean equals(Object obj) {
             return obj instanceof Key another && ((x == another.x) && (z == another.z) && (dim != null)
-                    && (another.dim != null) && (dim.id == another.dim.id));
+                    && (another.dim != null) && (dim.getId() == another.dim.getId()));
         }
     }
 

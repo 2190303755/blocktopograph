@@ -23,9 +23,7 @@ import com.google.android.material.navigation.NavigationView;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
-import com.mithrilmania.blocktopograph.map.Dimension;
 import com.mithrilmania.blocktopograph.map.MapFragment;
-import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.World;
 import com.mithrilmania.blocktopograph.world.WorldKt;
@@ -206,22 +204,6 @@ public abstract class WorldActivity extends AppCompatActivity
     public abstract void openLocalPlayer();
 
     public abstract void openLevelEditor();
-
-    //TODO the dimension should be derived from mapTypes.
-    // E.g. split xray into xray-overworld and xray-nether, but still use the same [MapRenderer],
-    //  splitting allows to pass more sophisticated use of [MapRenderer]s
-    private Dimension dimension = Dimension.OVERWORLD;
-
-    public Dimension getDimension() {
-        return this.dimension;
-    }
-
-    private MapType mapType = dimension.defaultMapType;
-
-    public MapType getMapType() {
-        return this.mapType;
-    }
-
 
     // TODO grid should be rendered independently of tiles, it could be faster and more responsive.
     // However, it does need to adjust itself to the scale and position of the map,

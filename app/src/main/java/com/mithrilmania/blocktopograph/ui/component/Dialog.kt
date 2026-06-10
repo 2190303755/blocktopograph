@@ -41,25 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
-val HiddenOrExpanded: Set<SheetValue> = hashSetOf(
-    SheetValue.Hidden,
-    SheetValue.Expanded
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-val PartiallyOrFullyExpanded: Set<SheetValue> = hashSetOf(
-    SheetValue.PartiallyExpanded,
-    SheetValue.Expanded
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-val AllSheetValues: Set<SheetValue> = hashSetOf(
-    SheetValue.Hidden,
-    SheetValue.PartiallyExpanded,
-    SheetValue.Expanded
-)
-
 val DialogPadding = PaddingValues(all = 24.dp)
 val IconPadding = PaddingValues(bottom = 16.dp)
 val TitlePadding = PaddingValues(bottom = 16.dp)

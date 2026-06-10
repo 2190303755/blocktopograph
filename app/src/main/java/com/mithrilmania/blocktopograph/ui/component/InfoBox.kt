@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-val indicatorSize = 20.dp
+val indicatorSize = 24.dp
 
 @Composable
 fun Descriptor(
