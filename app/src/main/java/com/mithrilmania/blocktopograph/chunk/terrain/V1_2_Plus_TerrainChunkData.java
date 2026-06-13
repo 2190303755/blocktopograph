@@ -4,7 +4,7 @@ package com.mithrilmania.blocktopograph.chunk.terrain;
 import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.map.Biome;
 import com.mithrilmania.blocktopograph.nbt.old.convert.NBTInputStream;
 import com.mithrilmania.blocktopograph.nbt.old.tags.CompoundTag;

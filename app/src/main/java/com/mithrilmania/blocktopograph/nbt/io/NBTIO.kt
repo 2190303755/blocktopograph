@@ -30,6 +30,8 @@ import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
 import com.mithrilmania.blocktopograph.nbt.util.SNBTParser
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.util.autoDecompress
+import com.mithrilmania.blocktopograph.util.readIntLE
+import com.mithrilmania.blocktopograph.util.writeIntLE
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
@@ -165,13 +167,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
         NBTFormat.UNKNOWN -> {
             val bytes = wrapped.readBytes()
             if (config.header !== HeaderPresence.ABSENT) {
-                if (bytes.size > 8 && bytes.size == 8 + Ints.fromBytes(
-                        bytes[7],
-                        bytes[6],
-                        bytes[5],
-                        bytes[4]
-                    )
-                ) runSuppressing {
+                if (bytes.size > 8 && bytes.size == 8 + bytes.readIntLE(4)) runSuppressing {
                     val pair = BedrockNBTInput(
                         ByteArrayInputStream(bytes, 8, bytes.size - 8)
                     ).readNamedTag()
@@ -179,12 +175,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
                         pair.second,
                         pair.first,
                         false,
-                        Ints.fromBytes(
-                            bytes[3],
-                            bytes[2],
-                            bytes[1],
-                            bytes[0]
-                        ).toUInt()
+                        bytes.readIntLE(0).toUInt()
                     )
                 }
             }
@@ -267,13 +258,6 @@ fun OutputStream.writeNBT(name: String, tag: BinaryTag, config: NBTExportConfig)
             it.writeNBT(name, tag)
         }
     }
-}
-
-fun OutputStream.writeIntLE(value: Int) {
-    this.write(value ushr 0)
-    this.write(value ushr 8)
-    this.write(value ushr 16)
-    this.write(value ushr 24)
 }
 
 fun OutputStream.writeNBTWithHeader(version: UInt, name: String, tag: BinaryTag) {

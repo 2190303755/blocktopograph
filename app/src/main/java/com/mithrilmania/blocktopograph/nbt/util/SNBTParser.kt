@@ -34,13 +34,13 @@ val INVALID_NUMERIC_LITERAL = Regex("(?<!\\d)_|_(?!\\d)")
 val BUILTIN_FUNCTIONS: Map<String, NBTFunction> = hashMapOf(
     "bool" to {
         if (it.size != 1) throw IllegalArgumentException("Too many arguments")
-        val tag = it.first()
+        val tag = it[0]
         if (tag !is NumericTag) throw ClassCastException()
         ByteTag(tag.toInt() == 0)
     },
     "uuid" to {
         if (it.size != 1) throw IllegalArgumentException("Too many arguments")
-        val tag = it.first()
+        val tag = it[0]
         if (tag !is StringTag) throw ClassCastException()
         val uuid = UUID.fromString(tag.value)
         val mostSignificantBits = uuid.mostSignificantBits

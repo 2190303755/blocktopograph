@@ -7,15 +7,6 @@ android {
         minSdk = 26
         compileSdk = 37
     }
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
     namespace = "com.hivemc.leveldb"
     lint {
         targetSdk = 33

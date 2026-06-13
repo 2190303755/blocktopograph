@@ -18,6 +18,6 @@
 
 -dontwarn org.jetbrains.annotations.NotNull
 -dontwarn org.jetbrains.annotations.Nullable
--dontwarn org.iq80.leveldb.env.Env
--dontwarn org.iq80.leveldb.fileenv.EnvImpl
--dontwarn org.iq80.leveldb.impl.DbImpl
+
+# @see https://github.com/google/guava/issues/8345 , but I don't think the bug is actually resolved
+-keep class com.google.common.cache.** { *; }

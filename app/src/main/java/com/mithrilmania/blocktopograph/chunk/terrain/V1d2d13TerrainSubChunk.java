@@ -10,7 +10,6 @@ import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockKt;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.block.BlockTemplates;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput;
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput;
 import com.mithrilmania.blocktopograph.world.Dimension;
@@ -170,7 +169,7 @@ public final class V1d2d13TerrainSubChunk extends TerrainSubChunk {
         output.close();
 
         byte[] arr = baos.toByteArray();
-        storage.writeChunkData(chunkX, chunkZ, ChunkTag.TERRAIN, dimension, (byte) which, true, arr);
+        storage.writeChunkData(chunkX, chunkZ, dimension, (byte) which, arr);
 
     }
 

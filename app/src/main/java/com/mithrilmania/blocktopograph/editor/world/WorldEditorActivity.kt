@@ -16,7 +16,6 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
 import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
-import com.mithrilmania.blocktopograph.map.Dimension
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
@@ -29,6 +28,7 @@ import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.popAndTransit
 import com.mithrilmania.blocktopograph.util.toast
+import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.await
 import kotlinx.coroutines.Dispatchers
@@ -50,57 +50,71 @@ class WorldEditorActivity : WorldActivity() {
             R.id.nav_multiplayer_nbt -> openMultiplayerEditor()
             R.id.nav_world_nbt -> openLevelEditor()
             R.id.nav_overworld_satellite -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_SATELLITE
             )
 
             R.id.nav_overworld_cave -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_CAVE
             )
 
             R.id.nav_overworld_slime_chunk -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_SLIME_CHUNK
             )
 
             R.id.nav_overworld_heightmap -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_HEIGHTMAP
             )
 
             R.id.nav_overworld_biome -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_BIOME
             )
 
             R.id.nav_overworld_grass -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_GRASS
             )
 
             R.id.nav_overworld_xray -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_XRAY
             )
 
             R.id.nav_overworld_block_light -> this.model.navigateTo(
-                Dimension.OVERWORLD,
+                VanillaDimension.OVERWORLD,
                 MapType.OVERWORLD_BLOCK_LIGHT
             )
 
-            R.id.nav_nether_map -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER)
-            R.id.nav_nether_xray -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER_XRAY)
+            R.id.nav_nether_map -> this.model.navigateTo(VanillaDimension.NETHER, MapType.NETHER)
+            R.id.nav_nether_xray -> this.model.navigateTo(
+                VanillaDimension.NETHER,
+                MapType.NETHER_XRAY
+            )
             R.id.nav_nether_block_light -> this.model.navigateTo(
-                Dimension.NETHER,
+                VanillaDimension.NETHER,
                 MapType.NETHER_BLOCK_LIGHT
             )
 
-            R.id.nav_nether_biome -> this.model.navigateTo(Dimension.NETHER, MapType.NETHER_BIOME)
-            R.id.nav_end_satellite -> this.model.navigateTo(Dimension.END, MapType.END_SATELLITE)
-            R.id.nav_end_heightmap -> this.model.navigateTo(Dimension.END, MapType.END_HEIGHTMAP)
+            R.id.nav_nether_biome -> this.model.navigateTo(
+                VanillaDimension.NETHER,
+                MapType.NETHER_BIOME
+            )
+
+            R.id.nav_end_satellite -> this.model.navigateTo(
+                VanillaDimension.END,
+                MapType.END_SATELLITE
+            )
+
+            R.id.nav_end_heightmap -> this.model.navigateTo(
+                VanillaDimension.END,
+                MapType.END_HEIGHTMAP
+            )
             R.id.nav_end_block_light -> this.model.navigateTo(
-                Dimension.END,
+                VanillaDimension.END,
                 MapType.END_BLOCK_LIGHT
             )
 

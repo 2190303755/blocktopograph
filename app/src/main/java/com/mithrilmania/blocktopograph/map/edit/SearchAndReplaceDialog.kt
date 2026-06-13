@@ -35,14 +35,14 @@ import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
 
-enum class SearchMode(@param:StringRes val text: Int) {
+enum class SearchMode(@JvmField @param:StringRes val text: Int) {
     BACKGROUND(R.string.map_edit_snr_bg),
     FOREGROUND(R.string.map_edit_snr_fg),
     ANY(R.string.map_edit_snr_or),
     BOTH(R.string.map_edit_snr_both)
 }
 
-enum class PlaceMode(@param:StringRes val text: Int) {
+enum class PlaceMode(@JvmField @param:StringRes val text: Int) {
     BACKGROUND(R.string.map_edit_snr_bg),
     FOREGROUND(R.string.map_edit_snr_fg),
     BOTH(R.string.map_edit_snr_and_long)

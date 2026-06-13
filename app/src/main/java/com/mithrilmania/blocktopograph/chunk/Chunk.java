@@ -7,6 +7,7 @@ import com.mithrilmania.blocktopograph.block.Block;
 import com.mithrilmania.blocktopograph.block.BlockTemplate;
 import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import org.iq80.leveldb.DBException;
 
@@ -48,8 +49,8 @@ public abstract class Chunk {
             case V1_2_PLUS:
             case V1_16_PLUS:
                 try {
-                    storage.writeChunkData(chunkX, chunkZ, ChunkTag.GENERATOR_STAGE, dimension, (byte) 0, false, new byte[]{2, 0, 0, 0});
-                    storage.writeChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension, (byte) 0, false, new byte[]{0xf});
+                    storage.writeChunkData(chunkX, chunkZ, dimension, ChunkTag.FINALIZED_STATE, new byte[]{2, 0, 0, 0});
+                    storage.writeChunkData(chunkX, chunkZ, dimension, ChunkTag.LEGACY_VERSION, new byte[]{0xf});
                     chunk = new BedrockChunk(storage, createOfVersion, chunkX, chunkZ, dimension, true);
                 } catch (Exception e) {
                     LogUtil.d(Chunk.class, e);
@@ -66,7 +67,7 @@ public abstract class Chunk {
                                boolean createIfMissing, Version createOfVersion) {
         Version version;
         try {
-            byte[] data = storage.getChunkData(chunkX, chunkZ, ChunkTag.VERSION_PRE16, dimension);
+            byte[] data = storage.getChunkData(chunkX, chunkZ, ChunkTag.LEGACY_VERSION, dimension);
             if (data == null)
                 data = storage.getChunkData(chunkX, chunkZ, ChunkTag.VERSION, dimension);
             if (data == null && createIfMissing)

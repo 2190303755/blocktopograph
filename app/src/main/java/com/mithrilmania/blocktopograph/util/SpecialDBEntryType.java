@@ -15,7 +15,8 @@ public enum SpecialDBEntryType {
     DIMENSION_0("dimension0"),
     DIMENSION_1("dimension1"),
     DIMENSION_2("dimension2"),
-    DIMENSION_REGISTRY("DimensionNameIdTable");
+    DIMENSION_REGISTRY("DimensionNameIdTable"),
+    CHUNK_METAS("LevelChunkMetaDataDictionary");
 
     public final String keyName;
     public final byte[] keyBytes;

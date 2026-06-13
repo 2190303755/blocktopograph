@@ -17,8 +17,8 @@ import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.findChild
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3
-import com.mithrilmania.blocktopograph.util.math.Vector3
 import com.mithrilmania.blocktopograph.util.toLDBKey
 import com.mithrilmania.blocktopograph.world.impl.SAFWorld
 import com.mithrilmania.blocktopograph.world.impl.ShizukuWorld
@@ -99,12 +99,12 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
         var y = spawnY.toInt()
         val z = spawnZ.toInt()
         if (y >= 256) runSuppressing {
-            val chunk = this.storage?.getChunk(x shr 4, z shr 4, VanillaDimension.Overworld)
+            val chunk = this.storage?.getChunk(x shr 4, z shr 4, VanillaDimension.OVERWORLD)
             if (chunk !== null && !chunk.isError) {
                 y = chunk.getHeightMapValue(x % 16, z % 16) + 1
             }
         }
-        return DimensionVector3(x, y, z, VanillaDimension.Overworld)
+        return DimensionVector3(x, y, z, VanillaDimension.OVERWORLD)
     }
     throw ClassCastException("Could not find spawn")
 }
@@ -141,32 +141,29 @@ fun World.resolveMultiPlayerPos(key: String): DimensionVector3<Float>? {
 }
 
 fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
-    val (dimension, pos) = this.extractPlayerPos() ?: return null
+    val pos = this.extractPlayerPos() ?: return null
     return DimensionVector3(
         pos.x,
         pos.y,
         pos.z,
-        when (dimension) {
-            0 -> VanillaDimension.Overworld
-            1 -> VanillaDimension.Nether
-            2 -> VanillaDimension.End
-            else -> CustomDimension("Unknown", dimension)
+        when (pos.dimensionId) {
+            0 -> VanillaDimension.OVERWORLD
+            1 -> VanillaDimension.NETHER
+            2 -> VanillaDimension.END
+            else -> CustomDimension("Unknown", pos.dimensionId)
         }
     )
 }
 
-fun CompoundTag.extractPlayerPos(): Pair<Int, Vector3<Float>>? {
+fun CompoundTag.extractPlayerPos(): DimensionVec3f? {
     val dimensionId = this["DimensionId"] as? NumericTag
-    val dimension = if (dimensionId === null) {
-        VanillaDimension.Overworld.id
-    } else {
-        dimensionId.toInt()
-    }
+    val dimension = if (dimensionId === null) 0 else dimensionId.toInt()
     val pos = this["Pos"] as CollectionTag<*>
     if (pos.size != 3) return null
-    return dimension to Vector3<Float>(
-        (pos.getAsTag(0) as? NumericTag)?.toFloat() ?: return null,
-        (pos.getAsTag(1) as? NumericTag)?.toFloat() ?: return null,
-        (pos.getAsTag(2) as? NumericTag)?.toFloat() ?: return null
+    return DimensionVec3f(
+        dimension,
+        (pos.getAsTag(0) as? NumericTag ?: return null).toFloat(),
+        (pos.getAsTag(1) as? NumericTag ?: return null).toFloat(),
+        (pos.getAsTag(2) as? NumericTag ?: return null).toFloat()
     )
 }

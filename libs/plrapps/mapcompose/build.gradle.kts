@@ -8,16 +8,6 @@ android {
         minSdk = 26
         compileSdk = 37
     }
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true

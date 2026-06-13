@@ -8,6 +8,3 @@ const val EXTRA_EDITOR_SKIP_IMPORTER = BuildConfig.APPLICATION_ID + ".extra.EDIT
 const val MIME_TYPE_DEFAULT = "application/octet-stream"
 const val MIME_SNBT = "text/*"
 const val EMPTY_CHAR = 0.toChar()
-const val BYTE_0 = 0.toByte()
-const val BYTE_1 = 1.toByte()
-const val GZIP_HEADER = 0x1F.toByte()

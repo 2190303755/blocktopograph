@@ -3,7 +3,7 @@ package com.mithrilmania.blocktopograph.chunk.terrain;
 
 import com.mithrilmania.blocktopograph.WorldData;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

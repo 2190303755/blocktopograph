@@ -6,6 +6,7 @@ import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput
 import com.mithrilmania.blocktopograph.nbt.io.readAsCompound
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag
 import org.iq80.leveldb.DBException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -23,9 +24,7 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
                 chunk.mChunkX,
                 chunk.mChunkZ,
                 dataType,
-                chunk.mDimension,
-                0.toByte(),
-                false
+                chunk.mDimension
             )
         )
     }
@@ -52,10 +51,8 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
         chunk.worldData.writeChunkData(
             chunk.mChunkX,
             chunk.mChunkZ,
-            this.dataType,
             chunk.mDimension,
-            0.toByte(),
-            false,
+            this.dataType,
             bytes.toByteArray()
         )
     }

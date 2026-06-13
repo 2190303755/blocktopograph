@@ -1,15 +1,15 @@
 package com.mithrilmania.blocktopograph.world;
 
+import static com.mithrilmania.blocktopograph.util.IOUtilKt.writeIntLE;
 import static com.mithrilmania.blocktopograph.util.StorageUtilKt.toLDBKey;
 
-import android.util.LruCache;
-
 import androidx.annotation.Nullable;
+import androidx.collection.LruCache;
 
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
@@ -45,55 +45,63 @@ public class WorldStorage implements Closeable {
         this.db = new DbImpl(options, path, LEVEL_DB_ENV);
     }
 
-    private static byte[] getChunkDataKey(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) {
-        if (dimension.getId() == 0) {
-            byte[] key = new byte[asSubChunk ? 10 : 9];
-            fillReversedBytes(key, 0, x);
-            fillReversedBytes(key, 4, z);
+    public static byte[] makeChunkKey(int x, int z, int dimension, ChunkTag type) {
+        byte[] key;
+        if (dimension == 0) {
+            key = new byte[9];
             key[8] = type.dataID;
-            if (asSubChunk) key[9] = subChunk;
-            return key;
         } else {
-            byte[] key = new byte[asSubChunk ? 14 : 13];
-            fillReversedBytes(key, 0, x);
-            fillReversedBytes(key, 4, z);
-            fillReversedBytes(key, 8, dimension.getId());
+            key = new byte[13];
+            writeIntLE(key, dimension, 8);
             key[12] = type.dataID;
-            if (asSubChunk) key[13] = subChunk;
-            return key;
         }
+        writeIntLE(key, x, 0);
+        writeIntLE(key, z, 4);
+        return key;
     }
 
-    private static void fillReversedBytes(byte[] array, int pos, int num) {
-        array[pos] = (byte) num;
-        array[pos + 1] = (byte) (num >> 8);
-        array[pos + 2] = (byte) (num >> 16);
-        array[pos + 3] = (byte) (num >> 24);
+    public static byte[] makeChunkKey(int x, int z, int dimension, byte subChunk) {
+        byte[] key;
+        if (dimension == 0) {
+            key = new byte[10];
+            key[8] = ChunkTag.SUB_CHUNK_PREFIX.dataID;
+            key[9] = subChunk;
+        } else {
+            key = new byte[14];
+            writeIntLE(key, dimension, 8);
+            key[12] = ChunkTag.SUB_CHUNK_PREFIX.dataID;
+            key[13] = subChunk;
+        }
+        writeIntLE(key, x, 0);
+        writeIntLE(key, z, 4);
+        return key;
     }
 
-    public byte[] getChunkData(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) throws DBException {
-        byte[] chunkKey = getChunkDataKey(x, z, type, dimension, subChunk, asSubChunk);
-        //Log.d("Getting cX: "+x+" cZ: "+z+ " with key: "+bytesToHex(chunkKey, 0, chunkKey.length));
-        return this.db.get(chunkKey);
+    public byte[] getChunkData(int x, int z, Dimension dimension, byte subChunk) throws DBException {
+        return this.db.get(makeChunkKey(x, z, dimension.getRuntimeId(), subChunk));
     }
 
     public byte[] getChunkData(int x, int z, ChunkTag type, Dimension dimension) throws DBException {
-        return getChunkData(x, z, type, dimension, (byte) 0, false);
+        return this.db.get(makeChunkKey(x, z, dimension.getRuntimeId(), type));
     }
 
-    public void writeChunkData(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk, byte[] chunkData) throws DBException {
-        this.db.put(getChunkDataKey(x, z, type, dimension, subChunk, asSubChunk), chunkData);
+    public void writeChunkData(int x, int z, Dimension dimension, ChunkTag type, byte[] chunkData) throws DBException {
+        this.db.put(makeChunkKey(x, z, dimension.getRuntimeId(), type), chunkData);
     }
 
-    public void removeChunkData(int x, int z, ChunkTag type, Dimension dimension, byte subChunk, boolean asSubChunk) throws DBException {
-        this.db.delete(getChunkDataKey(x, z, type, dimension, subChunk, asSubChunk));
+    public void writeChunkData(int x, int z, Dimension dimension, byte subChunk, byte[] chunkData) throws DBException {
+        this.db.put(makeChunkKey(x, z, dimension.getRuntimeId(), subChunk), chunkData);
+    }
+
+    public void removeChunkData(int x, int z, ChunkTag type, Dimension dimension) throws DBException {
+        this.db.delete(makeChunkKey(x, z, dimension.getRuntimeId(), type));
     }
 
     public void removeFullChunk(int x, int z, Dimension dimension) throws DBException {
         var it = this.db.iterator();
         int count = 0;
-        var compareKey = getChunkDataKey(x, z, ChunkTag.DATA_2D, dimension, (byte) 0, false);
-        int baseKeyLength = dimension.getId() == 0 ? 8 : 12;
+        var compareKey = makeChunkKey(x, z, dimension.getRuntimeId(), ChunkTag.DATA_2D);
+        int baseKeyLength = dimension.getRuntimeId() == 0 ? 8 : 12;
         for (it.seekToFirst(); count < 800 && it.hasNext(); count++) {
             byte[] key = it.next().getKey();
             if (key.length > baseKeyLength && key.length <= baseKeyLength + 3 &&
@@ -185,13 +193,13 @@ public class WorldStorage implements Closeable {
 
         @Override
         public int hashCode() {
-            return (x * 31 + z) * 31 + dim.getId();
+            return (x * 31 + z) * 31 + dim.getRuntimeId();
         }
 
         @Override
         public boolean equals(Object obj) {
             return obj instanceof Key another && ((x == another.x) && (z == another.z) && (dim != null)
-                    && (another.dim != null) && (dim.getId() == another.dim.getId()));
+                    && (another.dim != null) && (dim.getRuntimeId() == another.dim.getRuntimeId()));
         }
     }
 

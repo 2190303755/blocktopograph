@@ -7,7 +7,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
@@ -16,13 +15,21 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.R
+import com.mithrilmania.blocktopograph.block.BlockTemplate
+import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
+import com.mithrilmania.blocktopograph.registry.Registry
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.world.Dimension
+import com.mithrilmania.blocktopograph.world.VANILLA_DIMENSIONS
 import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.World
 import com.mithrilmania.blocktopograph.world.WorldStorage
+import com.mithrilmania.blocktopograph.world.chunk.ChunkCache
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap
+import it.unimi.dsi.fastutil.longs.Long2IntMap
+import it.unimi.dsi.fastutil.longs.Long2IntMaps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -46,21 +53,31 @@ sealed interface InitState {
     object Failed : InitState
     object Initializing : InitState
     class Succeed(
-        val world: World,
-        val storage: WorldStorage,
-        val dimensions: List<Dimension>
-    ) : InitState
+        @JvmField val world: World,
+        @JvmField val storage: WorldStorage,
+        @JvmField val dimensions: Int2ObjectMap<out Dimension> = VANILLA_DIMENSIONS,
+        @JvmField val heightBounds: Long2IntMap = Long2IntMaps.EMPTY_MAP,
+        @JvmField val blocks: Registry<BlockTemplate> = Registry()
+    ) : InitState {
+        @JvmField
+        val chunks = ChunkCache(this.storage, this.heightBounds, this.blocks)
+
+        init {
+            blocks.register(BlockTemplates.getAirTemplate())
+        }
+    }
 }
 
 class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     val entityIcons: MutableState<ImageBitmap?> = mutableStateOf(null)
     val customIcons: MutableState<ImageBitmap?> = mutableStateOf(null)
     var initialization: InitState by mutableStateOf(InitState.Uninitialized)
-    var selectedTab: Int by mutableIntStateOf(0)
     val tabPager: PagerState = PagerState(0, 0F) { 3 }
     var editing: MutableStateFlow<Pair<NBTSource, NBTImportConfig>?> = MutableStateFlow(null)
     var enabledLayer: MapLayer by mutableStateOf(MapLayer.SATELLITE)
-    var dimension: Dimension by mutableStateOf(VanillaDimension.Overworld)
+    var dimension: Dimension by mutableStateOf(VanillaDimension.OVERWORLD)
+
+    @JvmField
     var majorLayerId: String? = null
 
     @JvmField

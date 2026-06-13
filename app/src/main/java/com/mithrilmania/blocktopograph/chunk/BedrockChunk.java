@@ -16,6 +16,7 @@ import com.mithrilmania.blocktopograph.util.ColorUtil;
 import com.mithrilmania.blocktopograph.util.Noise;
 import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import org.iq80.leveldb.DBException;
 
@@ -51,8 +52,7 @@ public final class BedrockChunk extends Chunk {
     private void load2dData(boolean createIfMissing) {
         if (data2D == null) {
             try {
-                byte[] rawData = storage.get().getChunkData(
-                        mChunkX, mChunkZ, ChunkTag.DATA_2D, mDimension, (byte) 0, false);
+                byte[] rawData = storage.get().getChunkData(mChunkX, mChunkZ, ChunkTag.DATA_2D, mDimension);
                 if (rawData == null) {
                     if (createIfMissing) {
                         this.data2D = ByteBuffer.allocate(DATA2D_LENGTH);
@@ -81,8 +81,7 @@ public final class BedrockChunk extends Chunk {
             byte[] raw;
             WorldStorage worldData = storage.get();
             try {
-                raw = worldData.getChunkData(mChunkX, mChunkZ,
-                        ChunkTag.TERRAIN, mDimension, (byte) which, true);
+                raw = worldData.getChunkData(mChunkX, mChunkZ, mDimension, (byte) which);
                 if (raw == null && !createIfMissing) {
                     mVoidList[which] = true;
                     return null;
@@ -291,7 +290,7 @@ public final class BedrockChunk extends Chunk {
 
         // Save biome and hightmap.
         if (mIs2dDirty)
-            storage.writeChunkData(mChunkX, mChunkZ, ChunkTag.DATA_2D, mDimension, (byte) 0, false, data2D.array());
+            storage.writeChunkData(mChunkX, mChunkZ, mDimension, ChunkTag.DATA_2D, data2D.array());
 
         // Save subChunks.
         for (int i = 0, mTerrainSubChunksLength = mTerrainSubChunks.length; i < mTerrainSubChunksLength; i++) {

@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.nbt.io
 
+import com.mithrilmania.blocktopograph.util.writeIntLE
 import java.io.Closeable
 import java.io.DataOutput
 import java.io.DataOutputStream
@@ -39,13 +40,13 @@ class BedrockNBTOutput(
     }
 
     override fun writeShort(v: Int) {
-        this.stream.write(v ushr 0)
-        this.stream.write(v ushr 8)
+        this.stream.write(v)
+        this.stream.write(v shr 8)
     }
 
     override fun writeChar(v: Int) {
-        this.stream.write(v ushr 0)
-        this.stream.write(v ushr 8)
+        this.stream.write(v)
+        this.stream.write(v shr 8)
     }
 
     override fun writeInt(v: Int) {
@@ -54,14 +55,14 @@ class BedrockNBTOutput(
 
     override fun writeLong(v: Long) {
         this.stream.apply {
-            write((v ushr 0).toInt())
-            write((v ushr 8).toInt())
-            write((v ushr 16).toInt())
-            write((v ushr 24).toInt())
-            write((v ushr 32).toInt())
-            write((v ushr 40).toInt())
-            write((v ushr 48).toInt())
-            write((v ushr 56).toInt())
+            write((v).toInt())
+            write((v shr 8).toInt())
+            write((v shr 16).toInt())
+            write((v shr 24).toInt())
+            write((v shr 32).toInt())
+            write((v shr 40).toInt())
+            write((v shr 48).toInt())
+            write((v shr 56).toInt())
         }
     }
 
@@ -82,8 +83,8 @@ class BedrockNBTOutput(
     override fun writeChars(s: String) {
         s.forEach {
             val v = it.code
-            this.stream.write(v ushr 0)
-            this.stream.write(v ushr 8)
+            this.stream.write(v)
+            this.stream.write(v shr 8)
         }
     }
 

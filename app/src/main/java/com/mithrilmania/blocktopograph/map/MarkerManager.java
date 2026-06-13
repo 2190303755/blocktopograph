@@ -127,9 +127,11 @@ public class MarkerManager {
                                     int y = Integer.parseInt(matcher.group(5));
                                     int z = Integer.parseInt(matcher.group(6));
                                     String dimensionName = matcher.group(7).replace("\\\"", "\"");
-                                    Dimension dimension = com.mithrilmania.blocktopograph.map.Dimension.getDimension(dimensionName);
-                                    if (dimension == null)
-                                        dimension = VanillaDimension.Overworld.INSTANCE;
+                                    Dimension dimension = switch (dimensionName) {
+                                        case "nether" -> VanillaDimension.NETHER;
+                                        case "end" -> VanillaDimension.END;
+                                        default -> VanillaDimension.OVERWORLD;
+                                    };
                                     this.addMarker(markerFromData(markerDisplayName, iconName, x, y, z, dimension), false);
 
                                 }
@@ -179,7 +181,7 @@ public class MarkerManager {
                         marker.getNamedBitmapProvider().getBitmapDisplayName().replace("\"", "\\\""),
                         marker.getNamedBitmapProvider().getBitmapDataName().replace("\"", "\\\""),
                         marker.x, marker.y, marker.z,
-                        marker.dimension.getName().toLowerCase().replace("\"", "\\\""));
+                        marker.dimension.getIdentifier().toLowerCase().replace("\"", "\\\""));
             }
 
             out.close();

@@ -49,7 +49,6 @@ import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.chunk.ChunkTag;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.MapFragmentBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
@@ -72,6 +71,7 @@ import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
+import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -667,7 +667,7 @@ public class MapFragment extends Fragment {
                 DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPos(handler, activity);
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
-                    LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.getName() + "]");
+                    LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.getIdentifier() + "]");
                     localPlayerMarker = new AbstractMarker((int) x, (int) y, (int) z,
                             playerPos.dimension, new CustomNamedBitmapProvider(Entity.PLAYER, "~local_player"), false);
                     this.staticMarkers.add(localPlayerMarker);

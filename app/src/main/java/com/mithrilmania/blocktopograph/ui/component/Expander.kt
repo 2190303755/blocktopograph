@@ -37,7 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.util.fastForEachIndexed
 import com.mithrilmania.blocktopograph.R
 
 val fadeInAndExpandVertically = fadeIn() + expandVertically()
@@ -103,7 +102,7 @@ fun Expander(
 @Composable
 fun <T> Expander(
     title: String,
-    items: List<T>,
+    items: Collection<T>,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.segmentedColors(),
     selectable: Boolean = false,
@@ -139,7 +138,7 @@ fun <T> Expander(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
             ) {
                 val count = items.size + 1
-                items.fastForEachIndexed { index, item ->
+                items.forEachIndexed { index, item ->
                     itemContent(
                         item,
                         ListItemDefaults.segmentedShapes(index = index + 1, count = count)

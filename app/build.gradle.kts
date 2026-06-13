@@ -85,6 +85,7 @@ dependencies {
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("sh.calvin.reorderable:reorderable:3.1.0")
     implementation("com.composables:composeunstyled-bottom-sheet:2.5.0")
+    implementation("it.unimi.dsi:fastutil:8.5.18")
     implementation("androidx.paging:paging-common:$paging")
     implementation("androidx.paging:paging-compose:$paging")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

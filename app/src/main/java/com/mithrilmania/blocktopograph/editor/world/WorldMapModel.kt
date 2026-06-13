@@ -12,10 +12,10 @@ class WorldMapModel : ViewModel() {
     val markers: MutableLiveData<ArrayList<AbstractMarker>> =
         MutableLiveData<ArrayList<AbstractMarker>>(arrayListOf())
 
-    var dimension: Dimension = VanillaDimension.Overworld
+    var dimension: Dimension = VanillaDimension.OVERWORLD
 
     val mapType: MutableLiveData<MapType> =
-        MutableLiveData<MapType>(VanillaDimension.Overworld.defaultMapTypeCompat())
+        MutableLiveData<MapType>(dimension.defaultMapTypeCompat())
 
     val showActionBar: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)

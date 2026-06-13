@@ -103,6 +103,6 @@ class BedrockNBTInput(
     override fun readUnsignedShort(): Int {
         val b4 = this.readByte()
         val b3 = this.readByte()
-        return Ints.fromBytes(0.toByte(), 0.toByte(), b3, b4)
+        return ((b3.toInt() and 0xFF) shl 8) or (b4.toInt() and 0xFF)
     }
 }

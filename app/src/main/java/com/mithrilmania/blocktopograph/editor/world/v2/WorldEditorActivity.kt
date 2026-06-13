@@ -3,9 +3,9 @@ package com.mithrilmania.blocktopograph.editor.world.v2
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.util.SparseArray
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -33,6 +33,7 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,45 +48,49 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.application
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composeunstyled.SheetDetent
 import com.composeunstyled.rememberBottomSheetState
 import com.mithrilmania.blocktopograph.LogUtil
-import com.mithrilmania.blocktopograph.block.KnownBlockRepr
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_PATTERN
+import com.mithrilmania.blocktopograph.editor.world.v2.layer.ERROR_PATTERN
+import com.mithrilmania.blocktopograph.editor.world.v2.layer.renderSatellite
 import com.mithrilmania.blocktopograph.map.CustomIcon
 import com.mithrilmania.blocktopograph.map.MCTileProvider
-import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
-import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
+import com.mithrilmania.blocktopograph.nbt.util.getAsNumericTagOrElse
 import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.Marker
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
-import com.mithrilmania.blocktopograph.util.math.Vector3
-import com.mithrilmania.blocktopograph.world.CustomDimension
-import com.mithrilmania.blocktopograph.world.Dimension
-import com.mithrilmania.blocktopograph.world.VanillaDimension
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
+import com.mithrilmania.blocktopograph.world.HeightRange
+import com.mithrilmania.blocktopograph.world.buildDimensionRegistry
+import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
 import com.mithrilmania.blocktopograph.world.extractPlayerPos
 import com.mithrilmania.blocktopograph.world.resolveSpawnPoint
 import com.mithrilmania.blocktopograph.world.resolveWorld
+import it.unimi.dsi.fastutil.longs.Long2IntMaps
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.api.addLayer
 import ovh.plrapps.mapcompose.api.addMarker
+import ovh.plrapps.mapcompose.api.reloadTiles
+import ovh.plrapps.mapcompose.api.removeAllLayers
 import ovh.plrapps.mapcompose.api.scrollTo
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
-import java.io.IOException
 
 class WorldEditorActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -111,57 +116,55 @@ class WorldEditorActivity : ComponentActivity() {
                     viewModel.initialization = InitState.Failed
                     return@launch
                 }
-                val bytes = storage.db.get(SpecialDBEntryType.DIMENSION_REGISTRY.keyBytes)
-                if (bytes !== null) {
-                    val dimensions = (BedrockNBTInput(
-                        ByteArrayInputStream(bytes)
-                    ).readNamedTag().second as? CompoundTag)?.get("entries")
-                    if (dimensions is CompoundTag) {
-                        val registry = SparseArray<Dimension>()
-                        registry[0] = VanillaDimension.Overworld
-                        registry[1] = VanillaDimension.Nether
-                        registry[2] = VanillaDimension.End
-                        for (pair in dimensions) {
-                            val id = (pair.value as? NumericTag ?: continue).toInt()
-                            registry[id] = CustomDimension(pair.key, id)
+                val dimensions = async(Dispatchers.IO) {
+                    buildDimensionRegistry(
+                        storage.db[SpecialDBEntryType.DIMENSION_REGISTRY.keyBytes]
+                    )
+                }
+                val heightBounds = async(Dispatchers.IO) {
+                    val bytes = storage.db[SpecialDBEntryType.CHUNK_METAS.keyBytes]
+                    if (bytes === null) Long2IntMaps.EMPTY_MAP else {
+                        val input = BedrockNBTInput(ByteArrayInputStream(bytes))
+                        val size = input.readInt()
+                        val ranges = Long2IntOpenHashMap(size)
+                        repeat(size) {
+                            val hash = input.readLong()
+                            val range = (input.readNamedTag().second as? CompoundTag)
+                                ?.get("LastSavedDimensionHeightRange")
+                            if (range is CompoundTag) {
+                                ranges.put(
+                                    hash,
+                                    HeightRange(
+                                        range["min"].getAsNumericTagOrElse(0),
+                                        range["max"].getAsNumericTagOrElse(0)
+                                    ).packed
+                                )
+                            }
                         }
-                        val values = ArrayList<Dimension>(registry.size())
-                        for (i in 0 until registry.size()) {
-                            values.add(registry.valueAt(i))
-                        }
-                        viewModel.initialization = InitState.Succeed(world, storage, values)
-                        return@launch
+                        ranges
                     }
                 }
                 viewModel.initialization = InitState.Succeed(
                     world,
                     storage,
-                    listOf(
-                        VanillaDimension.Overworld,
-                        VanillaDimension.Nether,
-                        VanillaDimension.End
-                    )
+                    dimensions.await(),
+                    heightBounds.await()
                 )
-            }
-        }
-        val assets = this.assets
-        this.lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                KnownBlockRepr.loadBitmaps(assets)
-            } catch (e: IOException) {
-                LogUtil.d(this, e)
             }
         }
         this.setThemedContent {
             WorldEditorScaffold(viewModel) { info ->
                 val coroutineScope = rememberCoroutineScope()
-                LaunchedEffect(Unit) {
+                LaunchedEffect(viewModel.dimension) {
+                    viewModel.map.reloadTiles()
+                }
+                DisposableEffect(Unit) {
                     // TODO: it is too loooooooooooooooooooooooooooooong
                     if (viewModel.majorLayerId == null) {
                         viewModel.majorLayerId = viewModel.map.addLayer({ row, col, zoomLvl ->
                             val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
                             val tileSize = TILE_DIMENSION * chunks
-                            val storage = info.storage
+                            val cache = info.chunks
                             val dimension = viewModel.dimension
                             val bitmap = createBitmap(
                                 tileSize,
@@ -170,56 +173,30 @@ class WorldEditorActivity : ComponentActivity() {
                             )
                             val canvas = Canvas(bitmap)
                             val paint = Paint()
+                            val rect = Rect()
                             for (offsetX in 0 until chunks) {
                                 val left = offsetX * TILE_DIMENSION
                                 val chunkX = offsetX + col * chunks
                                 for (offsetZ in 0 until chunks) {
                                     val top = offsetZ * TILE_DIMENSION
                                     val chunkZ = offsetZ + row * chunks
-                                    val chunk = storage.getChunk(chunkX, chunkZ, dimension)
-                                    if (chunk.isError) {
-                                        MapType.ERROR.renderer.renderToBitmap(
-                                            chunk,
-                                            canvas,
-                                            dimension,
-                                            chunkX,
-                                            chunkZ,
-                                            left,
-                                            top,
-                                            RENDER_SCALE,
-                                            RENDER_SCALE,
-                                            paint,
-                                            storage
-                                        )
-                                        continue
-                                    }
-                                    MapType.CHESS.renderer.renderToBitmap(
-                                        chunk,
-                                        canvas,
-                                        dimension,
-                                        chunkX,
-                                        chunkZ,
+                                    val chunk = cache[ChunkPos(dimension.runtimeId, chunkX, chunkZ)]
+                                    rect.set(
                                         left,
                                         top,
-                                        RENDER_SCALE,
-                                        RENDER_SCALE,
-                                        paint,
-                                        storage
+                                        left + CHUNK_DIMENSION * RENDER_SCALE,
+                                        top + CHUNK_DIMENSION * RENDER_SCALE
                                     )
-                                    if (chunk.isVoid) continue
+                                    canvas.drawBitmap(BACKGROUND_PATTERN, null, rect, null)
+                                    if (chunk === null) continue
                                     try {
-                                        MapType.OVERWORLD_SATELLITE.renderer.renderToBitmap(
-                                            chunk,
+                                        renderSatellite(
                                             canvas,
-                                            dimension,
-                                            chunkX,
-                                            chunkZ,
-                                            left,
-                                            top,
-                                            RENDER_SCALE,
-                                            RENDER_SCALE,
                                             paint,
-                                            storage
+                                            info.chunks,
+                                            chunk,
+                                            left,
+                                            top
                                         )
                                     } catch (e: Exception) {
                                         Log.e(
@@ -227,19 +204,7 @@ class WorldEditorActivity : ComponentActivity() {
                                             "Failed to render chunk at ($chunkX, $chunkZ)",
                                             e
                                         )
-                                        MapType.ERROR.renderer.renderToBitmap(
-                                            chunk,
-                                            canvas,
-                                            dimension,
-                                            chunkX,
-                                            chunkZ,
-                                            left,
-                                            top,
-                                            RENDER_SCALE,
-                                            RENDER_SCALE,
-                                            paint,
-                                            storage
-                                        )
+                                        canvas.drawBitmap(ERROR_PATTERN, null, rect, null)
                                     }
                                 }
                             }
@@ -263,7 +228,7 @@ class WorldEditorActivity : ComponentActivity() {
                         })
                         var framedToPlayer = false
                         try {
-                            val playerPos: Pair<Int, Vector3<Float>>? = try {
+                            val playerPos: DimensionVec3f? = try {
                                 val data: ByteArray? =
                                     info.storage.db.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
                                 val player: BinaryTag? = if (data === null) {
@@ -282,17 +247,14 @@ class WorldEditorActivity : ComponentActivity() {
                                 null
                             }
                             if (playerPos !== null) {
-                                val dimension = info.dimensions.firstOrNull {
-                                    it.id == playerPos.first
-                                }
+                                val dimension = info.dimensions[playerPos.dimensionId]
                                 if (dimension !== null) {
-                                    val pos = playerPos.second
-                                    val x: Float = pos.x
-                                    val y: Float = pos.y
-                                    val z: Float = pos.z
+                                    val x: Float = playerPos.x
+                                    val y: Float = playerPos.y
+                                    val z: Float = playerPos.z
                                     LogUtil.d(
                                         this,
-                                        "Placed player marker at: $x;$y;$z [${dimension.name}]"
+                                        "Placed player marker at: $x;$y;$z [${dimension.identifier}]"
                                     )
                                     viewModel.map.addMarker(
                                         "builtin:local_player",
@@ -353,6 +315,9 @@ class WorldEditorActivity : ComponentActivity() {
                         } catch (e: Exception) {
                             LogUtil.d(this, "Failed to place spawn pos marker.", e)
                         }
+                    }
+                    onDispose {
+                        viewModel.map.removeAllLayers()
                     }
                 }
                 NBTEditingHost(viewModel) {

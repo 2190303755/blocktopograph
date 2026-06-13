@@ -47,12 +47,12 @@ fun ViewModeTab(
         val resources = LocalResources.current
         Expander(
             title = "维度",
-            items = info.dimensions,
+            items = info.dimensions.values,
             supportingContent = { Text(text = viewModel.dimension.getDisplayName(resources)) },
             selectable = true,
             colors = colors
         ) { dimension, shapes ->
-            val selected = viewModel.dimension.id == dimension.id
+            val selected = viewModel.dimension.runtimeId == dimension.runtimeId
             SegmentedListItem(
                 selected = selected,
                 onClick = { viewModel.dimension = dimension },
@@ -63,7 +63,7 @@ fun ViewModeTab(
             )
         }
         Expander(
-            title = "渲染层",
+            title = "主视图",
             items = MapLayer.entries,
             supportingContent = {
                 Text(text = stringResource(viewModel.enabledLayer.display))

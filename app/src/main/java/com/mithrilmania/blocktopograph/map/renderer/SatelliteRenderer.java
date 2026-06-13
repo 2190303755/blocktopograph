@@ -24,11 +24,6 @@ public class SatelliteRenderer implements MapRenderer {
         float finalG = 0f;
         float finalB = 0f;
 
-        // extract colour components as normalized doubles, from ARGB format
-        int grassColor = chunk.getGrassColor(x, z);
-        float biomeR = (float) Color.red(grassColor) / 255f;
-        float biomeG = (float) Color.green(grassColor) / 255f;
-        float biomeB = (float) Color.blue(grassColor) / 255f;
 
         y--;
         for (; y >= 0 && alphaRemain >= .1f; y--) {
@@ -51,6 +46,11 @@ public class SatelliteRenderer implements MapRenderer {
 
             //blend biome-colored blocks
             if (blockTemplate.isHasBiomeShading()) {
+                // extract colour components as normalized doubles, from ARGB format
+                int grassColor = chunk.getGrassColor(x, z);
+                float biomeR = (float) Color.red(grassColor) / 255f;
+                float biomeG = (float) Color.green(grassColor) / 255f;
+                float biomeB = (float) Color.blue(grassColor) / 255f;
                 blendR *= biomeR;
                 blendG *= biomeG;
                 blendB *= biomeB;

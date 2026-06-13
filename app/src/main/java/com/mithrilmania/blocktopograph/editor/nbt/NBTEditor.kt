@@ -772,17 +772,15 @@ fun NBTTree(
                         .clip(itemShape)
                         .clickable {
                             val isFocused = editor.focused === node
-                            if (isFocused
-                                && node is RootNode
-                                && node.parent is NBTNode
-                            ) {
+                            if (node is RootNode && node.parent is NBTNode) {
                                 val expanded = !node.expanded
                                 if (expanded) {
                                     editor.expandNode(node)
-                                } else {
+                                    node.expanded = true
+                                } else if (isFocused) {
                                     editor.collapsesNode(node)
+                                    node.expanded = false
                                 }
-                                node.expanded = expanded
                             }
                             editor.focused = node
                             if (isFocused) {
