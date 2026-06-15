@@ -48,6 +48,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -176,6 +177,7 @@ class WorldTestActivity : ComponentActivity() {
                                 if (hexed) {
                                     OutlinedTextField(
                                         state = majorModel.hexedInput,
+                                        shape = OutlinedTextFieldDefaults.roundedShape,
                                         lineLimits = TextFieldLineLimits.SingleLine,
                                         label = { Text("键") },
                                         modifier = Modifier.fillMaxWidth(),
@@ -217,6 +219,7 @@ class WorldTestActivity : ComponentActivity() {
                                 } else {
                                     OutlinedTextField(
                                         state = majorModel.plainInput,
+                                        shape = OutlinedTextFieldDefaults.roundedShape,
                                         lineLimits = TextFieldLineLimits.SingleLine,
                                         label = { Text("键") },
                                         modifier = Modifier.fillMaxWidth(),

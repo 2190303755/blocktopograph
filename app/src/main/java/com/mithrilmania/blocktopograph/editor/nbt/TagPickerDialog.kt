@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,8 +63,9 @@ fun TagTypePicker(
     val textFieldState = rememberTextFieldState(localized.getOrNull(type.intValue - 1) ?: "")
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             state = textFieldState,
+            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = OutlinedTextFieldDefaults.roundedShape,
             readOnly = true,
             lineLimits = TextFieldLineLimits.SingleLine,
             label = { Text(stringResource(R.string.option_tag_type)) },
@@ -118,6 +120,7 @@ fun TagNameInputField(
     }
     OutlinedTextField(
         state = name,
+        shape = OutlinedTextFieldDefaults.roundedShape,
         isError = duplicate.value,
         label = {
             Text(stringResource(R.string.option_tag_name))

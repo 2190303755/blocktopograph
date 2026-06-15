@@ -1,24 +1,25 @@
 package com.mithrilmania.blocktopograph.registry
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap
+import java.util.concurrent.ConcurrentHashMap
 
-class NamedRegistry<T> {
+class NamedRegistry<T : Any> {
     private val byId = ObjectArrayList<T>()
-    private val toId = Reference2IntOpenHashMap<T>()
-    private val byName = Object2ObjectOpenHashMap<String, T>()
+    private val toId = Object2IntOpenHashMap<T>()
+    private val byName = ConcurrentHashMap<String, T>()
 
     init {
         this.toId.defaultReturnValue(-1)
     }
 
+    @Synchronized
     operator fun set(identifier: String, value: T) {
-        require(!this.byName.containsKey(identifier))
-        require(!this.toId.containsKey(value))
+        val old = this.byName.putIfAbsent(identifier, value)
+        require(old === null || old == value)
         this.byName[identifier] = value
         val index = this.byId.size
-        this.byId.add(index, value)
+        this.byId.add(value)
         this.toId.put(value, index)
     }
 
@@ -26,5 +27,6 @@ class NamedRegistry<T> {
 
     operator fun get(runtimeId: Int): T? = this.byId.getOrNull(runtimeId)
 
+    @Synchronized
     operator fun get(value: T): Int = this.toId.getInt(value)
 }

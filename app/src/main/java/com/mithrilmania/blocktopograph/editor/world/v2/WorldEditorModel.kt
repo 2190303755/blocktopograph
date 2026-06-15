@@ -84,6 +84,7 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     val map: MapState = MapState(
         levelCount = ZOOM_LEVELS,
         tileSize = TILE_DIMENSION,
+        workerCount = Runtime.getRuntime().availableProcessors() * 2
     )
 
     init {

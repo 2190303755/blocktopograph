@@ -65,6 +65,8 @@ class Chunk(
 
     fun getHeight(x: Int, z: Int): Int = this.terrain.getHeight(x, z)
 
+    fun getTop(x: Int, z: Int): Int = this.getHeight(x, z) - 1 + this.lowerBound
+
     fun getBiome(x: Int, y: Int, z: Int): Int = this.terrain.getBiome(x, y, z)
 
     fun getBrightness(src: BrightnessSource, x: Int, y: Int, z: Int): Int {

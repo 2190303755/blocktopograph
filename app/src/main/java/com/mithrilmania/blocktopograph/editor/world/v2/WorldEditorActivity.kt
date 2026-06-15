@@ -21,12 +21,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
@@ -62,9 +67,9 @@ import com.mithrilmania.blocktopograph.map.CustomIcon
 import com.mithrilmania.blocktopograph.map.MCTileProvider
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
-import com.mithrilmania.blocktopograph.nbt.util.getAsNumericTagOrElse
 import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.Marker
@@ -72,6 +77,7 @@ import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
+import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.HeightRange
 import com.mithrilmania.blocktopograph.world.buildDimensionRegistry
 import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
@@ -82,6 +88,8 @@ import it.unimi.dsi.fastutil.longs.Long2IntMaps
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.api.addLayer
@@ -135,8 +143,8 @@ class WorldEditorActivity : ComponentActivity() {
                                 ranges.put(
                                     hash,
                                     HeightRange(
-                                        range["min"].getAsNumericTagOrElse(0),
-                                        range["max"].getAsNumericTagOrElse(0)
+                                        range.getTyped<NumericTag>("min")?.toInt() ?: 0,
+                                        range.getTyped<NumericTag>("max")?.toInt() ?: 0
                                     ).packed
                                 )
                             }
@@ -161,7 +169,7 @@ class WorldEditorActivity : ComponentActivity() {
                 DisposableEffect(Unit) {
                     // TODO: it is too loooooooooooooooooooooooooooooong
                     if (viewModel.majorLayerId == null) {
-                        viewModel.majorLayerId = viewModel.map.addLayer({ row, col, zoomLvl ->
+                        viewModel.majorLayerId = viewModel.map.addLayer { row, col, zoomLvl ->
                             val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
                             val tileSize = TILE_DIMENSION * chunks
                             val cache = info.chunks
@@ -174,13 +182,12 @@ class WorldEditorActivity : ComponentActivity() {
                             val canvas = Canvas(bitmap)
                             val paint = Paint()
                             val rect = Rect()
+                            val context = currentCoroutineContext()
                             for (offsetX in 0 until chunks) {
                                 val left = offsetX * TILE_DIMENSION
                                 val chunkX = offsetX + col * chunks
                                 for (offsetZ in 0 until chunks) {
                                     val top = offsetZ * TILE_DIMENSION
-                                    val chunkZ = offsetZ + row * chunks
-                                    val chunk = cache[ChunkPos(dimension.runtimeId, chunkX, chunkZ)]
                                     rect.set(
                                         left,
                                         top,
@@ -188,7 +195,18 @@ class WorldEditorActivity : ComponentActivity() {
                                         top + CHUNK_DIMENSION * RENDER_SCALE
                                     )
                                     canvas.drawBitmap(BACKGROUND_PATTERN, null, rect, null)
-                                    if (chunk === null) continue
+                                    context.ensureActive()
+                                    val pos = ChunkPos(
+                                        dimension.runtimeId,
+                                        chunkX,
+                                        offsetZ + row * chunks
+                                    )
+                                    val chunk = try {
+                                        cache[pos] ?: continue
+                                    } catch (e: Exception) {
+                                        Log.e(APP_TAG, "Failed to load chunk at $pos", e)
+                                        continue
+                                    }
                                     try {
                                         renderSatellite(
                                             canvas,
@@ -199,23 +217,18 @@ class WorldEditorActivity : ComponentActivity() {
                                             top
                                         )
                                     } catch (e: Exception) {
-                                        Log.e(
-                                            APP_TAG,
-                                            "Failed to render chunk at ($chunkX, $chunkZ)",
-                                            e
-                                        )
+                                        Log.e(APP_TAG, "Failed to render chunk at $pos", e)
                                         canvas.drawBitmap(ERROR_PATTERN, null, rect, null)
                                     }
                                 }
                             }
 
                             //draw tile-edges white
-                            val edge = tileSize.toFloat() - 1F
+                            val sizeF = tileSize.toFloat()
+                            paint.style = Paint.Style.STROKE
+                            paint.strokeWidth = 1F
                             paint.setColor(-1)
-                            canvas.drawLine(0F, 0F, edge, 1F, paint)
-                            canvas.drawLine(0F, 0F, 1F, edge, paint)
-                            canvas.drawLine(0F, edge, edge, edge, paint)
-                            canvas.drawLine(edge, 0F, edge, edge, paint)
+                            canvas.drawRect(0F, 0F, sizeF, sizeF, paint)
 
                             MCTileProvider.drawText(
                                 "(${col * CHUNK_DIMENSION * chunks}; ${row * CHUNK_DIMENSION * chunks})",
@@ -225,7 +238,7 @@ class WorldEditorActivity : ComponentActivity() {
                             )
 
                             bitmap
-                        })
+                        }
                         var framedToPlayer = false
                         try {
                             val playerPos: DimensionVec3f? = try {
@@ -320,31 +333,42 @@ class WorldEditorActivity : ComponentActivity() {
                         viewModel.map.removeAllLayers()
                     }
                 }
+                val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                val density = LocalDensity.current
+                val collapse = SheetDetent("collapse") { _, _ ->
+                    with(density) {
+                        cutout.getBottom(this).toDp()
+                    } + DragHandleConsumedHeight
+                }
+                val sheetState = rememberBottomSheetState(
+                    collapse,
+                    listOf(
+                        collapse,
+                        SheetDetent(
+                            "partial-expanded-0.4"
+                        ) { containerHeight, _ -> containerHeight * 0.4F },
+                        SheetDetent(
+                            "partial-expanded-0.6"
+                        ) { containerHeight, _ -> containerHeight * 0.6F },
+                        SheetDetent.FullyExpanded
+                    )
+                )
                 NBTEditingHost(viewModel) {
                     Box(contentAlignment = Alignment.Center) {
                         MapUI(state = viewModel.map)
-                        val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-                        val density = LocalDensity.current
-                        val collapse = SheetDetent("collapse") { _, _ ->
-                            with(density) {
-                                cutout.getBottom(this).toDp()
-                            } + DragHandleConsumedHeight
-                        }
                         BottomSheet(
-                            sheetState = rememberBottomSheetState(
-                                collapse,
-                                listOf(
-                                    collapse,
-                                    SheetDetent(
-                                        "partial-expanded-0.4"
-                                    ) { containerHeight, _ -> containerHeight * 0.4F },
-                                    SheetDetent(
-                                        "partial-expanded-0.6"
-                                    ) { containerHeight, _ -> containerHeight * 0.6F },
-                                    SheetDetent.FullyExpanded
-                                )
-                            ),
-                            sheetContainerColor = MaterialTheme.colorScheme.background
+                            sheetState = sheetState,
+                            sheetContainerColor = MaterialTheme.colorScheme.background,
+                            floatingContent = {
+                                FloatingActionButton(
+                                    onClick = { upcoming() },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = (-16).dp, y = (-72).dp)
+                                ) {
+                                    Icon(Icons.Filled.Save, "")
+                                }
+                            }
                         ) {
                             PrimaryTabRow(selectedTabIndex = viewModel.tabPager.currentPage) {
                                 val coroutineScope = rememberCoroutineScope()

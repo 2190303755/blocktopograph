@@ -2,6 +2,8 @@ package com.mithrilmania.blocktopograph.ui.component
 
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,7 +67,8 @@ fun BottomSheet(
     sheetContentColor: Color = contentColorFor(sheetContainerColor),
     sheetTonalElevation: Dp = 0.dp,
     sheetShadowElevation: Dp = BottomSheetDefaults.Elevation,
-    content: @Composable () -> Unit,
+    floatingContent: @Composable BoxScope.() -> Unit = {},
+    sheetContent: @Composable () -> Unit,
 ) {
     UnstyledBottomSheet(
         state = sheetState,
@@ -76,31 +79,34 @@ fun BottomSheet(
             },
         offsetForIme = offsetForIme
     ) {
-        Sheet(
+        Box {
+            floatingContent()
+            Sheet(
             modifier = Modifier
                 .requiredHeightIn(min = sheetPeekHeight)
                 .widthIn(max = sheetMaxWidth)
                 .fillMaxWidth()
-        ) {
-            Surface(
-                shape = sheetShape,
-                color = sheetContainerColor,
-                contentColor = sheetContentColor,
-                tonalElevation = sheetTonalElevation,
-                shadowElevation = sheetShadowElevation
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    DragIndication(
-                        modifier = Modifier
-                            .padding(vertical = DragHandleVerticalPadding)
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                                MaterialTheme.shapes.extraLarge
-                            )
-                            .size(DockedDragHandleWidth, DockedDragHandleHeight),
-                        indication = LocalIndication.current,
-                    )
-                    content()
+                Surface(
+                    shape = sheetShape,
+                    color = sheetContainerColor,
+                    contentColor = sheetContentColor,
+                    tonalElevation = sheetTonalElevation,
+                    shadowElevation = sheetShadowElevation
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        DragIndication(
+                            modifier = Modifier
+                                .padding(vertical = DragHandleVerticalPadding)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                    MaterialTheme.shapes.extraLarge
+                                )
+                                .size(DockedDragHandleWidth, DockedDragHandleHeight),
+                            indication = LocalIndication.current,
+                        )
+                        sheetContent()
+                    }
                 }
             }
         }

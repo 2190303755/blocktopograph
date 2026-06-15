@@ -60,6 +60,8 @@ value class ListTag(
         visitor.visit(this)
     }
 
+    inline fun <reified T : BinaryTag> getTyped(index: Int): T? = this.tags.getOrNull(index) as? T
+
     companion object Type : TagType<ListTag> {
         override val typeId get() = TAG_LIST
         override fun toString() = "TAG_List"

@@ -48,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -247,9 +248,10 @@ class CreateWorldActivity : ComponentActivity() {
                             OutlinedTextField(
                                 state = viewModel.name,
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = OutlinedTextFieldDefaults.roundedShape,
                                 lineLimits = TextFieldLineLimits.SingleLine,
                                 label = { Text(stringResource(R.string.create_world_name)) },
-                                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
+                                labelPosition = TextFieldLabelPosition.Cutout(isAlwaysMinimized = true),
                                 placeholder = { Text(stringResource(R.string.world_default_name)) },
                             )
                             DropdownMenuField(
@@ -452,9 +454,10 @@ class CreateWorldActivity : ComponentActivity() {
                             }
                             OutlinedTextField(
                                 state = textFieldState,
+                                shape = OutlinedTextFieldDefaults.roundedShape,
                                 lineLimits = TextFieldLineLimits.SingleLine,
                                 label = { Text(stringResource(R.string.edit_layer_amount)) },
-                                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
+                                labelPosition = TextFieldLabelPosition.Cutout(isAlwaysMinimized = true),
                                 placeholder = { Text(selected.height.toString()) },
                                 modifier = Modifier.fillMaxWidth(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

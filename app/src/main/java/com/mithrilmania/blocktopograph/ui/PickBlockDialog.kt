@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -114,6 +115,7 @@ fun BlockPicker(
         val textFieldState = rememberTextFieldState()
         OutlinedTextField(
             state = textFieldState,
+            shape = OutlinedTextFieldDefaults.roundedShape,
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
                 Icon(Icons.Filled.Search, null)
@@ -135,7 +137,9 @@ fun BlockPicker(
             }
         }
         val context = LocalContext.current
-        LazyColumn(Modifier.sizeIn(maxHeight = 512.dp)) {
+        LazyColumn(Modifier
+            .sizeIn(maxHeight = 512.dp)
+            .clip(MaterialTheme.shapes.medium)) {
             items(
                 items = templates,
                 key = { it.block.typeId + it.block.hashCode() }

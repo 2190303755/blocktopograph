@@ -4,7 +4,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import com.mithrilmania.blocktopograph.block.BlockTemplates
-import com.mithrilmania.blocktopograph.chunk.Version.VersionException
 import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_DIMENSION
 import com.mithrilmania.blocktopograph.editor.world.v2.RENDER_SCALE
 import com.mithrilmania.blocktopograph.map.Biome
@@ -14,6 +13,8 @@ import com.mithrilmania.blocktopograph.world.chunk.BrightnessSource
 import com.mithrilmania.blocktopograph.world.chunk.Chunk
 import com.mithrilmania.blocktopograph.world.chunk.ChunkCache
 import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlin.math.atan
 import kotlin.math.max
 import kotlin.math.min
@@ -42,7 +43,6 @@ fun getHeightShading(height: Int, heightW: Int, heightN: Int): Float {
     return ((atan(heightDiff.toDouble()) / Math.PI).toFloat() * shadingAmp) + 1f
 }
 
-
 fun ChunkPos.getNoise(x: Int, z: Int): Int {
     // noise values are between -1 and 1
     // 0.0001 is added to the coordinates because integer values result in 0
@@ -64,8 +64,7 @@ fun ChunkPos.getNoise(x: Int, z: Int): Int {
 }
 
 //calculate color of one column
-@Throws(VersionException::class)
-fun getColumnColor(
+suspend fun getColumnColor(
     chunk: Chunk,
     x: Int,
     top: Int,
@@ -74,12 +73,14 @@ fun getColumnColor(
     heightN: Int
 ): Int {
     val bottom = chunk.lowerBound
-    var y = bottom + top - 1
+    var y = top
     var alphaRemain = 1.0F
     var finalR = 0f
     var finalG = 0f
     var finalB = 0f
+    val context = currentCoroutineContext()
     while (y >= bottom && alphaRemain >= 0.1F) {
+        if (!context.isActive) return 0
         val blockTemplate = chunk.getBlock(x, y, z)
 
         if (BlockTemplates.getAirTemplate() == blockTemplate) {
@@ -151,7 +152,7 @@ fun getColumnColor(
             (((finalB * 255f).toInt()) and 0xff)
 }
 
-fun renderSatellite(
+suspend fun renderSatellite(
     canvas: Canvas,
     paint: Paint,
     cache: ChunkCache,
@@ -162,6 +163,7 @@ fun renderSatellite(
     val pos = chunk.pos
     val chunkX = pos.chunkX
     val chunkZ = pos.chunkZ
+    if (!currentCoroutineContext().isActive) return
     val dataW = cache[pos.copy(chunkX = chunkX - 1)]
     val dataN = cache[pos.copy(chunkZ = chunkZ - 1)]
     val west = dataW !== null
@@ -170,20 +172,20 @@ fun renderSatellite(
     repeat(CHUNK_DIMENSION) { z ->
         var tX: Int = left
         for (x in 0 until CHUNK_DIMENSION) {
-            val y: Int = chunk.getHeight(x, z)
+            val y: Int = chunk.getTop(x, z)
             val color = getColumnColor(
                 chunk,
                 x,
                 y,
                 z,
                 if (x == 0)
-                    (if (west) dataW.getHeight(CHUNK_DIMENSION - 1, z) else y) //chunk edge
+                    (if (west) dataW.getTop(CHUNK_DIMENSION - 1, z) else y) //chunk edge
                 else
-                    chunk.getHeight(x - 1, z),  //within chunk
+                    chunk.getTop(x - 1, z),  //within chunk
                 if (z == 0)
-                    (if (north) dataN.getHeight(x, CHUNK_DIMENSION - 1) else y) //chunk edge
+                    (if (north) dataN.getTop(x, CHUNK_DIMENSION - 1) else y) //chunk edge
                 else
-                    chunk.getHeight(x, z - 1) //within chunk
+                    chunk.getTop(x, z - 1) //within chunk
             )
             paint.setColor(color)
             canvas.drawRect(

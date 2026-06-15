@@ -33,6 +33,8 @@ value class CompoundTag(
         }
     }
 
+    inline fun <reified T : BinaryTag> getTyped(key: String): T? = this.tags[key] as? T
+
     companion object Type : TagType<CompoundTag> {
         override val typeId get() = TAG_COMPOUND
         override fun toString() = "TAG_Compound"

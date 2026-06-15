@@ -90,10 +90,10 @@ fun World.resolveSeed(context: Context?): Long {
 }
 
 fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
-    val tag = this.config.getCached(context)
-    val spawnX = tag["SpawnX"] as? NumericTag
-    val spawnY = tag["SpawnY"] as? NumericTag
-    val spawnZ = tag["SpawnZ"] as? NumericTag
+    val tags = this.config.getCached(context)
+    val spawnX = tags.getTyped<NumericTag>("SpawnX")
+    val spawnY = tags.getTyped<NumericTag>("SpawnY")
+    val spawnZ = tags.getTyped<NumericTag>("SpawnZ")
     if (spawnX !== null && spawnY !== null && spawnZ != null) {
         val x = spawnX.toInt()
         var y = spawnY.toInt()
@@ -156,10 +156,9 @@ fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
 }
 
 fun CompoundTag.extractPlayerPos(): DimensionVec3f? {
-    val dimensionId = this["DimensionId"] as? NumericTag
-    val dimension = if (dimensionId === null) 0 else dimensionId.toInt()
-    val pos = this["Pos"] as CollectionTag<*>
-    if (pos.size != 3) return null
+    val dimension = this.getTyped<NumericTag>("DimensionId")?.toInt() ?: 0
+    val pos = this["Pos"] as? CollectionTag<*>
+    if (pos === null || pos.size != 3) return null
     return DimensionVec3f(
         dimension,
         (pos.getAsTag(0) as? NumericTag ?: return null).toFloat(),

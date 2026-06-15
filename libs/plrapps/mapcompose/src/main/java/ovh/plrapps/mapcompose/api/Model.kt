@@ -67,9 +67,9 @@ sealed interface ClusterScaleThreshold {
 
 internal class LayersBuilderInternal : LayersBuilder {
     internal val layers = mutableListOf<LayerFactory>()
-    override fun addLayer(tileBitmapProvider: TileBitmapProvider, initialOpacity: Float) {
+    override fun addLayer(initialOpacity: Float, tileBitmapProvider: TileBitmapProvider) {
         val id = makeLayerId()
-        val layer = LayerFactory(id, tileBitmapProvider, initialOpacity)
+        val layer = LayerFactory(id, initialOpacity, tileBitmapProvider)
         layers.add(layer)
     }
 }

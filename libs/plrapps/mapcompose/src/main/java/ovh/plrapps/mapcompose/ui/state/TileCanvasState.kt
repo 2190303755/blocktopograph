@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.core.ColorFilterProvider
-import ovh.plrapps.mapcompose.core.LayerFactory
+import ovh.plrapps.mapcompose.core.CompliedLayers
 import ovh.plrapps.mapcompose.core.SpaceKey
 import ovh.plrapps.mapcompose.core.Tile
 import ovh.plrapps.mapcompose.core.TileCollector
@@ -26,6 +26,7 @@ import ovh.plrapps.mapcompose.core.Viewport
 import ovh.plrapps.mapcompose.core.VisibleTiles
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
 import ovh.plrapps.mapcompose.core.debounce
+import ovh.plrapps.mapcompose.core.rendererEquals
 import ovh.plrapps.mapcompose.core.spaceKey
 import ovh.plrapps.mapcompose.core.throttle
 import java.util.concurrent.Executors
@@ -56,7 +57,7 @@ internal class TileCanvasState(
     internal var tilesToRender: List<Tile> by mutableStateOf(listOf())
     private var tilesCollectedBySpace: Map<SpaceKey, Tile> = mapOf()
 
-    private val _layerFlow = MutableStateFlow<List<LayerFactory>>(listOf())
+    private val _layerFlow = MutableStateFlow(CompliedLayers(emptyArray()))
     internal val layerFlow = _layerFlow.asStateFlow()
 
     private val visibleTileLocationsChannel = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
@@ -88,8 +89,8 @@ internal class TileCanvasState(
 
     private fun renderTiles(
         visibleTiles: VisibleTiles,
-        layerIds: List<String>,
-        opacities: List<Float>
+        layerIds: Array<String>,
+        opacities: FloatArray
     ) {
         /* Right before sending tiles to the view, reorder them so that tiles from current level are
          * above others. */
@@ -98,7 +99,7 @@ internal class TileCanvasState(
 
             val priority =
                 if (it.zoom == visibleTiles.level && it.subSample == visibleTiles.subSample) 100 else 0
-            priority + if (layerIds == it.layerIds && opacities == it.opacities) 1 else 0
+            priority + if (it.rendererEquals(layerIds, opacities)) 1 else 0
         }
 
         tilesToRender = tilesToRenderCopy
@@ -147,7 +148,7 @@ internal class TileCanvasState(
         }
     }
 
-    fun setLayers(layers: List<LayerFactory>) {
+    fun setLayers(layers: CompliedLayers) {
         _layerFlow.value = layers
     }
 
@@ -180,9 +181,8 @@ internal class TileCanvasState(
 
     private fun setVisibleTiles(visibleTiles: VisibleTiles) {
         /* Feed the tile processing machinery */
-        val layerIds = _layerFlow.value.map { it.id }
-        val opacities = _layerFlow.value.map { it.alpha }
-        val visibleTilesForLayers = VisibleState(visibleTiles, layerIds, opacities)
+        val layers = _layerFlow.value
+        val visibleTilesForLayers = VisibleState(visibleTiles, layers.layerIds, layers.opacities)
         visibleStateFlow.value = visibleTilesForLayers
 
         renderThrottled()
@@ -259,16 +259,19 @@ internal class TileCanvasState(
             if (
                 lastVisible.contains(tile)
                 && !tilesCollected.contains(tile)
-                && tile.layerIds == layerIds
-                && tile.opacities == opacities
+                && tile.rendererEquals(layerIds, opacities)
             ) {
                 val tileWithSameSpace = tilesCollectedBySpace[tile.spaceKey()]
-                if (tileWithSameSpace != null && (tileWithSameSpace.layerIds != tile.layerIds || tileWithSameSpace.opacities != tile.opacities)) {
+                if (tileWithSameSpace == null || tileWithSameSpace.rendererEquals(
+                        layerIds,
+                        opacities
+                    )
+                ) {
+                    tile.prepare()
+                } else {
                     tile.overlaps = tileWithSameSpace
                     /* A tile already occupies the same space, so we don't need any fade-in */
                     tile.alpha = 1f
-                } else {
-                    tile.prepare()
                 }
                 tilesCollected.add(tile)
                 renderThrottled()
@@ -344,8 +347,8 @@ internal class TileCanvasState(
      */
     private fun evictTiles(
         visibleTiles: VisibleTiles,
-        layerIds: List<String>,
-        opacities: List<Float>,
+        layerIds: Array<String>,
+        opacities: FloatArray,
         aggressiveAttempt: Boolean = false
     ) {
         val currentLevel = visibleTiles.level
@@ -371,8 +374,8 @@ internal class TileCanvasState(
      */
     private fun partialEviction(
         visibleTiles: VisibleTiles,
-        layerIds: List<String>,
-        opacities: List<Float>
+        layerIds: Array<String>,
+        opacities: FloatArray
     ) {
         val currentLevel = visibleTiles.level
         val currentSubSample = visibleTiles.subSample
@@ -382,7 +385,7 @@ internal class TileCanvasState(
         while (iterator.hasNext()) {
             val tile = iterator.next()
 
-            if (layerIds == tile.layerIds && opacities == tile.opacities) {
+            if (tile.rendererEquals(layerIds, opacities)) {
                 val spaceHash = tile.spaceKey()
                 addedSet.add(spaceHash)
             }
@@ -410,11 +413,10 @@ internal class TileCanvasState(
         val secondPass = tilesCollected.iterator()
         while (secondPass.hasNext()) {
             val tile = secondPass.next()
-            if (layerIds != tile.layerIds || opacities != tile.opacities) {
-                val spaceHash = tile.spaceKey()
-                if (addedSet.contains(spaceHash)) {
-                    secondPass.remove()
-                }
+            if (tile.rendererEquals(layerIds, opacities)) continue
+            val spaceHash = tile.spaceKey()
+            if (addedSet.contains(spaceHash)) {
+                secondPass.remove()
             }
         }
     }
@@ -427,8 +429,8 @@ internal class TileCanvasState(
     private fun aggressiveEviction(
         currentLevel: Int,
         currentSubSample: Int,
-        layerIds: List<String>,
-        opacities: List<Float>
+        layerIds: Array<String>,
+        opacities: FloatArray
     ) {
         val iterator = tilesCollected.iterator()
         while (iterator.hasNext()) {
@@ -438,7 +440,7 @@ internal class TileCanvasState(
             if (
                 tile.zoom == currentLevel
                 && tile.subSample == currentSubSample
-                && (tile.layerIds != layerIds || tile.opacities != opacities)
+                && !tile.rendererEquals(layerIds, opacities)
             ) {
                 iterator.remove()
                 tile.recycle()
@@ -488,7 +490,23 @@ internal class TileCanvasState(
 
     private data class VisibleState(
         val visibleTiles: VisibleTiles,
-        val layerIds: List<String>,
-        val opacities: List<Float>
-    )
+        val layerIds: Array<String>,
+        val opacities: FloatArray
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as VisibleState
+            return visibleTiles == other.visibleTiles
+                    && layerIds.contentEquals(other.layerIds)
+                    && opacities.contentEquals(other.opacities)
+        }
+
+        override fun hashCode(): Int {
+            var result = visibleTiles.hashCode()
+            result = 31 * result + layerIds.contentHashCode()
+            result = 31 * result + opacities.contentHashCode()
+            return result
+        }
+    }
 }

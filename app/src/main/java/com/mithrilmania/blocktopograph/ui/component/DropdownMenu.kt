@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -199,6 +200,7 @@ fun <T> DropdownMenuField(
         OutlinedTextField(
             value = namer(selected),
             onValueChange = {},
+            shape = OutlinedTextFieldDefaults.roundedShape,
             enabled = enabled,
             readOnly = true,
             maxLines = 1,

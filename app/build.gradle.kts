@@ -51,7 +51,7 @@ dependencies {
     val paging = "3.5.0"
     implementation(platform("androidx.compose:compose-bom:$composeBoM"))
     implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.compose.material3:material3:1.5.0-alpha20")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha21")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -76,7 +76,7 @@ dependencies {
     implementation("com.hivemc.leveldb:leveldb-api:1.0.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
-    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")

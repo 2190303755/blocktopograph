@@ -154,7 +154,3 @@ inline fun <T> List<T>.getHomogenousTypeId(typeId: (T) -> Byte): Byte {
     }
     return first
 }
-
-fun BinaryTag?.getAsNumericTagOrElse(fallback: Int): Int {
-    return (this as? NumericTag ?: return fallback).toInt()
-}

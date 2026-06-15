@@ -16,12 +16,11 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.select
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-
 
 /**
  * The engine of MapCompose. The view-model uses two channels to communicate with the [TileCollector]:
@@ -53,8 +52,8 @@ import java.util.concurrent.TimeUnit
 internal class TileCollector(
     private val workerCount: Int
 ) {
-    @Volatile
-    var isIdle: Boolean = true
+    private val specsBeingProcessed = ConcurrentHashMap<TileSpec, Unit>()
+    val isIdle: Boolean get() = specsBeingProcessed.isEmpty()
 
     /**
      * Sets up the tile collector machinery. The architecture is inspired from
@@ -69,42 +68,47 @@ internal class TileCollector(
     suspend fun collectTiles(
         tileSpecs: ReceiveChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: List<LayerFactory>,
+        layers: CompliedLayers,
     ) = coroutineScope {
         val tilesToDownload = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
-        val tilesDownloadedFromWorker = Channel<TileSpec>(capacity = 1)
-
         repeat(workerCount) {
             worker(
                 tilesToDownload = tilesToDownload,
-                tilesDownloaded = tilesDownloadedFromWorker,
                 tilesOutput = tilesOutput,
                 layers = layers
             )
         }
-        tileCollectorKernel(tileSpecs, tilesToDownload, tilesDownloadedFromWorker)
+        tileCollectorKernel(tileSpecs, tilesToDownload)
     }
 
     private fun CoroutineScope.worker(
         tilesToDownload: ReceiveChannel<TileSpec>,
-        tilesDownloaded: SendChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: List<LayerFactory>,
+        layers: CompliedLayers,
     ) = launch(dispatcher) {
 
-        val layerIds = layers.map { it.id }
+        val factories = layers.factories
         val canUseHardwareBitmaps = canUseHardwareBitmaps()
 
         val canvas = Canvas()
         val paint = Paint(Paint.FILTER_BITMAP_FLAG)
 
         for (spec in tilesToDownload) {
-            if (layers.isEmpty()) {
-                tilesDownloaded.send(spec)
+            if (factories.isEmpty()) {
+                specsBeingProcessed.remove(spec)
                 continue
             }
 
-            val resolvedLayers = layers.map { layer ->
+            val tile = Tile(
+                spec.zoom,
+                spec.row,
+                spec.col,
+                spec.subSample,
+                layers.layerIds,
+                layers.opacities
+            )
+
+            val resolvedLayers = factories.map { layer ->
                 async {
                     ResolvedLayer(
                         layer.tileBitmapProvider.getTileBitmap(spec.row, spec.col, spec.zoom),
@@ -113,26 +117,18 @@ internal class TileCollector(
                 }
             }.awaitAll()
 
-            val primaryLayerBitmap = resolvedLayers.firstOrNull()?.bitmap ?: run {
-                tilesDownloaded.send(spec)
+            val primaryLayerBitmap = resolvedLayers.firstOrNull()?.bitmap
+            if (primaryLayerBitmap === null) {
+                specsBeingProcessed.remove(spec)
                 /* When the decoding failed or if there's nothing to decode, then send back the Tile
                  * just as in normal processing, so that the actor which submits tiles specs to the
                  * collector knows that this tile has been processed and does not immediately
                  * re-sends the same spec. */
-                tilesOutput.send(
-                    Tile(
-                        spec.zoom,
-                        spec.row,
-                        spec.col,
-                        spec.subSample,
-                        layerIds,
-                        layers.map { it.alpha }
-                    )
-                )
-                null
-            } ?: continue // If the decoding of the first layer failed, skip the rest
+                tilesOutput.send(tile)
+                continue // If the decoding of the first layer failed, skip the rest
+            }
 
-            if (layers.size > 1) {
+            if (factories.size > 1) {
                 canvas.setBitmap(primaryLayerBitmap)
 
                 for (result in resolvedLayers.drop(1)) {
@@ -141,52 +137,26 @@ internal class TileCollector(
                     canvas.drawBitmap(result.bitmap, 0f, 0f, paint)
                 }
             }
-
-            val resultBitmap = if (canUseHardwareBitmaps) {
+            tile.bitmap = if (canUseHardwareBitmaps) {
                 primaryLayerBitmap.copy(Config.HARDWARE, false)
             } else primaryLayerBitmap
 
-            val tile = Tile(
-                spec.zoom,
-                spec.row,
-                spec.col,
-                spec.subSample,
-                layerIds,
-                layers.map { it.alpha }
-            ).apply {
-                this.bitmap = resultBitmap
-            }
             tilesOutput.send(tile)
-            tilesDownloaded.send(spec)
+            specsBeingProcessed.remove(spec)
         }
     }
 
     private fun CoroutineScope.tileCollectorKernel(
         tileSpecs: ReceiveChannel<TileSpec>,
-        tilesToDownload: SendChannel<TileSpec>,
-        tilesDownloadedFromWorker: ReceiveChannel<TileSpec>,
+        tilesToDownload: SendChannel<TileSpec>
     ) = launch(Dispatchers.Default) {
-
-        val specsBeingProcessed = mutableListOf<TileSpec>()
-
-        while (true) {
-            select {
-                tilesDownloadedFromWorker.onReceive {
-                    specsBeingProcessed.remove(it)
-                    isIdle = specsBeingProcessed.isEmpty()
-                }
-                tileSpecs.onReceive {
-                    if (it !in specsBeingProcessed) {
-                        /* Add it to the list of specs being processed */
-                        specsBeingProcessed.add(it)
-                        isIdle = false
-
-                        /* Now download the tile */
-                        tilesToDownload.send(it)
-                    }
-                }
+        specsBeingProcessed.clear()
+        for (spec in tileSpecs) {
+            if (specsBeingProcessed.putIfAbsent(spec, Unit) === null) {
+                tilesToDownload.send(spec)
             }
         }
+        tilesToDownload.close()
     }
 
     /**

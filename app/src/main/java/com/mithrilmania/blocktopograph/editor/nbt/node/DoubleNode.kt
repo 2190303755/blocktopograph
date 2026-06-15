@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +69,7 @@ class DoubleNode(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
+            shape = OutlinedTextFieldDefaults.roundedShape,
             lineLimits = TextFieldLineLimits.SingleLine,
             isError = isError,
             supportingText = {

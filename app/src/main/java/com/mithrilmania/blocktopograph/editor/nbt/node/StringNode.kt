@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +53,7 @@ class StringNode(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
+            shape = OutlinedTextFieldDefaults.roundedShape,
             trailingIcon = {
                 IconButton(Icons.Filled.Check) {
                     editor.performOperation(
