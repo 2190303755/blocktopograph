@@ -21,6 +21,8 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.registry.Registry
 import com.mithrilmania.blocktopograph.util.APP_TAG
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3i
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.VANILLA_DIMENSIONS
 import com.mithrilmania.blocktopograph.world.VanillaDimension
@@ -34,6 +36,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ovh.plrapps.mapcompose.api.setCamera
 import ovh.plrapps.mapcompose.ui.state.MapState
 import java.io.IOException
 
@@ -55,10 +58,13 @@ sealed interface InitState {
     class Succeed(
         @JvmField val world: World,
         @JvmField val storage: WorldStorage,
-        @JvmField val dimensions: Int2ObjectMap<out Dimension> = VANILLA_DIMENSIONS,
-        @JvmField val heightBounds: Long2IntMap = Long2IntMaps.EMPTY_MAP,
-        @JvmField val blocks: Registry<BlockTemplate> = Registry()
+        @JvmField var spawnPos: DimensionVec3i, // TODO: marker
+        @JvmField val dimensions: Int2ObjectMap<out Dimension>,
+        @JvmField val heightBounds: Long2IntMap,
+        @JvmField var localPlayer: DimensionVec3f? // TODO: marker
     ) : InitState {
+        @JvmField
+        val blocks: Registry<BlockTemplate> = Registry()
         @JvmField
         val chunks = ChunkCache(this.storage, this.heightBounds, this.blocks)
 
@@ -114,6 +120,44 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
                 customIcons.value = icons
             }
         }
+    }
+
+    fun loadWorld(
+        world: World,
+        storage: WorldStorage,
+        spawnPos: DimensionVec3i, // TODO: marker
+        dimensions: Int2ObjectMap<out Dimension> = VANILLA_DIMENSIONS,
+        heightBounds: Long2IntMap = Long2IntMaps.EMPTY_MAP,
+        localPlayer: DimensionVec3f? = null, // TODO: marker
+    ) {
+        // TODO: register markers
+        if (localPlayer === null) {
+            val dimension = dimensions[spawnPos.dimensionId]
+            if (dimension !== null) {
+                this.dimension = dimension
+                this.map.setCamera(
+                    spawnPos.x.toDouble() * RENDER_SCALE,
+                    spawnPos.z.toDouble() * RENDER_SCALE
+                )
+            }
+        } else {
+            val dimension = dimensions[localPlayer.dimensionId]
+            if (dimension !== null) {
+                this.dimension = dimension
+                this.map.setCamera(
+                    localPlayer.x.toDouble() * RENDER_SCALE,
+                    localPlayer.z.toDouble() * RENDER_SCALE
+                )
+            }
+        }
+        this.initialization = InitState.Succeed(
+            world,
+            storage,
+            spawnPos,
+            dimensions,
+            heightBounds,
+            localPlayer
+        )
     }
 
     override fun onCleared() {

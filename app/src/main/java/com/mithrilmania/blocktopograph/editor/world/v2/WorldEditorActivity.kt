@@ -76,13 +76,15 @@ import com.mithrilmania.blocktopograph.ui.component.Marker
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
-import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3i
 import com.mithrilmania.blocktopograph.util.upcoming
+import com.mithrilmania.blocktopograph.world.GlobalKey
 import com.mithrilmania.blocktopograph.world.HeightRange
+import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.buildDimensionRegistry
 import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
 import com.mithrilmania.blocktopograph.world.extractPlayerPos
-import com.mithrilmania.blocktopograph.world.resolveSpawnPoint
+import com.mithrilmania.blocktopograph.world.get
 import com.mithrilmania.blocktopograph.world.resolveWorld
 import it.unimi.dsi.fastutil.longs.Long2IntMaps
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
@@ -96,7 +98,6 @@ import ovh.plrapps.mapcompose.api.addLayer
 import ovh.plrapps.mapcompose.api.addMarker
 import ovh.plrapps.mapcompose.api.reloadTiles
 import ovh.plrapps.mapcompose.api.removeAllLayers
-import ovh.plrapps.mapcompose.api.scrollTo
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
 
@@ -152,17 +153,47 @@ class WorldEditorActivity : ComponentActivity() {
                         ranges
                     }
                 }
-                viewModel.initialization = InitState.Succeed(
+                val spawnPos = async(Dispatchers.IO) {
+                    val root = world.config.getCached(viewModel.application)
+                    DimensionVec3i(
+                        VanillaDimension.OVERWORLD.runtimeId,
+                        root.getTyped<NumericTag>("SpawnX")?.toInt() ?: 0,
+                        root.getTyped<NumericTag>("SpawnY")?.toInt()
+                            ?: 0, // 32767 is not the fallback
+                        root.getTyped<NumericTag>("SpawnZ")?.toInt() ?: 0
+                    )
+                }
+                val localPlayer = async(Dispatchers.IO) {
+                    try {
+                        val bytes: ByteArray? = storage.db[GlobalKey.LOCAL_PLAYER]
+                        val player: BinaryTag? = if (bytes === null) {
+                            world.config.getCached(viewModel.application)["Player"]
+                        } else {
+                            BedrockNBTInput(ByteArrayInputStream(bytes)).readNamedTag().second
+                        }
+                        if (player is CompoundTag) {
+                            player.extractPlayerPos()
+                        } else {
+                            LogUtil.d(this, "No local player. A server world?")
+                            null
+                        }
+                    } catch (e: Exception) {
+                        LogUtil.d(this, e)
+                        null
+                    }
+                }
+                viewModel.loadWorld(
                     world,
                     storage,
+                    spawnPos.await(),
                     dimensions.await(),
-                    heightBounds.await()
+                    heightBounds.await(),
+                    localPlayer.await()
                 )
             }
         }
         this.setThemedContent {
             WorldEditorScaffold(viewModel) { info ->
-                val coroutineScope = rememberCoroutineScope()
                 LaunchedEffect(viewModel.dimension) {
                     viewModel.map.reloadTiles()
                 }
@@ -239,94 +270,37 @@ class WorldEditorActivity : ComponentActivity() {
 
                             bitmap
                         }
-                        var framedToPlayer = false
-                        try {
-                            val playerPos: DimensionVec3f? = try {
-                                val data: ByteArray? =
-                                    info.storage.db.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
-                                val player: BinaryTag? = if (data === null) {
-                                    info.world.config.getCached(this@WorldEditorActivity)["Player"]
-                                } else {
-                                    BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
-                                }
-                                if (player is CompoundTag) {
-                                    player.extractPlayerPos()
-                                } else {
-                                    LogUtil.d(this, "No local player. A server world?")
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                LogUtil.d(this, e)
-                                null
-                            }
-                            if (playerPos !== null) {
-                                val dimension = info.dimensions[playerPos.dimensionId]
-                                if (dimension !== null) {
-                                    val x: Float = playerPos.x
-                                    val y: Float = playerPos.y
-                                    val z: Float = playerPos.z
-                                    LogUtil.d(
-                                        this,
-                                        "Placed player marker at: $x;$y;$z [${dimension.identifier}]"
-                                    )
-                                    viewModel.map.addMarker(
-                                        "builtin:local_player",
-                                        x.toDouble() * RENDER_SCALE,
-                                        z.toDouble() * RENDER_SCALE
-                                    ) {
-                                        Marker(
-                                            viewModel.entityIcons.value,
-                                            IntOffset(112, 0),
-                                            IntSize(16, 16),
-                                            Modifier.size(16.dp)
-                                        )
-                                    }
-                                    if (dimension != viewModel.dimension) {
-                                        viewModel.dimension = dimension
-                                        //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
-                                    }
-                                    coroutineScope.launch {
-                                        viewModel.map.scrollTo(
-                                            x.toDouble() * RENDER_SCALE,
-                                            z.toDouble() * RENDER_SCALE
-                                        )
-                                    }
-                                    framedToPlayer = true
-                                }
-                            }
-                        } catch (e: Exception) {
-                            LogUtil.d(this, "Failed to place player marker.", e)
-                        }
 
-                        try {
-                            val spawnPos = info.world.resolveSpawnPoint(this@WorldEditorActivity)
+                        // TODO: auto create markers
+
+                        info.localPlayer?.let {
                             viewModel.map.addMarker(
-                                "builtin:spawn_point",
-                                spawnPos.x.toDouble() * RENDER_SCALE,
-                                spawnPos.z.toDouble() * RENDER_SCALE
+                                "builtin:local_player",
+                                it.x.toDouble() * RENDER_SCALE,
+                                it.z.toDouble() * RENDER_SCALE
                             ) {
-                                val spec = CustomIcon.SPAWN_MARKER.sprite
                                 Marker(
-                                    viewModel.customIcons.value,
-                                    IntOffset(spec.left, spec.top),
-                                    IntSize(spec.width, spec.height),
+                                    viewModel.entityIcons.value,
+                                    IntOffset(112, 0),
+                                    IntSize(16, 16),
                                     Modifier.size(16.dp)
                                 )
                             }
-                            if (!framedToPlayer) {
-                                if (spawnPos.dimension != viewModel.dimension) {
-                                    viewModel.dimension = spawnPos.dimension
-                                    //model.mapType.setValue(localPlayerMarker.dimension.defaultMapType)
-                                }
-                                coroutineScope.launch {
-                                    viewModel.map.scrollTo(
-                                        spawnPos.x.toDouble() * RENDER_SCALE,
-                                        spawnPos.z.toDouble() * RENDER_SCALE
-                                    )
-                                }
-                            }
-                        } catch (e: Exception) {
-                            LogUtil.d(this, "Failed to place spawn pos marker.", e)
+                        }
+
+                        val spawnPos = info.spawnPos
+                        viewModel.map.addMarker(
+                            "builtin:spawn_point",
+                            spawnPos.x.toDouble() * RENDER_SCALE,
+                            spawnPos.z.toDouble() * RENDER_SCALE
+                        ) {
+                            val spec = CustomIcon.SPAWN_MARKER.sprite
+                            Marker(
+                                viewModel.customIcons.value,
+                                IntOffset(spec.left, spec.top),
+                                IntSize(spec.width, spec.height),
+                                Modifier.size(16.dp)
+                            )
                         }
                     }
                     onDispose {

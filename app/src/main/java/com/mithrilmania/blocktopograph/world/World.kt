@@ -86,7 +86,7 @@ suspend inline fun <T> Deferred<WorldStorage?>.await(
 }?.let(action)
 
 fun World.resolveSeed(context: Context?): Long {
-    return (this.config.getCached(context)[KEY_RANDOM_SEED] as? NumericTag)?.toLong() ?: 0
+    return this.config.getCached(context).getTyped<NumericTag>(KEY_RANDOM_SEED)?.toLong() ?: 0L
 }
 
 fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
@@ -94,7 +94,7 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
     val spawnX = tags.getTyped<NumericTag>("SpawnX")
     val spawnY = tags.getTyped<NumericTag>("SpawnY")
     val spawnZ = tags.getTyped<NumericTag>("SpawnZ")
-    if (spawnX !== null && spawnY !== null && spawnZ != null) {
+    if (spawnX !== null && spawnY !== null && spawnZ !== null) {
         val x = spawnX.toInt()
         var y = spawnY.toInt()
         val z = spawnZ.toInt()
@@ -106,7 +106,7 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
         }
         return DimensionVector3(x, y, z, VanillaDimension.OVERWORLD)
     }
-    throw ClassCastException("Could not find spawn")
+    throw NullPointerException("Could not find spawn")
 }
 
 
@@ -157,7 +157,7 @@ fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
 
 fun CompoundTag.extractPlayerPos(): DimensionVec3f? {
     val dimension = this.getTyped<NumericTag>("DimensionId")?.toInt() ?: 0
-    val pos = this["Pos"] as? CollectionTag<*>
+    val pos = this.getTyped<CollectionTag<*>>("Pos")
     if (pos === null || pos.size != 3) return null
     return DimensionVec3f(
         dimension,

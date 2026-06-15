@@ -8,6 +8,7 @@ import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
+import com.mithrilmania.blocktopograph.nbt.PrimitiveTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput
@@ -27,24 +28,19 @@ fun BedrockNBTInput.readBlockFormV1d2d13TerrainSubChunk(): Block {
     if (block !is CompoundTag) {
         throw ClassCastException()
     }
-    val name = requireNotNull(block[BlockStorage.PALETTE_KEY_NAME] as? StringTag).value
+    val name = requireNotNull(block.getTyped<StringTag>(BlockStorage.PALETTE_KEY_NAME)).value
     val type = BlockType.get(name)
     val builder = if (type === null) Block.Builder(name) else Block.Builder(type)
-    (block[BlockStorage.PALETTE_KEY_STATES] as? CompoundTag)?.let {
+    block.getTyped<CompoundTag>(BlockStorage.PALETTE_KEY_STATES)?.let {
         it.forEach { (key, tag) ->
             builder.setProperty(key, tag)
         }
     }
-    block[BlockStorage.PALETTE_KEY_VERSION]?.let {
-        when (it) {
-            is NumericTag -> it.toNumber().toString()
-            is StringTag -> it.toString()
-            else -> null
-        }?.let { value ->
-            if (!V1d2d13TerrainSubChunk.VERSIONS.contains(value)) {
-                LogUtil.d(BlockStorage::class.java, "fuckfuckversion:$value") // sic
-                V1d2d13TerrainSubChunk.VERSIONS.add(value)
-            }
+    block.getTyped<PrimitiveTag>(BlockStorage.PALETTE_KEY_VERSION)?.let {
+        val version = it.toString()
+        if (!V1d2d13TerrainSubChunk.VERSIONS.contains(version)) {
+            LogUtil.d(BlockStorage::class.java, "fuckfuckversion:$version") // sic
+            V1d2d13TerrainSubChunk.VERSIONS.add(version)
         }
     }
     return builder.build()

@@ -12,6 +12,7 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.ListTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
+import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
@@ -68,11 +69,11 @@ fun InputStream.extractDetail(
                     putSimpleFilter(LongTag.Type, KEY_LAST_PLAYED_TIME, KEY_RANDOM_SEED)
                     putSimpleFilter(ListTag.Type, KEY_LAST_PLAYED_VERSION)
                 }.read(input)
-                (compound[KEY_LEVEL_NAME] as? StringTag)?.let {
+                compound.getTyped<StringTag>(KEY_LEVEL_NAME)?.let {
                     name = it.value
                 }
-                (compound[KEY_GAME_MODE] as? IntTag)?.let {
-                    mode = when (it.value) {
+                compound.getTyped<NumericTag>(KEY_GAME_MODE)?.let {
+                    mode = when (it.toInt()) {
                         0 -> context.getString(R.string.game_mode_survival)
                         1 -> context.getString(R.string.game_mode_creative)
                         2 -> context.getString(R.string.game_mode_adventure)
@@ -80,13 +81,13 @@ fun InputStream.extractDetail(
                         else -> context.getString(R.string.game_mode_unknown, it.toString())
                     }
                 }
-                (compound[KEY_LAST_PLAYED_TIME] as? LongTag)?.let {
+                compound.getTyped<NumericTag>(KEY_LAST_PLAYED_TIME)?.let {
                     time = it.toLong() * 1000L
                 }
-                (compound[KEY_RANDOM_SEED] as? LongTag)?.let {
+                compound.getTyped<NumericTag>(KEY_RANDOM_SEED)?.let {
                     seed = it.toLong().toString()
                 }
-                (compound[KEY_LAST_PLAYED_VERSION] as? ListTag)?.let {
+                compound.getTyped<ListTag>(KEY_LAST_PLAYED_VERSION)?.let {
                     version = it.joinToString(separator = ".")
                 }
             }

@@ -50,15 +50,10 @@ val MapState.camera: Camera
 
 /**
  * Set the [camera] - the position of the center of the visible viewport. This is a
- * suspending call because it's required to wait the first composition. Otherwise, it's invoked
- * immediately.
+ * It's invoked immediately as absolute coordinates do not rely on layout size.
  */
-suspend fun MapState.setCamera(x: Double, y: Double) {
-    with(zoomPanState) {
-        awaitLayout()
-
-        setCamera(x, y)
-    }
+fun MapState.setCamera(x: Double, y: Double) {
+    zoomPanState.setCamera(x, y)
 }
 
 fun MapState.referentialSnapshotFlow(): Flow<ReferentialSnapshot> = snapshotFlow {
