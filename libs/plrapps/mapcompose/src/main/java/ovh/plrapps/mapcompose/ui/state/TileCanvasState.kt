@@ -20,12 +20,13 @@ import ovh.plrapps.mapcompose.core.CompliedLayers
 import ovh.plrapps.mapcompose.core.SpaceKey
 import ovh.plrapps.mapcompose.core.Tile
 import ovh.plrapps.mapcompose.core.TileCollector
-import ovh.plrapps.mapcompose.core.TileMatrix
 import ovh.plrapps.mapcompose.core.TileSpec
 import ovh.plrapps.mapcompose.core.Viewport
 import ovh.plrapps.mapcompose.core.VisibleTiles
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
+import ovh.plrapps.mapcompose.core.contains
 import ovh.plrapps.mapcompose.core.debounce
+import ovh.plrapps.mapcompose.core.intersects
 import ovh.plrapps.mapcompose.core.rendererEquals
 import ovh.plrapps.mapcompose.core.spaceKey
 import ovh.plrapps.mapcompose.core.throttle
@@ -203,22 +204,18 @@ internal class TileCanvasState(
     private suspend fun collectNewTiles() {
         visibleStateFlow.collectLatest { visibleState ->
             if (visibleState != null) {
-                sendSpecsForTileMatrix(
-                    visibleState,
-                    visibleState.visibleTiles.tileMatrix
-                )
+                sendSpecsForTileMatrix(visibleState)
             }
         }
     }
 
     private suspend fun sendSpecsForTileMatrix(
-        visibleState: VisibleState,
-        tileMatrix: TileMatrix
+        visibleState: VisibleState
     ) {
         val visibleTiles = visibleState.visibleTiles
-        val left = tileMatrix.left
-        val right = tileMatrix.right
-        for (row in tileMatrix.top..tileMatrix.bottom) {
+        val left = visibleTiles.left
+        val right = visibleTiles.right
+        for (row in visibleTiles.top..visibleTiles.bottom) {
             for (col in left..right) {
                 val tile = Tile(
                     zoom = visibleTiles.level,
@@ -291,42 +288,6 @@ internal class TileCanvasState(
      */
     private fun Tile.prepare() {
         alpha = alphaTick
-    }
-
-    private fun VisibleTiles.contains(tile: Tile): Boolean {
-        return level == tile.zoom && subSample == tile.subSample
-                && this.tileMatrix.contains(tile.row, tile.col)
-    }
-
-    private fun VisibleTiles.intersects(tile: Tile): Boolean {
-        val tileMatrix = this.tileMatrix
-        return if (level == tile.zoom) {
-            tileMatrix.contains(tile.row, tile.col)
-        } else {
-            val curMinRow = tileMatrix.top
-            val curMaxRow = tileMatrix.bottom
-            val curMinCol = tileMatrix.left
-            val curMaxCol = tileMatrix.right
-
-            if (tile.zoom > level) { // User is zooming out
-                val dLevel = tile.zoom - level
-                val minRowAtLvl = curMinRow.minAtGreaterLevel(dLevel)
-                val maxRowAtLvl = curMaxRow.maxAtGreaterLevel(dLevel)
-
-                val minColAtLvl = curMinCol.minAtGreaterLevel(dLevel)
-                val maxColAtLvl = curMaxCol.maxAtGreaterLevel(dLevel)
-                tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
-            } else { // User is zooming in
-                val dLevel = level - tile.zoom
-                val minRowAtLvl = tile.row.minAtGreaterLevel(dLevel)
-                val maxRowAtLvl = tile.row.maxAtGreaterLevel(dLevel)
-
-                val minColAtLvl = tile.col.minAtGreaterLevel(dLevel)
-                val maxColAtLvl = tile.col.maxAtGreaterLevel(dLevel)
-                curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
-                        minRowAtLvl <= curMaxRow
-            }
-        }
     }
 
     private fun updateTileCollectedBySpace() {
@@ -472,14 +433,6 @@ internal class TileCanvasState(
             recycleChannel.trySend(this)
         }
         alpha = 0f
-    }
-
-    private fun Int.minAtGreaterLevel(n: Int): Int {
-        return this shl n
-    }
-
-    private fun Int.maxAtGreaterLevel(n: Int): Int {
-        return ((this + 1) shl n) - 1
     }
 
     private data class VisibleState(
