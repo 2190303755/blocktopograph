@@ -30,7 +30,6 @@ import ovh.plrapps.mapcompose.core.rendererEquals
 import ovh.plrapps.mapcompose.core.spaceKey
 import ovh.plrapps.mapcompose.core.throttle
 import java.util.concurrent.Executors
-import kotlin.math.pow
 
 /**
  * This class contains all the logic related to [Tile] management.
@@ -217,10 +216,10 @@ internal class TileCanvasState(
         tileMatrix: TileMatrix
     ) {
         val visibleTiles = visibleState.visibleTiles
-        for (e in tileMatrix) {
-            val row = e.key
-            val colRange = e.value
-            for (col in colRange) {
+        val left = tileMatrix.left
+        val right = tileMatrix.right
+        for (row in tileMatrix.top..tileMatrix.bottom) {
+            for (col in left..right) {
                 val tile = Tile(
                     zoom = visibleTiles.level,
                     row = row,
@@ -295,44 +294,39 @@ internal class TileCanvasState(
     }
 
     private fun VisibleTiles.contains(tile: Tile): Boolean {
-        if (level != tile.zoom) return false
-        val colRange = tileMatrix[tile.row] ?: return false
-        return subSample == tile.subSample && tile.col in colRange
+        return level == tile.zoom && subSample == tile.subSample
+                && this.tileMatrix.contains(tile.row, tile.col)
     }
 
     private fun VisibleTiles.intersects(tile: Tile): Boolean {
-        fun checkIntersection(tileMatrix: TileMatrix, tile: Tile): Boolean {
-            return if (level == tile.zoom) {
-                val colRange = tileMatrix[tile.row] ?: return false
-                tile.col in colRange
-            } else {
-                val curMinRow = tileMatrix.keys.minOrNull() ?: return false
-                val curMaxRow = tileMatrix.keys.maxOrNull() ?: return false
-                val curMinCol = tileMatrix.entries.firstOrNull()?.value?.first ?: return false
-                val curMaxCol = tileMatrix.entries.firstOrNull()?.value?.last ?: return false
+        val tileMatrix = this.tileMatrix
+        return if (level == tile.zoom) {
+            tileMatrix.contains(tile.row, tile.col)
+        } else {
+            val curMinRow = tileMatrix.top
+            val curMaxRow = tileMatrix.bottom
+            val curMinCol = tileMatrix.left
+            val curMaxCol = tileMatrix.right
 
-                if (tile.zoom > level) { // User is zooming out
-                    val dLevel = tile.zoom - level
-                    val minRowAtLvl = curMinRow.minAtGreaterLevel(dLevel)
-                    val maxRowAtLvl = curMaxRow.maxAtGreaterLevel(dLevel)
+            if (tile.zoom > level) { // User is zooming out
+                val dLevel = tile.zoom - level
+                val minRowAtLvl = curMinRow.minAtGreaterLevel(dLevel)
+                val maxRowAtLvl = curMaxRow.maxAtGreaterLevel(dLevel)
 
-                    val minColAtLvl = curMinCol.minAtGreaterLevel(dLevel)
-                    val maxColAtLvl = curMaxCol.maxAtGreaterLevel(dLevel)
-                    tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
-                } else { // User is zooming in
-                    val dLevel = level - tile.zoom
-                    val minRowAtLvl = tile.row.minAtGreaterLevel(dLevel)
-                    val maxRowAtLvl = tile.row.maxAtGreaterLevel(dLevel)
+                val minColAtLvl = curMinCol.minAtGreaterLevel(dLevel)
+                val maxColAtLvl = curMaxCol.maxAtGreaterLevel(dLevel)
+                tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
+            } else { // User is zooming in
+                val dLevel = level - tile.zoom
+                val minRowAtLvl = tile.row.minAtGreaterLevel(dLevel)
+                val maxRowAtLvl = tile.row.maxAtGreaterLevel(dLevel)
 
-                    val minColAtLvl = tile.col.minAtGreaterLevel(dLevel)
-                    val maxColAtLvl = tile.col.maxAtGreaterLevel(dLevel)
-                    curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
-                            minRowAtLvl <= curMaxRow
-                }
+                val minColAtLvl = tile.col.minAtGreaterLevel(dLevel)
+                val maxColAtLvl = tile.col.maxAtGreaterLevel(dLevel)
+                curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
+                        minRowAtLvl <= curMaxRow
             }
         }
-
-        return checkIntersection(tileMatrix, tile)
     }
 
     private fun updateTileCollectedBySpace() {
@@ -481,11 +475,11 @@ internal class TileCanvasState(
     }
 
     private fun Int.minAtGreaterLevel(n: Int): Int {
-        return this * 2.0.pow(n).toInt()
+        return this shl n
     }
 
     private fun Int.maxAtGreaterLevel(n: Int): Int {
-        return (this + 1) * 2.0.pow(n).toInt() - 1
+        return ((this + 1) shl n) - 1
     }
 
     private data class VisibleState(

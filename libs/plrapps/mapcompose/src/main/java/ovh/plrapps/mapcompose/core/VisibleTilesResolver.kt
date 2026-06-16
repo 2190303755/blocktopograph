@@ -82,11 +82,12 @@ internal class VisibleTilesResolver(
         val rowTop = floor(viewport.top / scaledTileSize).toInt()
         val colRight = (ceil(viewport.right / scaledTileSize).toInt() - 1)
         val rowBottom = (ceil(viewport.bottom / scaledTileSize).toInt() - 1)
-        val tileMatrix = (rowTop..rowBottom).associateWith {
-            colLeft..colRight
-        }
 
-        return VisibleTiles(level, tileMatrix, getSubSample(scale))
+        return VisibleTiles(
+            level,
+            TileMatrix(colLeft, rowTop, colRight, rowBottom),
+            getSubSample(scale)
+        )
     }
 
     // internal for test purposes
@@ -104,12 +105,16 @@ internal class VisibleTilesResolver(
     }
 }
 
-
-internal typealias Row = Int
-internal typealias ColRange = IntRange
-
-/* Contains all (row, col) indexes, grouped by rows*/
-internal typealias TileMatrix = Map<Row, ColRange>
+internal data class TileMatrix(
+    @JvmField val left: Int,
+    @JvmField val top: Int,
+    @JvmField val right: Int,
+    @JvmField val bottom: Int,
+) {
+    fun contains(row: Int, column: Int): Boolean {
+        return row in (this.top..this.bottom) && column in (this.left..this.right)
+    }
+}
 
 /**
  * Properties container for the computed visible tiles.
