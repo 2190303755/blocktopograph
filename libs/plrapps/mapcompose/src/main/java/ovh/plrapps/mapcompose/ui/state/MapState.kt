@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,7 +70,6 @@ class MapState(
     internal var touchDownCb: (() -> Unit)? = null
     internal var tapCb: LayoutTapCb? = null
     internal var longPressCb: LayoutTapCb? = null
-    internal var mapBackground by mutableStateOf(Color.Transparent)
     internal var isFilteringBitmap: () -> Boolean by mutableStateOf(
         { initialValues.isFilteringBitmap(this) }
     )

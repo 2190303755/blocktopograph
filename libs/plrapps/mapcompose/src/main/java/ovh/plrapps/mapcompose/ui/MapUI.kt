@@ -1,10 +1,8 @@
 package ovh.plrapps.mapcompose.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.zIndex
 import ovh.plrapps.mapcompose.ui.layout.ZoomPan
 import ovh.plrapps.mapcompose.ui.markers.MarkerComposer
@@ -24,9 +22,7 @@ fun MapUI(
 
     key(state) {
         ZoomPan(
-            modifier = modifier
-                .clipToBounds()
-                .background(state.mapBackground),
+            modifier = modifier, // if someone wants to clip or change the background, just pass modifier
             gestureListener = zoomPanState,
             layoutSizeChangeListener = zoomPanState,
         ) {
