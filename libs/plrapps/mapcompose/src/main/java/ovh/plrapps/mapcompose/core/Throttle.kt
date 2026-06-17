@@ -4,8 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
 
 /**
  * Limit the rate at which a [block] is called.
@@ -15,12 +15,11 @@ import kotlinx.coroutines.launch
  *
  * @author P.Laurence
  */
-fun CoroutineScope.throttle(wait: Long, block: suspend () -> Unit): SendChannel<Unit> {
-    val channel = Channel<Unit>(capacity = Channel.CONFLATED)
-    val flow = channel.receiveAsFlow()
 
+fun CoroutineScope.throttle(wait: Duration, block: suspend () -> Unit): SendChannel<Unit> {
+    val channel = Channel<Unit>(capacity = Channel.CONFLATED)
     launch {
-        flow.collect {
+        for (it in channel) {
             block()
             delay(wait)
         }

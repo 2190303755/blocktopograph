@@ -17,8 +17,7 @@ internal data class Tile(
     val row: Int,
     val col: Int,
     val subSample: Int,
-    val layerIds: Array<String>,
-    val opacities: FloatArray
+    val layerId: String
 ) {
     @Volatile
     var bitmap: Bitmap? = null   // write on main-thread only
@@ -30,32 +29,6 @@ internal data class Tile(
 
     @Volatile
     var markedForSweep = false   // write on main-thread only
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as Tile
-        return zoom == other.zoom
-                && row == other.row
-                && col == other.col
-                && subSample == other.subSample
-                && rendererEquals(other.layerIds, other.opacities)
-    }
-
-    override fun hashCode(): Int {
-        var result = zoom
-        result = 31 * result + row
-        result = 31 * result + col
-        result = 31 * result + subSample
-        result = 31 * result + markedForSweep.hashCode()
-        result = 31 * result + layerIds.contentHashCode()
-        result = 31 * result + opacities.contentHashCode()
-        return result
-    }
-}
-
-internal fun Tile.rendererEquals(layerIds: Array<String>, opacities: FloatArray): Boolean {
-    return this.layerIds.contentEquals(layerIds) && this.opacities.contentEquals(opacities)
 }
 
 internal data class TileSpec(

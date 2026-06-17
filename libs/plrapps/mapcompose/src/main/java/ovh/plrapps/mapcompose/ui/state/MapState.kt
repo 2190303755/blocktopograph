@@ -15,6 +15,7 @@ import ovh.plrapps.mapcompose.core.throttle
 import ovh.plrapps.mapcompose.ui.gestures.model.HitType
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
 import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The state of the map. All public APIs are extensions functions or extension properties of this
@@ -60,7 +61,7 @@ class MapState(
         workerCount
     )
 
-    private val throttledTask = scope.throttle(wait = 18) {
+    private val throttledTask = scope.throttle(wait = 18.milliseconds) {
         renderVisibleTiles()
     }
     private val viewport = Viewport()

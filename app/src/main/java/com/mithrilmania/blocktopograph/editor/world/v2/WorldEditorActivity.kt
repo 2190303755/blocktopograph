@@ -94,10 +94,11 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ovh.plrapps.mapcompose.api.addLayer
 import ovh.plrapps.mapcompose.api.addMarker
+import ovh.plrapps.mapcompose.api.clearLayer
+import ovh.plrapps.mapcompose.api.hasLayer
 import ovh.plrapps.mapcompose.api.reloadTiles
-import ovh.plrapps.mapcompose.api.removeAllLayers
+import ovh.plrapps.mapcompose.api.setLayer
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
 
@@ -199,8 +200,8 @@ class WorldEditorActivity : ComponentActivity() {
                 }
                 DisposableEffect(Unit) {
                     // TODO: it is too loooooooooooooooooooooooooooooong
-                    if (viewModel.majorLayerId == null) {
-                        viewModel.majorLayerId = viewModel.map.addLayer { row, col, zoomLvl ->
+                    if (!viewModel.map.hasLayer()) {
+                        viewModel.map.setLayer("major") { row, col, zoomLvl ->
                             val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
                             val tileSize = TILE_DIMENSION * chunks
                             val cache = info.chunks
@@ -304,7 +305,7 @@ class WorldEditorActivity : ComponentActivity() {
                         }
                     }
                     onDispose {
-                        viewModel.map.removeAllLayers()
+                        viewModel.map.clearLayer()
                     }
                 }
                 val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)

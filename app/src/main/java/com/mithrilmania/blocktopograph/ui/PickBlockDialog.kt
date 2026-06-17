@@ -46,7 +46,6 @@ import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
 import java.util.stream.Collectors
@@ -104,7 +103,6 @@ fun PickBlockDialog(
     }
 }
 
-@OptIn(FlowPreview::class)
 @Composable
 fun BlockPicker(
     modifier: Modifier = Modifier,

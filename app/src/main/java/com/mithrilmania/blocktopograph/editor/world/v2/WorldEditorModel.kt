@@ -84,9 +84,6 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     var dimension: Dimension by mutableStateOf(VanillaDimension.OVERWORLD)
 
     @JvmField
-    var majorLayerId: String? = null
-
-    @JvmField
     val map: MapState = MapState(
         levelCount = ZOOM_LEVELS,
         tileSize = TILE_DIMENSION,

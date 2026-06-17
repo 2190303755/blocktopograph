@@ -2,224 +2,25 @@
 
 package ovh.plrapps.mapcompose.api
 
-import ovh.plrapps.mapcompose.core.AboveAll
-import ovh.plrapps.mapcompose.core.AboveLayer
-import ovh.plrapps.mapcompose.core.BelowAll
-import ovh.plrapps.mapcompose.core.BelowLayer
-import ovh.plrapps.mapcompose.core.CompliedLayers
 import ovh.plrapps.mapcompose.core.LayerFactory
-import ovh.plrapps.mapcompose.core.LayerPlacement
 import ovh.plrapps.mapcompose.core.TileBitmapProvider
-import ovh.plrapps.mapcompose.core.makeLayerId
 import ovh.plrapps.mapcompose.ui.state.MapState
-import java.util.Collections
 
-/**
- * Add a layer. By default, the layer is added on top of the layer stack (see [AboveAll]).
- * Optionally, the layer can be added at the bottom of the stack, or above / below an existing layer.
- *
- * Note that [initialOpacity] is taken into account _only_ if the layer being added isn't the lowest
- * one, or the only one. However, if later on another layer is added below this layer, the
- * [initialOpacity] will be taken into account.
- *
- * @return The id of the created layer
- */
-fun MapState.addLayer(
-    initialOpacity: Float = 1f,
-    placement: LayerPlacement = AboveAll,
-    tileBitmapProvider: TileBitmapProvider
-): String {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-    val id = makeLayerId()
-    val layer = LayerFactory(id, initialOpacity, tileBitmapProvider)
 
-    val newLayers = when (placement) {
-        AboveAll -> {
-            layers + layer
-        }
-
-        is AboveLayer -> {
-            val existingLayerIndex = layers.indexOfFirst { it.id == placement.layerId }
-            if (existingLayerIndex != -1 && existingLayerIndex < layers.lastIndex) {
-                layers.add(existingLayerIndex + 1, layer)
-            }
-            layers
-        }
-
-        BelowAll -> {
-            layers.add(0, layer)
-            layers
-        }
-
-        is BelowLayer -> {
-            val existingLayerIndex = layers.indexOfFirst { it.id == placement.layerId }
-            if (existingLayerIndex != -1) {
-                layers.add(existingLayerIndex, layer)
-            }
-            layers
-        }
-    }
-
-    setLayers(newLayers)
-
-    return id
+fun MapState.setLayer(name: String, layer: TileBitmapProvider) {
+    this.setLayer(LayerFactory(name, layer))
 }
 
-/**
- * Replaces a layer. If the layer doesn't exist, no layer is added.
- *
- * @return The id of the added layer, or null if [layerId] doesn't match with any existing layer
- */
-fun MapState.replaceLayer(
-    layerId: String,
-    initialOpacity: Float = 1f,
-    tileBitmapProvider: TileBitmapProvider
-): String? {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-
-    val index = layers.indexOfFirst {
-        it.id == layerId
-    }
-
-    val id = makeLayerId()
-
-    return if (index != -1) {
-        layers[index] = LayerFactory(id, initialOpacity, tileBitmapProvider)
-        setLayers(layers)
-        id
-    } else null
+fun MapState.clearLayer() {
+    this.setLayer(null)
 }
 
-/**
- * Moves a layer up in the layer stack, making it drawn on top of the layer which was previously
- * above it.
- */
-fun MapState.moveLayerUp(layerId: String) {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-
-    val index = layers.indexOfFirst {
-        it.id == layerId
-    }
-
-    if (index < layers.lastIndex) {
-        Collections.swap(layers, index + 1, index)
-        setLayers(layers)
-    }
-}
-
-/**
- * Moves a layer down in the layer stack, making it drawn below the layer which was previously
- * below it.
- */
-fun MapState.moveLayerDown(layerId: String) {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-
-    val index = layers.indexOfFirst {
-        it.id == layerId
-    }
-
-    if (index > 0) {
-        Collections.swap(layers, index - 1, index)
-        setLayers(layers)
-    }
-}
-
-/**
- * Remove the top layer from the stack.
- */
-fun MapState.removeLastLayer() {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-    val remainingLayers = layers.subList(0, layers.size - 1)
-    setLayers(remainingLayers)
-}
-
-/**
- * Remove the top [n] layers from the stack.
- * @param n The number of layers to remove.
- */
-fun MapState.removeLastLayers(n: Int) {
-    val layers = tileCanvasState.layerFlow.value.factories.toMutableList()
-    val remainingLayers = layers.subList(0, (layers.size - n).coerceAtLeast(0))
-    setLayers(remainingLayers)
-}
-
-/**
- * Reorder layers in the order of the provided list of ids. Layers listed first will be drawn before
- * subsequent layers (so the later will be above).
- * Existing layers not included in the provided list will be removed
- */
-fun MapState.reorderLayers(layerIds: List<String>) {
-    val layerForId = tileCanvasState.layerFlow.value.factories.associateBy { it.id }
-    val layers = layerIds.mapNotNull { layerForId[it] }
-
-    setLayers(layers)
-}
-
-/**
- * Remove all layers.
- */
-fun MapState.removeAllLayers() {
-    setLayers(emptyList())
-}
-
-/**
- * Remove some layers.
- */
-fun MapState.removeLayers(layerIds: Collection<String>) {
-    val remainingLayers = tileCanvasState.layerFlow.value.factories.filter {
-        it.id !in layerIds
-    }
-    setLayers(remainingLayers)
-}
-
-/**
- * Remove a layer.
- */
-fun MapState.removeLayer(layerId: String) {
-    val remainingLayers = tileCanvasState.layerFlow.value.factories.filter {
-        it.id != layerId
-    }
-    setLayers(remainingLayers)
-}
-
-/**
- * Dynamically update the opacity of a layer. If the layer is the lowest one or the only one, the
- * new opacity won't have effect until a layer is added below it.
- */
-fun MapState.setLayerOpacity(layerId: String, opacity: Float) {
-    val newLayers = tileCanvasState.layerFlow.value.factories.map {
-        if (it.id == layerId) {
-            it.copy(alpha = opacity.coerceIn(0f, 1f))
-        } else it
-    }
-    setLayers(newLayers)
-}
-
-/**
- * Define the list of layers using a builder.
- *
- * @return The list of layer ids, in the order of addition.
- */
-fun MapState.buildLayers(builder: LayersBuilder.() -> Unit): List<String> {
-    val builderInternal = LayersBuilderInternal()
-    builderInternal.apply(builder)
-    val layers = CompliedLayers(builderInternal.layers.toTypedArray())
-    /**
-     * call [setLayers] manually
-     */
-    tileCanvasState.setLayers(layers)
-    renderVisibleTilesThrottled()
-    return layers.layerIds.toList()
-}
-
-interface LayersBuilder {
-    fun addLayer(initialOpacity: Float = 1f, tileBitmapProvider: TileBitmapProvider)
-}
+fun MapState.hasLayer(): Boolean = tileCanvasState.hasLayer()
 
 /**
  * Utility function to automatically refresh tiles after a change of layers.
  */
-private fun MapState.setLayers(layers: List<LayerFactory>) {
-    tileCanvasState.setLayers(CompliedLayers(layers.toTypedArray()))
+private fun MapState.setLayer(layer: LayerFactory?) {
+    tileCanvasState.setLayer(layer)
     renderVisibleTilesThrottled()
 }

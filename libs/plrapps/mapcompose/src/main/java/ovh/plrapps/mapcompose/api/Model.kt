@@ -1,8 +1,5 @@
 package ovh.plrapps.mapcompose.api
 
-import ovh.plrapps.mapcompose.core.LayerFactory
-import ovh.plrapps.mapcompose.core.TileBitmapProvider
-import ovh.plrapps.mapcompose.core.makeLayerId
 import ovh.plrapps.mapcompose.ui.state.markers.model.ClusterClickBehavior as ClusterClickBehaviorInternal
 import ovh.plrapps.mapcompose.ui.state.markers.model.Custom as CustomInternal
 import ovh.plrapps.mapcompose.ui.state.markers.model.Default as DefaultInternal
@@ -63,13 +60,4 @@ internal fun ClusterClickBehavior.toInternal(): ClusterClickBehaviorInternal {
 sealed interface ClusterScaleThreshold {
     data object MaxScale : ClusterScaleThreshold
     data class FixedScale(val scale: Double) : ClusterScaleThreshold
-}
-
-internal class LayersBuilderInternal : LayersBuilder {
-    internal val layers = mutableListOf<LayerFactory>()
-    override fun addLayer(initialOpacity: Float, tileBitmapProvider: TileBitmapProvider) {
-        val id = makeLayerId()
-        val layer = LayerFactory(id, initialOpacity, tileBitmapProvider)
-        layers.add(layer)
-    }
 }

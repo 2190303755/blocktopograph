@@ -1,16 +1,11 @@
 package ovh.plrapps.mapcompose.core
 
-import android.graphics.Bitmap
 import android.graphics.Bitmap.Config
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
@@ -68,14 +63,14 @@ internal class TileCollector(
     suspend fun collectTiles(
         tileSpecs: ReceiveChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: CompliedLayers,
+        layer: LayerFactory,
     ) = coroutineScope {
         val tilesToDownload = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
         repeat(workerCount) {
             worker(
                 tilesToDownload = tilesToDownload,
                 tilesOutput = tilesOutput,
-                layers = layers
+                layer = layer
             )
         }
         tileCollectorKernel(tileSpecs, tilesToDownload)
@@ -84,41 +79,24 @@ internal class TileCollector(
     private fun CoroutineScope.worker(
         tilesToDownload: ReceiveChannel<TileSpec>,
         tilesOutput: SendChannel<Tile>,
-        layers: CompliedLayers,
+        layer: LayerFactory,
     ) = launch(dispatcher) {
 
-        val factories = layers.factories
-        val canUseHardwareBitmaps = canUseHardwareBitmaps()
-
-        val canvas = Canvas()
-        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+        val canUseHardwareBitmaps = canUseHardwareBitmaps
 
         for (spec in tilesToDownload) {
-            if (factories.isEmpty()) {
-                specsBeingProcessed.remove(spec)
-                continue
-            }
+
 
             val tile = Tile(
                 spec.zoom,
                 spec.row,
                 spec.col,
                 spec.subSample,
-                layers.layerIds,
-                layers.opacities
+                layer.id
             )
 
-            val resolvedLayers = factories.map { layer ->
-                async {
-                    ResolvedLayer(
-                        layer.tileBitmapProvider.getTileBitmap(spec.row, spec.col, spec.zoom),
-                        layer.alpha
-                    )
-                }
-            }.awaitAll()
-
-            val primaryLayerBitmap = resolvedLayers.firstOrNull()?.bitmap
-            if (primaryLayerBitmap === null) {
+            val bitmap = layer.tileBitmapProvider.getTileBitmap(spec.row, spec.col, spec.zoom)
+            if (bitmap === null) {
                 specsBeingProcessed.remove(spec)
                 /* When the decoding failed or if there's nothing to decode, then send back the Tile
                  * just as in normal processing, so that the actor which submits tiles specs to the
@@ -128,18 +106,9 @@ internal class TileCollector(
                 continue // If the decoding of the first layer failed, skip the rest
             }
 
-            if (factories.size > 1) {
-                canvas.setBitmap(primaryLayerBitmap)
-
-                for (result in resolvedLayers.drop(1)) {
-                    paint.alpha = (255f * result.alpha).toInt()
-                    if (result.bitmap == null) continue
-                    canvas.drawBitmap(result.bitmap, 0f, 0f, paint)
-                }
-            }
             tile.bitmap = if (canUseHardwareBitmaps) {
-                primaryLayerBitmap.copy(Config.HARDWARE, false)
-            } else primaryLayerBitmap
+                bitmap.copy(Config.HARDWARE, false)
+            } else bitmap
 
             tilesOutput.send(tile)
             specsBeingProcessed.remove(spec)
@@ -167,24 +136,6 @@ internal class TileCollector(
     }
 
     /**
-     * On Android O+, ART has a more efficient GC and HARDWARE Bitmaps are supported, making
-     * Bitmap re-use much less important.
-     * However:
-     * - a framework issue pre Q requires to wait until GL context is initialized. Otherwise,
-     * allocating a hardware Bitmap can cause a native crash.
-     * - Allocating a hardware Bitmap involves the creation of a file descriptor. Android O, as well
-     * as some P devices, have a maximum of 1024 file descriptors. Android Q+ devices have a much
-     * higher limit of fd.
-     *
-     * To avoid all those issues entirely, we enable HARDWARE Bitmaps on Android Q and above.
-     * We don't monitor the file descriptor count because in practice, MapCompose creates a few
-     * hundreds of them and they seem to be efficiently recycled.
-     */
-    private fun canUseHardwareBitmaps(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    }
-
-    /**
      * When using a [LinkedBlockingQueue], the core pool size mustn't be 0, or the active thread
      * count won't be greater than 1. Previous versions used a [SynchronousQueue], which could have
      * a core pool size of 0 and a growing count of active threads. However, a [Runnable] could be
@@ -198,6 +149,23 @@ internal class TileCollector(
         allowCoreThreadTimeOut(true)
     }
     private val dispatcher = executor.asCoroutineDispatcher()
-}
 
-private data class ResolvedLayer(val bitmap: Bitmap?, val alpha: Float)
+    companion object {
+
+        /**
+         * On Android O+, ART has a more efficient GC and HARDWARE Bitmaps are supported, making
+         * Bitmap re-use much less important.
+         * However:
+         * - a framework issue pre Q requires to wait until GL context is initialized. Otherwise,
+         * allocating a hardware Bitmap can cause a native crash.
+         * - Allocating a hardware Bitmap involves the creation of a file descriptor. Android O, as well
+         * as some P devices, have a maximum of 1024 file descriptors. Android Q+ devices have a much
+         * higher limit of fd.
+         *
+         * To avoid all those issues entirely, we enable HARDWARE Bitmaps on Android Q and above.
+         * We don't monitor the file descriptor count because in practice, MapCompose creates a few
+         * hundreds of them and they seem to be efficiently recycled.
+         */
+        val canUseHardwareBitmaps = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+}
