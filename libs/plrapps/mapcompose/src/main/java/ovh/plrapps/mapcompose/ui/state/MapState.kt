@@ -2,8 +2,6 @@ package ovh.plrapps.mapcompose.ui.state
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,9 +69,6 @@ class MapState(
     internal var touchDownCb: (() -> Unit)? = null
     internal var tapCb: LayoutTapCb? = null
     internal var longPressCb: LayoutTapCb? = null
-    internal var isFilteringBitmap: () -> Boolean by mutableStateOf(
-        { initialValues.isFilteringBitmap(this) }
-    )
 
     /**
      * Cancels all internal tasks.
@@ -167,7 +162,6 @@ class InitialValues internal constructor() {
     internal var maxScale: Double = 4.0
     internal var magnifyingFactor = 0
     internal var preloadingPadding: Int = 0
-    internal var isFilteringBitmap: (MapState) -> Boolean = { true }
     internal var gestureConfiguration: GestureConfiguration = GestureConfiguration()
 
     /**
@@ -209,24 +203,6 @@ class InitialValues internal constructor() {
      */
     fun preloadingPadding(padding: Int) = apply {
         this.preloadingPadding = padding.coerceAtLeast(0)
-    }
-
-    /**
-     * Controls whether Bitmap filtering is enabled when drawing tiles. This is enabled by default.
-     * Disabling it is useful to achieve nearest-neighbor scaling, for cases when the art style of
-     * the displayed image benefits from it.
-     * @see [android.graphics.Paint.setFilterBitmap]
-     */
-    fun bitmapFilteringEnabled(enabled: Boolean) = apply {
-        bitmapFilteringEnabled { enabled }
-    }
-
-    /**
-     * A version of [bitmapFilteringEnabled] which allows for dynamic control of bitmap filtering
-     * depending on the current [MapState].
-     */
-    fun bitmapFilteringEnabled(predicate: (state: MapState) -> Boolean) = apply {
-        isFilteringBitmap = predicate
     }
 
     /**

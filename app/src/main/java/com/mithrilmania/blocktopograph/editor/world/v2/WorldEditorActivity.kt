@@ -2,9 +2,9 @@ package com.mithrilmania.blocktopograph.editor.world.v2
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Bundle
+import android.text.TextPaint
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -44,6 +45,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,7 +69,6 @@ import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_PATTERN
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.ERROR_PATTERN
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.renderSatellite
 import com.mithrilmania.blocktopograph.map.CustomIcon
-import com.mithrilmania.blocktopograph.map.MCTileProvider
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
@@ -75,7 +79,6 @@ import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.Marker
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
-import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3i
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.GlobalKey
@@ -95,12 +98,16 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.api.addMarker
+import ovh.plrapps.mapcompose.api.cameraX
+import ovh.plrapps.mapcompose.api.cameraY
 import ovh.plrapps.mapcompose.api.clearLayer
 import ovh.plrapps.mapcompose.api.hasLayer
 import ovh.plrapps.mapcompose.api.reloadTiles
+import ovh.plrapps.mapcompose.api.scale
 import ovh.plrapps.mapcompose.api.setLayer
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
+import android.graphics.Paint as AndroidPaint
 
 class WorldEditorActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -127,12 +134,10 @@ class WorldEditorActivity : ComponentActivity() {
                     return@launch
                 }
                 val dimensions = async(Dispatchers.IO) {
-                    buildDimensionRegistry(
-                        storage.db[SpecialDBEntryType.DIMENSION_REGISTRY.keyBytes]
-                    )
+                    buildDimensionRegistry(storage.db[GlobalKey.DIMENSION_REGISTRY])
                 }
                 val heightBounds = async(Dispatchers.IO) {
-                    val bytes = storage.db[SpecialDBEntryType.CHUNK_METAS.keyBytes]
+                    val bytes = storage.db[GlobalKey.CHUNK_METAS]
                     if (bytes === null) Long2IntMaps.EMPTY_MAP else {
                         val input = BedrockNBTInput(ByteArrayInputStream(bytes))
                         val size = input.readInt()
@@ -203,7 +208,7 @@ class WorldEditorActivity : ComponentActivity() {
                     if (!viewModel.map.hasLayer()) {
                         viewModel.map.setLayer("major") { row, col, zoomLvl ->
                             val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
-                            val tileSize = TILE_DIMENSION * chunks
+                            val tileSize = CHUNK_DIMENSION * chunks
                             val cache = info.chunks
                             val dimension = viewModel.dimension
                             val bitmap = createBitmap(
@@ -212,19 +217,18 @@ class WorldEditorActivity : ComponentActivity() {
                                 Bitmap.Config.RGB_565
                             )
                             val canvas = Canvas(bitmap)
-                            val paint = Paint()
                             val rect = Rect()
                             val context = currentCoroutineContext()
                             for (offsetX in 0 until chunks) {
-                                val left = offsetX * TILE_DIMENSION
+                                val left = offsetX * CHUNK_DIMENSION
                                 val chunkX = offsetX + col * chunks
                                 for (offsetZ in 0 until chunks) {
-                                    val top = offsetZ * TILE_DIMENSION
+                                    val top = offsetZ * CHUNK_DIMENSION
                                     rect.set(
                                         left,
                                         top,
-                                        left + CHUNK_DIMENSION * RENDER_SCALE,
-                                        top + CHUNK_DIMENSION * RENDER_SCALE
+                                        left + CHUNK_DIMENSION,
+                                        top + CHUNK_DIMENSION
                                     )
                                     canvas.drawBitmap(BACKGROUND_PATTERN, null, rect, null)
                                     context.ensureActive()
@@ -241,8 +245,7 @@ class WorldEditorActivity : ComponentActivity() {
                                     }
                                     try {
                                         renderSatellite(
-                                            canvas,
-                                            paint,
+                                            bitmap,
                                             info.chunks,
                                             chunk,
                                             left,
@@ -255,20 +258,6 @@ class WorldEditorActivity : ComponentActivity() {
                                 }
                             }
 
-                            //draw tile-edges white
-                            val sizeF = tileSize.toFloat()
-                            paint.style = Paint.Style.STROKE
-                            paint.strokeWidth = 1F
-                            paint.setColor(-1)
-                            canvas.drawRect(0F, 0F, sizeF, sizeF, paint)
-
-                            MCTileProvider.drawText(
-                                "(${col * CHUNK_DIMENSION * chunks}; ${row * CHUNK_DIMENSION * chunks})",
-                                bitmap,
-                                -1,
-                                0
-                            )
-
                             bitmap
                         }
 
@@ -277,8 +266,8 @@ class WorldEditorActivity : ComponentActivity() {
                         info.localPlayer?.let {
                             viewModel.map.addMarker(
                                 "builtin:local_player",
-                                it.x.toDouble() * RENDER_SCALE,
-                                it.z.toDouble() * RENDER_SCALE
+                                it.x.toDouble(),
+                                it.z.toDouble()
                             ) {
                                 Marker(
                                     viewModel.entityIcons.value,
@@ -292,8 +281,8 @@ class WorldEditorActivity : ComponentActivity() {
                         val spawnPos = info.spawnPos
                         viewModel.map.addMarker(
                             "builtin:spawn_point",
-                            spawnPos.x.toDouble() * RENDER_SCALE,
-                            spawnPos.z.toDouble() * RENDER_SCALE
+                            spawnPos.x.toDouble(),
+                            spawnPos.z.toDouble()
                         ) {
                             val spec = CustomIcon.SPAWN_MARKER.sprite
                             Marker(
@@ -330,7 +319,74 @@ class WorldEditorActivity : ComponentActivity() {
                 )
                 NBTEditingHost(viewModel) {
                     Box(contentAlignment = Alignment.Center) {
-                        MapUI(state = viewModel.map)
+                        MapUI(state = viewModel.map) {
+                            val fontSize = MaterialTheme.typography.labelMedium.fontSize
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val mapState = viewModel.map
+                                val scale = mapState.scale
+                                val cameraX = mapState.cameraX
+                                val cameraY = mapState.cameraY
+                                val layoutSize = size
+
+                                val halfWidth = layoutSize.width * 0.5F
+                                val halfHeight = layoutSize.height * 0.5F
+
+                                val startChunkX =
+                                    ((cameraX - halfWidth / scale) / 16).toInt() - 1
+                                val endChunkX =
+                                    ((cameraX + halfWidth / scale) / 16).toInt() + 1
+                                val startChunkZ =
+                                    ((cameraY - halfHeight / scale) / 16).toInt() - 1
+                                val endChunkZ =
+                                    ((cameraY + halfHeight / scale) / 16).toInt() + 1
+
+                                for (chunkX in startChunkX..endChunkX) {
+                                    val screenX =
+                                        halfWidth + (chunkX * 16 - cameraX).toFloat() * scale.toFloat()
+                                    drawLine(
+                                        start = Offset(screenX, 0f),
+                                        end = Offset(screenX, layoutSize.height),
+                                        color = Color.White
+                                    )
+                                }
+
+                                for (chunkZ in startChunkZ..endChunkZ) {
+                                    val screenY =
+                                        halfHeight + (chunkZ * 16 - cameraY).toFloat() * scale.toFloat()
+                                    drawLine(
+                                        start = Offset(0f, screenY),
+                                        end = Offset(layoutSize.width, screenY),
+                                        color = Color.White
+                                    )
+                                }
+
+                                val textPaint = TextPaint(
+                                    AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.LINEAR_TEXT_FLAG
+                                )
+                                textPaint.style = AndroidPaint.Style.FILL
+                                textPaint.color = -1
+                                textPaint.textSize = fontSize.toPx()
+
+
+                                drawIntoCanvas { wrapper ->
+                                    val canvas = wrapper.nativeCanvas
+                                    for (chunkZ in startChunkZ..endChunkZ) {
+                                        for (chunkX in startChunkX..endChunkX) {
+                                            val screenX =
+                                                halfWidth + (chunkX * 16 - cameraX).toFloat() * scale.toFloat()
+                                            val screenY =
+                                                halfHeight + (chunkZ * 16 - cameraY).toFloat() * scale.toFloat()
+                                            canvas.drawText(
+                                                "(${chunkX * 16}; ${chunkZ * 16})",
+                                                screenX + 2,
+                                                screenY + 12,
+                                                textPaint
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         BottomSheet(
                             sheetState = sheetState,
                             sheetContainerColor = MaterialTheme.colorScheme.background,

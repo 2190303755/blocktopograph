@@ -1,10 +1,8 @@
 package com.mithrilmania.blocktopograph.world.chunk
 
-import android.util.Log
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates.getAirTemplate
 import com.mithrilmania.blocktopograph.registry.Registry
-import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.world.HeightRange
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.chunk.Data3DTerrain.Companion.Data3DTerrain
@@ -82,12 +80,14 @@ fun ChunkPos.resolveChunk(
     storage: WorldStorage,
     bounds: Long2IntMap,
     blocks: Registry<BlockTemplate>
-): Chunk? {
+): Chunk {
     val prefix = this.buildPrefix()
     val db = storage.db
     // resolve format version
     val format = db[prefix, ChunkTag.VERSION] ?: db[prefix, ChunkTag.LEGACY_VERSION]
-    if (format === null || format.isEmpty()) return null // the chunk is probably void
+    if (format === null || format.isEmpty()) {
+        throw NoSuchChunkException("Failed to resolve format of chunk")
+    }
     // resolve bounds from metadata
     var hash = 0L
     db[prefix, ChunkTag.METADATA_HASH]?.forEachIndexed { index, byte ->
@@ -129,8 +129,7 @@ fun ChunkPos.resolveChunk(
             if (data === null) {
                 data = db[prefix, ChunkTag.LEGACY_TERRAIN]
                 if (data === null) {
-                    Log.w(APP_TAG, "Failed to resolve terrain of chunk at $this")
-                    return null
+                    throw NullPointerException("Failed to resolve terrain of chunk")
                 }
                 terrain = LegacyTerrain(data)
             } else {

@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 
@@ -43,32 +42,18 @@ public class MCTileProvider implements BitmapProvider {
         this.worldModel = worldModel;
     }
 
-    public static Bitmap drawText(String text, Bitmap b, int textColor, int bgColor) {
+    public static void drawText(String text, Canvas canvas, int textColor) {
         // Get text dimensions
         TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.LINEAR_TEXT_FLAG);
         textPaint.setStyle(Paint.Style.FILL);
         textPaint.setColor(textColor);
-        textPaint.setTextSize(b.getHeight() / 16f);
-        StaticLayout mTextLayout = new StaticLayout(text, textPaint, b.getWidth() / 2, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-
-        // Create bitmap and canvas to draw to
-        Canvas c = new Canvas(b);
-
-        if (bgColor != 0) {
-            // Draw background
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.LINEAR_TEXT_FLAG);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(bgColor);
-            c.drawPaint(paint);
-        }
+        textPaint.setTextSize(canvas.getHeight() / 16f);
+        StaticLayout mTextLayout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, canvas.getWidth() / 2).build();
 
         // Draw text
-        c.save();
-        c.translate(0, 0);
-        mTextLayout.draw(c);
-        c.restore();
-
-        return b;
+        canvas.save();
+        mTextLayout.draw(canvas);
+        canvas.restore();
     }
 
     @Override
@@ -176,7 +161,7 @@ public class MCTileProvider implements BitmapProvider {
                 }
 
                 //draw tile coordinates on top of bitmap
-                drawText(tileTxt, bm, Color.WHITE, 0);
+                drawText(tileTxt, canvas, Color.WHITE);
             }
 
         } catch (Exception e) {

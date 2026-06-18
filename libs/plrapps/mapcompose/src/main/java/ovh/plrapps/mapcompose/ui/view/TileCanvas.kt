@@ -30,19 +30,18 @@ internal fun TileCanvas(
     tileSize: Int,
     alphaTick: Float,
     colorFilterProvider: ColorFilterProvider?,
-    tilesToRender: List<Tile>,
-    isFilteringBitmap: () -> Boolean,
+    tilesToRender: List<Tile>
 ) {
     val dest = remember { Rect() }
     val paint: Paint = remember {
         Paint().apply {
             isAntiAlias = false
+            isFilterBitmap = false
         }
     }
 
     Canvas(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
         /* Scroll values may not be represented accurately using floats (a float has 7 significant
          * decimal digits, so any number above ~10M isn't represented accurately).
@@ -60,7 +59,6 @@ internal fun TileCanvas(
             )
             scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
-            paint.isFilterBitmap = isFilteringBitmap()
 
             for (tile in tilesToRender) {
                 if (tile.markedForSweep) continue

@@ -47,24 +47,6 @@ fun MapState.setColorFilterProvider(provider: ColorFilterProvider) {
 }
 
 /**
- * Controls whether Bitmap filtering is enabled when drawing tiles. This is enabled by default.
- * Disabling it is useful to achieve nearest-neighbor scaling, for cases when the art style of the
- * displayed image benefits from it.
- * @see [android.graphics.Paint.setFilterBitmap]
- */
-fun MapState.setBitmapFilteringEnabled(enabled: Boolean) {
-    setBitmapFilteringEnabled { enabled }
-}
-
-/**
- * A version of [setBitmapFilteringEnabled] which allows for dynamic control of bitmap filtering
- * depending on the current [MapState].
- */
-fun MapState.setBitmapFilteringEnabled(predicate: (state: MapState) -> Boolean) {
-    isFilteringBitmap = { predicate(this) }
-}
-
-/**
  * Virtually increase the size of the screen by a padding in pixel amount.
  * With the appropriate value, this can be used to produce a seamless tile loading effect.
  *

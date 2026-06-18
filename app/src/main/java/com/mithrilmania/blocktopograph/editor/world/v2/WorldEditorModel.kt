@@ -41,8 +41,6 @@ import ovh.plrapps.mapcompose.ui.state.MapState
 import java.io.IOException
 
 const val CHUNK_DIMENSION = 16
-const val RENDER_SCALE = 16
-const val TILE_DIMENSION = CHUNK_DIMENSION * RENDER_SCALE
 const val ZOOM_LEVELS = 4
 
 enum class MapLayer(@JvmField @field:StringRes val display: Int) {
@@ -86,9 +84,13 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     @JvmField
     val map: MapState = MapState(
         levelCount = ZOOM_LEVELS,
-        tileSize = TILE_DIMENSION,
+        tileSize = CHUNK_DIMENSION,
         workerCount = Runtime.getRuntime().availableProcessors() * 2
-    )
+    ) {
+        maxScale(64.0)
+        scale(16.0)
+        minScale(0.5)
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -133,8 +135,8 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
             if (dimension !== null) {
                 this.dimension = dimension
                 this.map.setCamera(
-                    spawnPos.x.toDouble() * RENDER_SCALE,
-                    spawnPos.z.toDouble() * RENDER_SCALE
+                    spawnPos.x.toDouble(),
+                    spawnPos.z.toDouble()
                 )
             }
         } else {
@@ -142,8 +144,8 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
             if (dimension !== null) {
                 this.dimension = dimension
                 this.map.setCamera(
-                    localPlayer.x.toDouble() * RENDER_SCALE,
-                    localPlayer.z.toDouble() * RENDER_SCALE
+                    localPlayer.x.toDouble(),
+                    localPlayer.z.toDouble()
                 )
             }
         }

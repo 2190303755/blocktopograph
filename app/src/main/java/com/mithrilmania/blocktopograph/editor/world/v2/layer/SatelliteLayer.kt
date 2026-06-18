@@ -1,11 +1,10 @@
 package com.mithrilmania.blocktopograph.editor.world.v2.layer
 
-import android.graphics.Canvas
+import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Paint
+import androidx.core.graphics.set
 import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_DIMENSION
-import com.mithrilmania.blocktopograph.editor.world.v2.RENDER_SCALE
 import com.mithrilmania.blocktopograph.map.Biome
 import com.mithrilmania.blocktopograph.util.ColorUtil
 import com.mithrilmania.blocktopograph.util.Noise
@@ -153,8 +152,7 @@ suspend fun getColumnColor(
 }
 
 suspend fun renderSatellite(
-    canvas: Canvas,
-    paint: Paint,
+    bitmap: Bitmap,
     cache: ChunkCache,
     chunk: Chunk,
     left: Int,
@@ -187,16 +185,9 @@ suspend fun renderSatellite(
                 else
                     chunk.getTop(x, z - 1) //within chunk
             )
-            paint.setColor(color)
-            canvas.drawRect(
-                tX.toFloat(),
-                tY.toFloat(),
-                (tX + RENDER_SCALE).toFloat(),
-                (tY + RENDER_SCALE).toFloat(),
-                paint
-            )
-            tX += RENDER_SCALE
+            bitmap[tX, tY] = color
+            ++tX
         }
-        tY += RENDER_SCALE
+        ++tY
     }
 }
