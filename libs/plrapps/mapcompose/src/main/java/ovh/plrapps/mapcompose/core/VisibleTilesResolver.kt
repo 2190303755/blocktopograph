@@ -5,7 +5,6 @@ import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 
 /**
  * Resolves the visible tiles.
@@ -29,24 +28,23 @@ internal class VisibleTilesResolver(
     private val scaleProvider: ScaleProvider,
 ) {
 
+    private val scaleFactorForLevel: IntArray = IntArray(
+        levelCount,
+        this::scaleFactorForLevel
+    )
+
     /**
      * Last level is at scale 1.0, others are at scale 1.0 / power_of_2
      */
-    private val scaleForLevel: DoubleArray = DoubleArray(
-        levelCount,
-        this::calculateScaleForLevel
-    )
-
-    fun calculateScaleForLevel(level: Int): Double {
-        return 0.5.pow((levelCount - level - 1))
+    fun scaleFactorForLevel(level: Int): Int {
+        return 1 shl (levelCount - level - 1)
     }
 
     /**
-     * Get the scale for a given [level] (also called zoom).
-     * @return the scale or null if no such level was configured.
+     * @return the scale factor for a given [level] (also called zoom)
      */
-    fun getScaleForLevel(level: Int): Double {
-        return scaleForLevel.getOrElse(level, this::calculateScaleForLevel)
+    fun getScaleFactorForLevel(level: Int): Int {
+        return scaleFactorForLevel.getOrElse(level, this::scaleFactorForLevel)
     }
 
     /**
@@ -73,15 +71,15 @@ internal class VisibleTilesResolver(
     fun getVisibleTiles(viewport: Viewport): VisibleTiles {
         val scale = scaleProvider.getScale()
         val level = getLevel(scale, magnifyingFactor)
-        val scaleAtLevel = getScaleForLevel(level)
-        val relativeScale = scale / scaleAtLevel
+        val scaleFactorAtLevel = getScaleFactorForLevel(level)
 
-        val scaledTileSize = tileSize.toDouble() * relativeScale
+        val scaledTileSize = tileSize * scaleFactorAtLevel * scale
+        val sizeFactor = 1.0 / scaledTileSize
 
-        val colLeft = floor(viewport.left / scaledTileSize).toInt()
-        val rowTop = floor(viewport.top / scaledTileSize).toInt()
-        val colRight = (ceil(viewport.right / scaledTileSize).toInt() - 1)
-        val rowBottom = (ceil(viewport.bottom / scaledTileSize).toInt() - 1)
+        val colLeft = floor(viewport.left * sizeFactor).toInt()
+        val rowTop = floor(viewport.top * sizeFactor).toInt()
+        val colRight = (ceil(viewport.right * sizeFactor).toInt() - 1)
+        val rowBottom = (ceil(viewport.bottom * sizeFactor).toInt() - 1)
 
         return VisibleTiles(
             level,
@@ -95,7 +93,7 @@ internal class VisibleTilesResolver(
 
     // internal for test purposes
     internal fun getSubSample(scale: Double): Int {
-        val max = getScaleForLevel(0)
+        val max = 1.0 / getScaleFactorForLevel(0)
         return if (scale < max) {
             ceil(ln(max / scale) / ln(2.0)).toInt()
         } else {

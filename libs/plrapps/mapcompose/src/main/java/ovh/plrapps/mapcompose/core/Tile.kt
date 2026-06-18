@@ -38,8 +38,10 @@ internal data class TileSpec(
     val subSample: Int = 0
 )
 
-internal fun Tile.spaceKey(): SpaceKey {
-    return "row=$row,col=$col,zoom=$zoom"
-}
+internal fun Tile.spaceKey() = SpaceKey(row, col, zoom)
 
-internal typealias SpaceKey = String
+internal data class SpaceKey(
+    @JvmField val row: Int,
+    @JvmField val col: Int,
+    @JvmField val zoom: Int
+)

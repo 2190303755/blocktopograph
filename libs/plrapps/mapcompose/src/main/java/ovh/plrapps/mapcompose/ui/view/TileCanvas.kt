@@ -65,8 +65,8 @@ internal fun TileCanvas(
             for (tile in tilesToRender) {
                 if (tile.markedForSweep) continue
                 val bitmap = tile.bitmap ?: continue
-                val scaleForLevel = visibleTilesResolver.getScaleForLevel(tile.zoom)
-                val tileScaled = (tileSize / scaleForLevel).toInt()
+                val scaleForLevel = visibleTilesResolver.getScaleFactorForLevel(tile.zoom)
+                val tileScaled = tileSize * scaleForLevel
 
                 drawTile(
                     tile = tile,
