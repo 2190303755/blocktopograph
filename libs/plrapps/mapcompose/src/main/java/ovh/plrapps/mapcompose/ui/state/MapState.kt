@@ -1,7 +1,5 @@
 package ovh.plrapps.mapcompose.ui.state
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,14 +43,11 @@ class MapState(
     internal val markerRenderState = MarkerRenderState()
     internal val markerState = MarkerState(scope, markerRenderState)
     internal val pathState = PathState()
-    internal val visibleTilesResolver =
-        VisibleTilesResolver(
-            levelCount = levelCount,
-            tileSize = tileSize,
-            magnifyingFactor = initialValues.magnifyingFactor
-        ) {
-            zoomPanState.scale
-        }
+    internal val visibleTilesResolver = VisibleTilesResolver(
+        levelCount = levelCount,
+        tileSize = tileSize,
+        magnifyingFactor = initialValues.magnifyingFactor
+    )
     internal val tileCanvasState = TileCanvasState(
         scope,
         visibleTilesResolver,
@@ -60,11 +55,11 @@ class MapState(
     )
 
     private val throttledTask = scope.throttle(wait = 18.milliseconds) {
-        renderVisibleTiles()
+        updateViewport()
     }
     private val viewport = Viewport()
     internal var preloadingPadding: Int = initialValues.preloadingPadding
-    internal val tileSize by mutableIntStateOf(tileSize)
+    internal val tileSize get() = visibleTilesResolver.tileSize
     internal var stateChangeListener: (MapState.() -> Unit)? = null
     internal var touchDownCb: (() -> Unit)? = null
     internal var tapCb: LayoutTapCb? = null
@@ -121,23 +116,19 @@ class MapState(
         throttledTask.trySend(Unit)
     }
 
-    private suspend fun renderVisibleTiles() {
-        val viewport = updateViewport()
-        tileCanvasState.setViewport(viewport)
-    }
-
-    private fun updateViewport(): Viewport {
+    private suspend fun updateViewport() {
         val padding = preloadingPadding * 2
         val zoomPanState = this.zoomPanState
+        val scale = zoomPanState.scale
         val layoutSize = zoomPanState.layoutSize
         val width = padding + layoutSize.width
         val height = padding + layoutSize.height
-        return viewport.apply {
-            left = (zoomPanState.cameraX * zoomPanState.scale).toInt() - width / 2
-            top = (zoomPanState.cameraY * zoomPanState.scale).toInt() - height / 2
-            right = left + width
-            bottom = top + height
-        }
+        val viewport = this.viewport
+        viewport.left = (zoomPanState.cameraX * scale).toInt() - width / 2
+        viewport.top = (zoomPanState.cameraY * scale).toInt() - height / 2
+        viewport.right = viewport.left + width
+        viewport.bottom = viewport.top + height
+        tileCanvasState.setViewport(viewport, scale)
     }
 }
 

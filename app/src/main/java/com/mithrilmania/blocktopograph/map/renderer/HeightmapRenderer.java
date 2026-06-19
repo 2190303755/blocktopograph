@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
 import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_INDICES;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -39,9 +40,9 @@ public class HeightmapRenderer implements MapRenderer {
                 yNorm2 = yNorm * yNorm;
                 yNorm = ((6f * yNorm2) - (15f * yNorm) + 10f) * yNorm2 * yNorm;
 
-                yW = (x == 0) ? (west ? dataW.getHeightMapValue(CHUNK_DIMENSION - 1, z) : y)//chunk edge
+                yW = (x == 0) ? (west ? dataW.getHeightMapValue(CHUNK_INDICES, z) : y)//chunk edge
                         : chunk.getHeightMapValue(x - 1, z);//within chunk
-                yN = (z == 0) ? (north ? dataN.getHeightMapValue(x, CHUNK_DIMENSION - 1) : y)//chunk edge
+                yN = (z == 0) ? (north ? dataN.getHeightMapValue(x, CHUNK_INDICES) : y)//chunk edge
                         : chunk.getHeightMapValue(x, z - 1);//within chunk
 
                 heightShading = SatelliteRenderer.getHeightShading(y, yW, yN);

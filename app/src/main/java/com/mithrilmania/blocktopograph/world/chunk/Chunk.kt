@@ -1,8 +1,11 @@
 package com.mithrilmania.blocktopograph.world.chunk
 
+import android.util.Log
+import com.mithrilmania.blocktopograph.BuildConfig
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates.getAirTemplate
 import com.mithrilmania.blocktopograph.registry.Registry
+import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.world.HeightRange
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.chunk.Data3DTerrain.Companion.Data3DTerrain
@@ -30,9 +33,12 @@ class Chunk(
         val offset = index - (this.lowerBound shr 4)
         var subchunk = this.subchunks[offset]
         if (subchunk !== null) return subchunk
+        if (BuildConfig.DEBUG) {
+            Log.d(APP_TAG, "Trying to load subchunk #${offset} at ${this.pos}")
+        }
         val data = this.storage.db[
             this.pos.buildKey(index.toByte()),
-            NO_CACHE_OPTION
+            DEFAULT_OPTION
         ]
         if (data === null) {
             if (this.terrain is SubChunk) {
@@ -87,6 +93,9 @@ fun ChunkPos.resolveChunk(
     val format = db[prefix, ChunkTag.VERSION] ?: db[prefix, ChunkTag.LEGACY_VERSION]
     if (format === null || format.isEmpty()) {
         throw NoSuchChunkException("Failed to resolve format of chunk")
+    }
+    if (BuildConfig.DEBUG) {
+        Log.d(APP_TAG, "Trying to load chunk at $this")
     }
     // resolve bounds from metadata
     var hash = 0L

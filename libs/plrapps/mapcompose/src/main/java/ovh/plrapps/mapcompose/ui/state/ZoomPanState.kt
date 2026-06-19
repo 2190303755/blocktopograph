@@ -30,6 +30,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.floor
 import kotlin.math.ln
+import kotlin.math.log2
 import kotlin.math.pow
 
 internal class ZoomPanState(
@@ -278,6 +279,7 @@ internal class ZoomPanState(
 
         scope?.launch {
             userFloatAnimatable.snapTo(0f)
+            val ln2 = ln(2.0)
             var previous = 0f
             userFloatAnimatable.animateDecay(
                 initialVelocity = velocity,
@@ -285,8 +287,7 @@ internal class ZoomPanState(
             ) {
                 /* Since scale = 2.pow(z - maxLevel)  , where z is the zoom level
                  * taking the derivative: d_scale = ln(2) * scale * d_z */
-                val newScale = scale + ln(2.0) * scale * (value - previous)
-                onScaleRatio(newScale / scale, pivot)
+                onScaleRatio(1.0 + ln2 * (value - previous), pivot)
                 previous = value
             }
         }
@@ -326,7 +327,7 @@ internal class ZoomPanState(
     override fun onDoubleTap(focalPt: Offset) {
         if (!isZoomingEnabled) return
 
-        val destScale = 2.0.pow(floor(ln((scale * 2)) / ln(2.0)))
+        val destScale = 2.0.pow(floor(log2((scale * 2))))
 
         scope?.launch {
             smoothScaleWithFocalPoint(
@@ -340,7 +341,7 @@ internal class ZoomPanState(
     override fun onTwoFingersTap(focalPt: Offset) {
         if (!isZoomingEnabled) return
 
-        val destScale = 2.0.pow(floor(ln((scale / 2)) / ln(2.0)))
+        val destScale = 2.0.pow(floor(log2((scale / 2))))
 
         scope?.launch {
             smoothScaleWithFocalPoint(

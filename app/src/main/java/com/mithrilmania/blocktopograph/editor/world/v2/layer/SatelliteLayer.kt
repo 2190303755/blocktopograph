@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.core.graphics.set
 import com.mithrilmania.blocktopograph.block.BlockTemplates
-import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_DIMENSION
+import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_INDICES
 import com.mithrilmania.blocktopograph.map.Biome
 import com.mithrilmania.blocktopograph.util.ColorUtil
 import com.mithrilmania.blocktopograph.util.Noise
@@ -161,33 +161,28 @@ suspend fun renderSatellite(
     val pos = chunk.pos
     val chunkX = pos.chunkX
     val chunkZ = pos.chunkZ
-    if (!currentCoroutineContext().isActive) return
-    val dataW = cache[pos.copy(chunkX = chunkX - 1)]
-    val dataN = cache[pos.copy(chunkZ = chunkZ - 1)]
-    val west = dataW !== null
-    val north = dataN !== null
-    var tY: Int = top
-    repeat(CHUNK_DIMENSION) { z ->
-        var tX: Int = left
-        for (x in 0 until CHUNK_DIMENSION) {
+    val dataW = cache.getAsync(pos.copy(chunkX = chunkX - 1))
+    val dataN = cache.getAsync(pos.copy(chunkZ = chunkZ - 1))
+    var tY: Int = top + CHUNK_INDICES
+    for (z in CHUNK_INDICES downTo 0) {
+        var tX: Int = left + CHUNK_INDICES
+        for (x in CHUNK_INDICES downTo 0) {
             val y: Int = chunk.getTop(x, z)
             val color = getColumnColor(
                 chunk,
                 x,
                 y,
                 z,
-                if (x == 0)
-                    (if (west) dataW.getTop(CHUNK_DIMENSION - 1, z) else y) //chunk edge
-                else
-                    chunk.getTop(x - 1, z),  //within chunk
-                if (z == 0)
-                    (if (north) dataN.getTop(x, CHUNK_DIMENSION - 1) else y) //chunk edge
-                else
-                    chunk.getTop(x, z - 1) //within chunk
+                if (x == 0) {
+                    dataW.await()?.getTop(CHUNK_INDICES, z) ?: y //chunk edge
+                } else chunk.getTop(x - 1, z),  //within chunk
+                if (z == 0) {
+                    dataN.await()?.getTop(x, CHUNK_INDICES) ?: y //chunk edge
+                } else chunk.getTop(x, z - 1) //within chunk
             )
             bitmap[tX, tY] = color
-            ++tX
+            --tX
         }
-        ++tY
+        --tY
     }
 }

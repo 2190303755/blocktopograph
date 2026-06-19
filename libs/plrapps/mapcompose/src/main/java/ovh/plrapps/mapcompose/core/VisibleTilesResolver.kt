@@ -1,10 +1,9 @@
 package ovh.plrapps.mapcompose.core
 
+import androidx.compose.ui.util.fastCoerceAtMost
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.ln
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.log2
 
 /**
  * Resolves the visible tiles.
@@ -16,50 +15,37 @@ import kotlin.math.min
  * the level immediately higher (in index) is picked, to avoid sub-sampling. This corresponds to a
  * [magnifyingFactor] of 0. The value 1 will result in picking the current level at a given scale,
  * which will be at a relative scale between 1.0 and 2.0
- * @param scaleProvider Since the component which invokes [getVisibleTiles] isn't likely to be the
- * component which owns the scale state, we provide it here as a loosely coupled reference.
  *
  * @author p-lr on 25/05/2019
  */
 internal class VisibleTilesResolver(
-    private val levelCount: Int,
-    private val tileSize: Int = 256,
-    var magnifyingFactor: Int = 0,
-    private val scaleProvider: ScaleProvider,
+    levelCount: Int,
+    @JvmField val tileSize: Int = 256,
+    @JvmField var magnifyingFactor: Int = 0
 ) {
 
-    private val scaleFactorForLevel: IntArray = IntArray(
-        levelCount,
-        this::scaleFactorForLevel
-    )
+    @JvmField
+    val maxLevel: Int = levelCount - 1
 
     /**
      * Last level is at scale 1.0, others are at scale 1.0 / power_of_2
      */
-    fun scaleFactorForLevel(level: Int): Int {
-        return 1 shl (levelCount - level - 1)
+    fun scaleShiftAtLevel(level: Int): Int {
+        return maxLevel - level
     }
 
     /**
-     * @return the scale factor for a given [level] (also called zoom)
-     */
-    fun getScaleFactorForLevel(level: Int): Int {
-        return scaleFactorForLevel.getOrElse(level, this::scaleFactorForLevel)
-    }
-
-    /**
-     * Returns the level, an entire value belonging to [0 ; [levelCount] - 1]
+     * Returns the level, an entire value belonging to [0 ; [maxLevel]]
      */
     internal fun getLevel(scale: Double, magnifyingFactor: Int = 0): Int {
         /* This value can be negative */
-        val partialLevel = levelCount - 1 - magnifyingFactor +
-                ln(scale) / ln(2.0)
+        val partialLevel = log2(scale) - magnifyingFactor
 
-        /* The level can't be greater than levelCount - 1.0 */
-        val capedLevel = min(partialLevel, levelCount - 1.0)
+        /* The level can't be greater than maxLevel */
+        val capedLevel = maxLevel + partialLevel.fastCoerceAtMost(0.0)
 
         /* The level can't be lower than 0 */
-        return ceil(max(capedLevel, 0.0)).toInt()
+        return if (capedLevel > 0.0) ceil(capedLevel).toInt() else 0
     }
 
     /**
@@ -68,12 +54,10 @@ internal class VisibleTilesResolver(
      * @param viewport The [Viewport] which represents the visible area. Its values depend on the
      * scale.
      */
-    fun getVisibleTiles(viewport: Viewport): VisibleTiles {
-        val scale = scaleProvider.getScale()
+    fun getVisibleTiles(viewport: Viewport, scale: Double): VisibleTiles {
         val level = getLevel(scale, magnifyingFactor)
-        val scaleFactorAtLevel = getScaleFactorForLevel(level)
 
-        val scaledTileSize = tileSize * scaleFactorAtLevel * scale
+        val scaledTileSize = (tileSize shl scaleShiftAtLevel(level)) * scale
         val sizeFactor = 1.0 / scaledTileSize
 
         val colLeft = floor(viewport.left * sizeFactor).toInt()
@@ -93,16 +77,12 @@ internal class VisibleTilesResolver(
 
     // internal for test purposes
     internal fun getSubSample(scale: Double): Int {
-        val max = 1.0 / getScaleFactorForLevel(0)
+        val max = 1.0 / (1 shl scaleShiftAtLevel(0))
         return if (scale < max) {
-            ceil(ln(max / scale) / ln(2.0)).toInt()
+            ceil(log2(max / scale)).toInt()
         } else {
             0
         }
-    }
-
-    fun interface ScaleProvider {
-        fun getScale(): Double
     }
 }
 

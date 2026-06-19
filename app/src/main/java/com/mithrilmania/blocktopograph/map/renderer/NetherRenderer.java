@@ -2,6 +2,7 @@ package com.mithrilmania.blocktopograph.map.renderer;
 
 
 import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_INDICES;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -46,9 +47,9 @@ public class NetherRenderer implements MapRenderer {
 
 
                     cavefloor = chunk.getHighestBlockYUnderAt(x, z, caveceil - 1);
-                    cavefloorW = (x == 0) ? (chunkW != null ? chunkW.getHighestBlockYUnderAt(CHUNK_DIMENSION - 1, z, caveceil - 1) : cavefloor)//chunk edge
+                    cavefloorW = (x == 0) ? (chunkW != null ? chunkW.getHighestBlockYUnderAt(CHUNK_INDICES, z, caveceil - 1) : cavefloor)//chunk edge
                             : chunk.getHighestBlockYUnderAt(x - 1, z, caveceil - 1);//within chunk
-                    cavefloorN = (z == 0) ? (chunkN != null ? chunkN.getHighestBlockYUnderAt(x, CHUNK_DIMENSION - 1, caveceil - 1) : cavefloor)//chunk edge
+                    cavefloorN = (z == 0) ? (chunkN != null ? chunkN.getHighestBlockYUnderAt(x, CHUNK_INDICES, caveceil - 1) : cavefloor)//chunk edge
                             : chunk.getHighestBlockYUnderAt(x, z - 1, caveceil - 1);//within chunk
 
                     //height shading (based on slopes in terrain; height diff)

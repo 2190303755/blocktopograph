@@ -32,6 +32,7 @@ import com.mithrilmania.blocktopograph.world.chunk.ChunkCache
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import it.unimi.dsi.fastutil.longs.Long2IntMap
 import it.unimi.dsi.fastutil.longs.Long2IntMaps
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ import ovh.plrapps.mapcompose.ui.state.MapState
 import java.io.IOException
 
 const val CHUNK_DIMENSION = 16
+const val CHUNK_INDICES = CHUNK_DIMENSION - 1
 const val ZOOM_LEVELS = 4
 
 enum class MapLayer(@JvmField @field:StringRes val display: Int) {
@@ -54,6 +56,7 @@ sealed interface InitState {
     object Failed : InitState
     object Initializing : InitState
     class Succeed(
+        scope: CoroutineScope,
         @JvmField val world: World,
         @JvmField val storage: WorldStorage,
         @JvmField var spawnPos: DimensionVec3i, // TODO: marker
@@ -64,7 +67,7 @@ sealed interface InitState {
         @JvmField
         val blocks: Registry<BlockTemplate> = Registry()
         @JvmField
-        val chunks = ChunkCache(this.storage, this.heightBounds, this.blocks)
+        val chunks = ChunkCache(scope, this.storage, this.heightBounds, this.blocks)
 
         init {
             blocks.register(BlockTemplates.getAirTemplate())
@@ -84,12 +87,12 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     @JvmField
     val map: MapState = MapState(
         levelCount = ZOOM_LEVELS,
-        tileSize = CHUNK_DIMENSION,
-        workerCount = Runtime.getRuntime().availableProcessors() * 2
+        tileSize = CHUNK_DIMENSION
     ) {
+        magnifyingFactor(4)
+        minScale(0.625)
         maxScale(64.0)
         scale(16.0)
-        minScale(0.5)
     }
 
     init {
@@ -150,6 +153,7 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
             }
         }
         this.initialization = InitState.Succeed(
+            viewModelScope,
             world,
             storage,
             spawnPos,

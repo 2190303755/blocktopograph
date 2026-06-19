@@ -173,10 +173,10 @@ internal class TileCanvasState(
         tileCollector.shutdownNow()
     }
 
-    suspend fun setViewport(viewport: Viewport) {
+    suspend fun setViewport(viewport: Viewport, scale: Double) {
         /* Thread-confine the tileResolver to the main thread */
         val visibleTiles = withContext(Dispatchers.Main) {
-            visibleTilesResolver.getVisibleTiles(viewport)
+            visibleTilesResolver.getVisibleTiles(viewport, scale)
         }
 
         withContext(scope.coroutineContext) {

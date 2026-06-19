@@ -1,8 +1,14 @@
 package com.mithrilmania.blocktopograph.world
 
 import org.iq80.leveldb.DB
+import org.iq80.leveldb.ReadOptions
 
-operator fun DB.get(key: GlobalKey): ByteArray? = this[key.bytes]
+val NO_CACHE_OPTION: ReadOptions = ReadOptions().fillCache(false)
+
+/**
+ * Get without filling cache as [GlobalKey] rarely shares prefixes with other keys
+ */
+operator fun DB.get(key: GlobalKey): ByteArray? = this[key.bytes, NO_CACHE_OPTION]
 
 enum class GlobalKey(@JvmField val key: String) {
     AUTONOMOUS_ENTITIES("AutonomousEntities"),

@@ -12,6 +12,8 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import ovh.plrapps.mapcompose.ui.gestures.detectTapGestures
 import ovh.plrapps.mapcompose.ui.gestures.detectTransformGestures
@@ -62,7 +64,7 @@ internal fun ZoomPan(
             }
             .fillMaxSize(),
     ) { measurables, constraints ->
-        val placeables = measurables.map { measurable ->
+        val placeables = measurables.fastMap { measurable ->
             // Measure each child
             measurable.measure(constraints)
         }
@@ -70,7 +72,7 @@ internal fun ZoomPan(
         // Set the size of the layout as big as it can
         layout(constraints.maxWidth, constraints.maxHeight) {
             // Place children in the parent layout
-            placeables.forEach { placeable ->
+            placeables.fastForEach { placeable ->
                 placeable.place(x = 0, y = 0)
             }
         }

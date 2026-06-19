@@ -41,7 +41,7 @@ import ovh.plrapps.mapcompose.utils.throttle
 import java.util.UUID
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
-import kotlin.math.ln
+import kotlin.math.log2
 import kotlin.math.pow
 
 internal class Clusterer(
@@ -437,7 +437,7 @@ internal class Clusterer(
                 markerData.renderingStrategy.clustererId == id
     }
 
-    private fun getSnapScale(scale: Double): Double = 2.0.pow(ceil(ln(scale) / ln(2.0)))
+    private fun getSnapScale(scale: Double): Double = 2.0.pow(ceil(log2(scale)))
 
     private fun Marker.addToMap() {
         markerRenderState.addClustererManagedMarker(markerData)

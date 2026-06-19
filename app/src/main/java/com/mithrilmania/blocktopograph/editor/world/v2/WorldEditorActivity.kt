@@ -42,6 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,6 +110,8 @@ import ovh.plrapps.mapcompose.api.scale
 import ovh.plrapps.mapcompose.api.setLayer
 import ovh.plrapps.mapcompose.ui.MapUI
 import java.io.ByteArrayInputStream
+import kotlin.math.floor
+import kotlin.math.log2
 import android.graphics.Paint as AndroidPaint
 
 class WorldEditorActivity : ComponentActivity() {
@@ -237,12 +242,7 @@ class WorldEditorActivity : ComponentActivity() {
                                         chunkX,
                                         offsetZ + row * chunks
                                     )
-                                    val chunk = try {
-                                        cache[pos] ?: continue
-                                    } catch (e: Exception) {
-                                        Log.e(APP_TAG, "Failed to load chunk at $pos", e)
-                                        continue
-                                    }
+                                    val chunk = cache.getAsync(pos).await() ?: continue
                                     try {
                                         renderSatellite(
                                             bitmap,
@@ -320,29 +320,55 @@ class WorldEditorActivity : ComponentActivity() {
                 NBTEditingHost(viewModel) {
                     Box(contentAlignment = Alignment.Center) {
                         MapUI(state = viewModel.map) {
-                            val fontSize = MaterialTheme.typography.labelMedium.fontSize
+                            val textPaint = remember {
+                                TextPaint(
+                                    AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.LINEAR_TEXT_FLAG
+                                ).apply {
+                                    style = AndroidPaint.Style.FILL
+                                    color = -1
+                                }
+                            }
+                            val step by remember {
+                                derivedStateOf {
+                                    val state = viewModel.map
+                                    val scale = state.scale
+                                    val shift = floor(4.75 - log2(scale)).toInt()
+                                    if (shift > 0) 1 shl shift else 1
+                                }
+                            }
+                            val textStyle = MaterialTheme.typography.labelMedium
                             Canvas(modifier = Modifier.fillMaxSize()) {
+                                val textSize = textStyle.fontSize.toPx()
+                                val lineHeight = textStyle.lineHeight.toPx()
+                                val indent = lineHeight - textSize
+                                textPaint.textSize = textSize
                                 val mapState = viewModel.map
-                                val scale = mapState.scale
-                                val cameraX = mapState.cameraX
-                                val cameraY = mapState.cameraY
+                                val scale = mapState.scale.toFloat()
+                                val cameraX = mapState.cameraX.toFloat()
+                                val cameraY = mapState.cameraY.toFloat()
                                 val layoutSize = size
+                                val gridStepInChunks = step
 
                                 val halfWidth = layoutSize.width * 0.5F
                                 val halfHeight = layoutSize.height * 0.5F
 
                                 val startChunkX =
-                                    ((cameraX - halfWidth / scale) / 16).toInt() - 1
+                                    ((cameraX - halfWidth / scale) / CHUNK_DIMENSION).toInt() - 1
                                 val endChunkX =
-                                    ((cameraX + halfWidth / scale) / 16).toInt() + 1
+                                    ((cameraX + halfWidth / scale) / CHUNK_DIMENSION).toInt() + 1
                                 val startChunkZ =
-                                    ((cameraY - halfHeight / scale) / 16).toInt() - 1
+                                    ((cameraY - halfHeight / scale) / CHUNK_DIMENSION).toInt() - 1
                                 val endChunkZ =
-                                    ((cameraY + halfHeight / scale) / 16).toInt() + 1
+                                    ((cameraY + halfHeight / scale) / CHUNK_DIMENSION).toInt() + 1
 
-                                for (chunkX in startChunkX..endChunkX) {
+                                val gridStartChunkX =
+                                    (startChunkX / gridStepInChunks - 1) * gridStepInChunks
+                                val gridStartChunkZ =
+                                    (startChunkZ / gridStepInChunks - 1) * gridStepInChunks
+
+                                for (chunkX in gridStartChunkX..endChunkX step gridStepInChunks) {
                                     val screenX =
-                                        halfWidth + (chunkX * 16 - cameraX).toFloat() * scale.toFloat()
+                                        halfWidth + (chunkX * CHUNK_DIMENSION - cameraX) * scale
                                     drawLine(
                                         start = Offset(screenX, 0f),
                                         end = Offset(screenX, layoutSize.height),
@@ -350,9 +376,9 @@ class WorldEditorActivity : ComponentActivity() {
                                     )
                                 }
 
-                                for (chunkZ in startChunkZ..endChunkZ) {
+                                for (chunkZ in gridStartChunkZ..endChunkZ step gridStepInChunks) {
                                     val screenY =
-                                        halfHeight + (chunkZ * 16 - cameraY).toFloat() * scale.toFloat()
+                                        halfHeight + (chunkZ * CHUNK_DIMENSION - cameraY) * scale
                                     drawLine(
                                         start = Offset(0f, screenY),
                                         end = Offset(layoutSize.width, screenY),
@@ -360,26 +386,18 @@ class WorldEditorActivity : ComponentActivity() {
                                     )
                                 }
 
-                                val textPaint = TextPaint(
-                                    AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.LINEAR_TEXT_FLAG
-                                )
-                                textPaint.style = AndroidPaint.Style.FILL
-                                textPaint.color = -1
-                                textPaint.textSize = fontSize.toPx()
-
-
                                 drawIntoCanvas { wrapper ->
                                     val canvas = wrapper.nativeCanvas
-                                    for (chunkZ in startChunkZ..endChunkZ) {
-                                        for (chunkX in startChunkX..endChunkX) {
+                                    for (chunkZ in gridStartChunkZ..endChunkZ step gridStepInChunks) {
+                                        val screenY =
+                                            halfHeight + (chunkZ * CHUNK_DIMENSION - cameraY) * scale + lineHeight
+                                        for (chunkX in gridStartChunkX..endChunkX step gridStepInChunks) {
                                             val screenX =
-                                                halfWidth + (chunkX * 16 - cameraX).toFloat() * scale.toFloat()
-                                            val screenY =
-                                                halfHeight + (chunkZ * 16 - cameraY).toFloat() * scale.toFloat()
+                                                halfWidth + (chunkX * CHUNK_DIMENSION - cameraX) * scale
                                             canvas.drawText(
-                                                "(${chunkX * 16}; ${chunkZ * 16})",
-                                                screenX + 2,
-                                                screenY + 12,
+                                                "(${chunkX * CHUNK_DIMENSION}; ${chunkZ * CHUNK_DIMENSION})",
+                                                screenX + indent,
+                                                screenY,
                                                 textPaint
                                             )
                                         }

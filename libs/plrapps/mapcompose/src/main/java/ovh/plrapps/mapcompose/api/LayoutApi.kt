@@ -329,7 +329,7 @@ fun MapState.centroidSnapshotFlow(): Flow<Point> {
  * count of levels passed at [MapState] constructor.
  */
 fun MapState.getLevelAtScale(scale: Double): Int {
-    return visibleTilesResolver.getLevel(scale)
+    return visibleTilesResolver.getLevel(scale, visibleTilesResolver.magnifyingFactor)
 }
 
 /**
