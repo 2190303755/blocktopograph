@@ -91,7 +91,6 @@ internal class TileCollector(
                 spec.zoom,
                 spec.row,
                 spec.col,
-                spec.subSample,
                 layer.id
             )
 

@@ -100,8 +100,7 @@ internal class TileCanvasState(
         val tilesToRenderCopy = tilesCollected.sortedBy {
             /* As a side effect of sorting tiles, also set tile phases */
 
-            val priority =
-                if (it.zoom == visibleTiles.level && it.subSample == visibleTiles.subSample) 100 else 0
+            val priority = if (it.zoom == visibleTiles.level) 100 else 0
             priority + if (it.layerId == layerId) 1 else 0
         }
 
@@ -230,7 +229,6 @@ internal class TileCanvasState(
                     zoom = visibleTiles.level,
                     row = row,
                     col = col,
-                    subSample = visibleTiles.subSample,
                     layerId = visibleState.layerId
                 )
                 val alreadyProcessed = tilesCollected.contains(tile)
@@ -240,12 +238,7 @@ internal class TileCanvasState(
                  * afterwards */
                 if (!alreadyProcessed) {
                     visibleTileLocationsChannel.send(
-                        TileSpec(
-                            visibleTiles.level,
-                            row,
-                            col,
-                            visibleTiles.subSample
-                        )
+                        TileSpec(visibleTiles.level, row, col)
                     )
                 }
             }
@@ -310,14 +303,13 @@ internal class TileCanvasState(
         aggressiveAttempt: Boolean = false
     ) {
         val currentLevel = visibleTiles.level
-        val currentSubSample = visibleTiles.subSample
 
         /* Always perform partial eviction */
         partialEviction(visibleTiles, layerId)
 
         /* Only perform aggressive eviction when tile collector is idle */
         if (aggressiveAttempt && tileCollector.isIdle) {
-            aggressiveEviction(currentLevel, currentSubSample, layerId)
+            aggressiveEviction(currentLevel, layerId)
         }
 
         /* Now that tileCollected is cleaned up, update an internal data structure */
@@ -335,7 +327,6 @@ internal class TileCanvasState(
         layerId: String
     ) {
         val currentLevel = visibleTiles.level
-        val currentSubSample = visibleTiles.subSample
         val addedSet = mutableSetOf<SpaceKey>()
 
         val iterator = tilesCollected.iterator()
@@ -355,7 +346,6 @@ internal class TileCanvasState(
 
             if (
                 tile.zoom == currentLevel
-                && tile.subSample == currentSubSample
                 && (!visibleTiles.contains(tile) || tile.markedForSweep)
             ) {
                 iterator.remove()
@@ -385,27 +375,14 @@ internal class TileCanvasState(
      */
     private fun aggressiveEviction(
         currentLevel: Int,
-        currentSubSample: Int,
         layerId: String
     ) {
         val iterator = tilesCollected.iterator()
         while (iterator.hasNext()) {
             val tile = iterator.next()
 
-            /* Remove tiles at the same level but from other layers */
-            if (
-                tile.zoom == currentLevel
-                && tile.subSample == currentSubSample
-                && tile.layerId != layerId
-            ) {
-                iterator.remove()
-                tile.recycle()
-            }
-
-            /* Remove other tiles at different level and sub-sample */
-            if ((tile.zoom != currentLevel && tile.subSample == 0)
-                || (tile.zoom == 0 && tile.subSample != currentSubSample)
-            ) {
+            /* Remove tiles at different level or from other layers */
+            if (tile.zoom != currentLevel || tile.layerId != layerId) {
                 iterator.remove()
                 tile.recycle()
             }

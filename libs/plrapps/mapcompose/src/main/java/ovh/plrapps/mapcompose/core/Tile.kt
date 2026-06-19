@@ -6,17 +6,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 
 /**
- * A [Tile] is defined by its coordinates in the "pyramid". A [Tile] is sub-sampled when the
- * scale becomes lower than the scale of the lowest level. To reflect that, there is [subSample]
- * property which is a positive integer (can be 0). When [subSample] equals 0, the [bitmap] of the
- * tile is full scale. When [subSample] equals 1, the [bitmap] is sub-sampled and its size is half
- * the original bitmap (the one at the lowest level), and so on.
+ * A [Tile] is defined by its coordinates in the "pyramid".
  */
 internal data class Tile(
     val zoom: Int,
     val row: Int,
     val col: Int,
-    val subSample: Int,
     val layerId: String
 ) {
     @Volatile
@@ -31,17 +26,12 @@ internal data class Tile(
     var markedForSweep = false   // write on main-thread only
 }
 
-internal data class TileSpec(
-    val zoom: Int,
-    val row: Int,
-    val col: Int,
-    val subSample: Int = 0
-)
-
-internal fun Tile.spaceKey() = SpaceKey(row, col, zoom)
+internal fun Tile.spaceKey() = SpaceKey(zoom, row, col)
 
 internal data class SpaceKey(
+    @JvmField val zoom: Int,
     @JvmField val row: Int,
-    @JvmField val col: Int,
-    @JvmField val zoom: Int
+    @JvmField val col: Int
 )
+
+internal typealias TileSpec = SpaceKey

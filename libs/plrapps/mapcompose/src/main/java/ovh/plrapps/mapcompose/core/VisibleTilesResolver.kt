@@ -70,19 +70,8 @@ internal class VisibleTilesResolver(
             colLeft,
             rowTop,
             colRight,
-            rowBottom,
-            getSubSample(scale)
+            rowBottom
         )
-    }
-
-    // internal for test purposes
-    internal fun getSubSample(scale: Double): Int {
-        val max = 1.0 / (1 shl scaleShiftAtLevel(0))
-        return if (scale < max) {
-            ceil(log2(max / scale)).toInt()
-        } else {
-            0
-        }
     }
 }
 
@@ -90,21 +79,17 @@ internal class VisibleTilesResolver(
  * Properties container for the computed visible tiles.
  * @param level 0-based level index
  * TODO doc
- * @param subSample the current sub-sample factor. If the current scale of the [VisibleTilesResolver]
- * is lower than the scale of the minimum level, [subSample] is greater than 0. Otherwise, [subSample]
- * equals 0.
  */
 internal data class VisibleTiles(
     @JvmField val level: Int,
     @JvmField val left: Int,
     @JvmField val top: Int,
     @JvmField val right: Int,
-    @JvmField val bottom: Int,
-    @JvmField val subSample: Int = 0
+    @JvmField val bottom: Int
 )
 
 internal fun VisibleTiles.contains(tile: Tile): Boolean {
-    return level == tile.zoom && subSample == tile.subSample
+    return level == tile.zoom
             && tile.row in this.top..this.bottom
             && tile.col in this.left..this.right
 }
