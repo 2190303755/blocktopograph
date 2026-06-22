@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.ui.component.Expander
+import com.mithrilmania.blocktopograph.world.isOverworld
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -75,6 +76,7 @@ fun ViewModeTab(
             SegmentedListItem(
                 selected = selected,
                 onClick = { viewModel.enabledLayer = layer },
+                enabled = layer !== MapLayer.SLIME_CHUNKS || viewModel.dimension.isOverworld,
                 shapes = shapes,
                 colors = colors,
                 trailingContent = { RadioButton(selected = selected, onClick = null) },

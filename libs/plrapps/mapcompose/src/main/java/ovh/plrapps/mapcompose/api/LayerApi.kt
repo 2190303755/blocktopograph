@@ -15,7 +15,8 @@ fun MapState.clearLayer() {
     this.setLayer(null)
 }
 
-fun MapState.hasLayer(): Boolean = tileCanvasState.hasLayer()
+val MapState.layerId: String?
+    get() = tileCanvasState.layer?.id
 
 /**
  * Utility function to automatically refresh tiles after a change of layers.

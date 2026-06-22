@@ -2,7 +2,6 @@ package com.mithrilmania.blocktopograph.editor.world.v2
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Rect
 import android.os.Bundle
 import android.text.TextPaint
 import android.util.Log
@@ -68,8 +67,8 @@ import com.composeunstyled.rememberBottomSheetState
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_PATTERN
-import com.mithrilmania.blocktopograph.editor.world.v2.layer.ERROR_PATTERN
+import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_SHADER
+import com.mithrilmania.blocktopograph.editor.world.v2.layer.ERROR_SHADER
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.renderSatellite
 import com.mithrilmania.blocktopograph.map.CustomIcon
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
@@ -104,7 +103,7 @@ import ovh.plrapps.mapcompose.api.addMarker
 import ovh.plrapps.mapcompose.api.cameraX
 import ovh.plrapps.mapcompose.api.cameraY
 import ovh.plrapps.mapcompose.api.clearLayer
-import ovh.plrapps.mapcompose.api.hasLayer
+import ovh.plrapps.mapcompose.api.layerId
 import ovh.plrapps.mapcompose.api.reloadTiles
 import ovh.plrapps.mapcompose.api.scale
 import ovh.plrapps.mapcompose.api.setLayer
@@ -210,7 +209,7 @@ class WorldEditorActivity : ComponentActivity() {
                 }
                 DisposableEffect(Unit) {
                     // TODO: it is too loooooooooooooooooooooooooooooong
-                    if (!viewModel.map.hasLayer()) {
+                    if (viewModel.map.layerId === null) {
                         viewModel.map.setLayer("major") { row, col, zoomLvl ->
                             val chunks = 1 shl (ZOOM_LEVELS - zoomLvl - 1)
                             val tileSize = CHUNK_DIMENSION * chunks
@@ -222,20 +221,15 @@ class WorldEditorActivity : ComponentActivity() {
                                 Bitmap.Config.RGB_565
                             )
                             val canvas = Canvas(bitmap)
-                            val rect = Rect()
+                            val paint = AndroidPaint()
+                            paint.setShader(BACKGROUND_SHADER)
+                            canvas.drawRect(0F, 0F, tileSize.toFloat(), tileSize.toFloat(), paint)
                             val context = currentCoroutineContext()
                             for (offsetX in 0 until chunks) {
                                 val left = offsetX * CHUNK_DIMENSION
                                 val chunkX = offsetX + col * chunks
                                 for (offsetZ in 0 until chunks) {
                                     val top = offsetZ * CHUNK_DIMENSION
-                                    rect.set(
-                                        left,
-                                        top,
-                                        left + CHUNK_DIMENSION,
-                                        top + CHUNK_DIMENSION
-                                    )
-                                    canvas.drawBitmap(BACKGROUND_PATTERN, null, rect, null)
                                     context.ensureActive()
                                     val pos = ChunkPos(
                                         dimension.runtimeId,
@@ -253,7 +247,14 @@ class WorldEditorActivity : ComponentActivity() {
                                         )
                                     } catch (e: Exception) {
                                         Log.e(APP_TAG, "Failed to render chunk at $pos", e)
-                                        canvas.drawBitmap(ERROR_PATTERN, null, rect, null)
+                                        paint.setShader(ERROR_SHADER)
+                                        canvas.drawRect(
+                                            left.toFloat(),
+                                            top.toFloat(),
+                                            (left + CHUNK_DIMENSION).toFloat(),
+                                            (top + CHUNK_DIMENSION).toFloat(),
+                                            paint
+                                        )
                                     }
                                 }
                             }
@@ -319,7 +320,10 @@ class WorldEditorActivity : ComponentActivity() {
                 )
                 NBTEditingHost(viewModel) {
                     Box(contentAlignment = Alignment.Center) {
-                        MapUI(state = viewModel.map) {
+                        MapUI(
+                            state = viewModel.map,
+                            modifier = Modifier.background(Color(0xFFD6BE96))
+                        ) {
                             val textPaint = remember {
                                 TextPaint(
                                     AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.LINEAR_TEXT_FLAG

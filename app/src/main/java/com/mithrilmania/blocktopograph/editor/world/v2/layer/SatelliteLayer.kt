@@ -63,15 +63,14 @@ fun ChunkPos.getNoise(x: Int, z: Int): Int {
 }
 
 //calculate color of one column
-suspend fun getColumnColor(
-    chunk: Chunk,
+suspend fun Chunk.getColumnColor(
     x: Int,
     top: Int,
     z: Int,
     heightW: Int,
     heightN: Int
 ): Int {
-    val bottom = chunk.lowerBound
+    val bottom = this.lowerBound
     var y = top
     var alphaRemain = 1.0F
     var finalR = 0f
@@ -80,7 +79,7 @@ suspend fun getColumnColor(
     val context = currentCoroutineContext()
     while (y >= bottom && alphaRemain >= 0.1F) {
         if (!context.isActive) return 0
-        val blockTemplate = chunk.getBlock(x, y, z)
+        val blockTemplate = this.getBlock(x, y, z)
 
         if (BlockTemplates.getAirTemplate() == blockTemplate) {
             y--
@@ -104,8 +103,8 @@ suspend fun getColumnColor(
 
         //blend biome-colored blocks
         if (blockTemplate.isHasBiomeShading) {
-            val biome = Biome.getBiome(chunk.getBiome(x, y, z) and 0xff)
-            val noise: Int = chunk.pos.getNoise(x, z)
+            val biome = Biome.getBiome(this.getBiome(x, y, z) and 0xff)
+            val noise: Int = this.pos.getNoise(x, z)
             val color = biome.color
             val r = 30 + (Color.red(color) / 5) + noise
             val g = 110 + (Color.green(color) / 5) + noise
@@ -129,7 +128,7 @@ suspend fun getColumnColor(
     //go back to "surface"
     y++
     //light sources
-    val lightValue = chunk.getBrightness(BrightnessSource.BLOCK, x, y, z) and 0xff
+    val lightValue = this.getBrightness(BrightnessSource.BLOCK, x, y, z) and 0xff
     val lightShading = lightValue.toFloat() / 15f + 1
 
     //mix shading
@@ -168,8 +167,7 @@ suspend fun renderSatellite(
         var tX: Int = left + CHUNK_INDICES
         for (x in CHUNK_INDICES downTo 0) {
             val y: Int = chunk.getTop(x, z)
-            val color = getColumnColor(
-                chunk,
+            val color = chunk.getColumnColor(
                 x,
                 y,
                 z,

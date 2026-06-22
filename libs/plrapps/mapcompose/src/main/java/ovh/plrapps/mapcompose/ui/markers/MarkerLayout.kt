@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.LocalDensity
 import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import ovh.plrapps.mapcompose.ui.state.markers.model.MarkerData
 import kotlin.math.absoluteValue
@@ -18,7 +17,6 @@ internal fun MarkerLayout(
     zoomPanState: ZoomPanState,
     content: @Composable () -> Unit
 ) {
-    val density = LocalDensity.current
     Layout(
         content = content,
         modifier
@@ -45,9 +43,9 @@ internal fun MarkerLayout(
                 data.measuredHeight = placeable.measuredHeight
 
                 val widthOffset =
-                    placeable.measuredWidth * data.relativeOffset.x + with(density) { data.absoluteOffset.x.toPx() }
+                    placeable.measuredWidth * data.relativeOffset.x + data.absoluteOffset.x.toPx()
                 val heightOffset =
-                    placeable.measuredHeight * data.relativeOffset.y + with(density) { data.absoluteOffset.y.toPx() }
+                    placeable.measuredHeight * data.relativeOffset.y + data.absoluteOffset.y.toPx()
 
                 val x = offsetX + widthOffset + halfWidth
                 val y = offsetY + heightOffset + halfHeight

@@ -54,10 +54,10 @@ internal class TileCanvasState(
         parentScope.coroutineContext + singleThreadDispatcher
     )
     internal var tilesToRender: List<Tile> by mutableStateOf(listOf())
-    private var tilesCollectedBySpace: Map<SpaceKey, Tile> = mapOf()
+    private var tilesCollectedBySpace: Map<SpaceKey, Tile> = emptyMap()
 
     private val _layerFlow = MutableStateFlow<LayerFactory?>(null)
-    fun hasLayer(): Boolean = this._layerFlow.value !== null
+    val layer: LayerFactory? get() = this._layerFlow.value
 
     private val visibleTileLocationsChannel = Channel<TileSpec>(capacity = Channel.RENDEZVOUS)
     private val tilesOutput = Channel<Tile>(capacity = Channel.RENDEZVOUS)
@@ -107,7 +107,7 @@ internal class TileCanvasState(
         tilesToRender = tilesToRenderCopy
     }
 
-    private val tilesCollected = mutableSetOf<Tile>()
+    private val tilesCollected = hashSetOf<Tile>()
 
     private val tileCollector: TileCollector
 
@@ -288,9 +288,9 @@ internal class TileCanvasState(
     }
 
     private fun updateTileCollectedBySpace() {
-        tilesCollectedBySpace = tilesCollected.associateBy {
-            it.spaceKey()
-        }
+        tilesCollectedBySpace = tilesCollected.associateByTo(
+            HashMap((tilesCollected.size / 0.75F + 1.0F).toInt())
+        ) { it.spaceKey() }
     }
 
     /**
@@ -327,7 +327,7 @@ internal class TileCanvasState(
         layerId: String
     ) {
         val currentLevel = visibleTiles.level
-        val addedSet = mutableSetOf<SpaceKey>()
+        val addedSet = hashSetOf<SpaceKey>()
 
         val iterator = tilesCollected.iterator()
         while (iterator.hasNext()) {
