@@ -27,7 +27,7 @@ android {
 
 dependencies {
     implementation(fileTree("libs") { include(listOf("*.jar")) })
-    implementation("androidx.annotation:annotation:1.9.1")
-    implementation("com.google.android.material:material:1.13.0")
-    testImplementation("junit:junit:4.13.2")
+    implementation(libs.annotation)
+    implementation(libs.material)
+    testImplementation(libs.junit)
 }

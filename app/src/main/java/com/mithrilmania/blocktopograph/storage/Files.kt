@@ -2,7 +2,8 @@ package com.mithrilmania.blocktopograph.storage
 
 import android.content.Context
 import android.net.Uri
-import com.mithrilmania.blocktopograph.Blocktopograph
+import android.os.ParcelFileDescriptor
+import android.provider.DocumentsContract
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
@@ -12,26 +13,38 @@ import com.mithrilmania.blocktopograph.nbt.io.readNBT
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.queryName
+import com.mithrilmania.blocktopograph.util.rpc
 import com.mithrilmania.blocktopograph.util.toLDBKey
 import org.iq80.leveldb.DB
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.File as JvmFile
 
-interface File : NBTSource {
-    fun <T> read(context: Context, action: (InputStream) -> T?): T?
-    fun save(context: Context, action: (OutputStream) -> Unit)
-    override fun readNBT(
+fun JvmFile.open(mode: Int): ParcelFileDescriptor? = try {
+    ParcelFileDescriptor.open(this, mode)
+} catch (_: FileNotFoundException) {
+    null
+}
+
+sealed interface File : NBTSource {
+    suspend fun <T> read(context: Context, action: (InputStream) -> T?): T?
+    suspend fun save(context: Context, action: (OutputStream) -> Unit)
+
+    suspend fun isPresent(context: Context? = null): Boolean
+
+    override suspend fun readNBT(
         context: Context,
         config: NBTImportConfig
     ): TagWithMeta? = this.read(context) {
         it.readNBT(config)
     }
 
-    override fun saveNBT(
+    override suspend fun saveNBT(
         context: Context,
         config: NBTExportConfig,
         name: String,
@@ -44,10 +57,20 @@ interface File : NBTSource {
 }
 
 class SAFFile(val uri: Uri) : File {
-    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
+    override suspend fun isPresent(context: Context?): Boolean {
+        return context?.contentResolver?.query(
+            this.uri,
+            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
+            null,
+            null,
+            null
+        )?.use { it.count > 0 } ?: false
+    }
+
+    override suspend fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         context.contentResolver.openInputStream(this.uri)?.use(action)
 
-    override fun save(context: Context, action: (OutputStream) -> Unit) {
+    override suspend fun save(context: Context, action: (OutputStream) -> Unit) {
         context.contentResolver.openOutputStream(this.uri)?.use(action)
     }
 
@@ -65,13 +88,21 @@ class SAFFile(val uri: Uri) : File {
 }
 
 class ShizukuFile(val path: String) : File {
-    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
-        Blocktopograph.fileService?.getFileDescriptor(this.path)?.use {
+    override suspend fun isPresent(context: Context?): Boolean {
+        return awaitFileService()?.rpc { it.metadata(this.path) } !== null
+    }
+
+    override suspend fun <T> read(context: Context, action: (InputStream) -> T?): T? =
+        awaitFileService()?.rpc {
+            it.openFileDescriptor(this.path)
+        }?.use {
             FileInputStream(it.fileDescriptor).use(action)
         }
 
-    override fun save(context: Context, action: (OutputStream) -> Unit) {
-        Blocktopograph.fileService?.getFileDescriptor(this.path)?.use {
+    override suspend fun save(context: Context, action: (OutputStream) -> Unit) {
+        awaitFileService()?.rpc {
+            it.openFileDescriptor(this.path)
+        }?.use {
             FileOutputStream(it.fileDescriptor).use(action)
         }
     }
@@ -94,11 +125,12 @@ class VirtualFile(
     val name: String,
     private val key: ByteArray,
 ) : File {
-    fun isPresent(): Boolean = this.db[this.key] !== null
-    override fun <T> read(context: Context, action: (InputStream) -> T?): T? =
+    override suspend fun isPresent(context: Context?): Boolean = this.db[this.key] !== null
+
+    override suspend fun <T> read(context: Context, action: (InputStream) -> T?): T? =
         this.db[this.key]?.let { action(ByteArrayInputStream(it)) }
 
-    override fun save(context: Context, action: (OutputStream) -> Unit) {
+    override suspend fun save(context: Context, action: (OutputStream) -> Unit) {
         val stream = ByteArrayOutputStream()
         action(stream)
         this.db.put(this.key, stream.toByteArray())

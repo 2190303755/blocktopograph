@@ -83,7 +83,6 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
-import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
@@ -98,6 +97,7 @@ import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
 import com.mithrilmania.blocktopograph.util.errorAndPop
+import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldModelFactory
 import com.mithrilmania.blocktopograph.world.WorldStorage

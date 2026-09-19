@@ -31,6 +31,7 @@ import com.mithrilmania.blocktopograph.nbt.util.SNBTParser
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.util.autoDecompress
 import com.mithrilmania.blocktopograph.util.readIntLE
+import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.writeIntLE
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -40,9 +41,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 const val MAX_STACK_DEPTH = 512
 
@@ -369,13 +367,3 @@ fun DataOutput.writeNBT(name: String, tag: BinaryTag) {
     tag.write(this)
 }
 
-@OptIn(ExperimentalContracts::class)
-inline fun runSuppressing(action: () -> Unit) {
-    contract {
-        callsInPlace(action, InvocationKind.AT_MOST_ONCE)
-    }
-    try {
-        action()
-    } catch (_: Exception) {
-    }
-}

@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.ui.component
 
 import android.text.format.DateFormat
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,13 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.world.WorldDetail
 import java.util.Date
@@ -67,22 +66,16 @@ fun WorldItem(detail: WorldDetail, modifier: Modifier = Modifier, onClick: () ->
                     .size(140.dp, 80.dp)
                     .border(CardDefaults.outlinedCardBorder(), shape)
                     .clip(shape)
-                val icon = detail.icon
-                if (icon === null) {
-                    Image(
-                        painter = painterResource(R.drawable.world_icon_default),
-                        contentDescription = null,
-                        modifier = shaped,
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        bitmap = icon.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = shaped,
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                val placeholder = painterResource(R.drawable.world_icon_default)
+                AsyncImage(
+                    model = detail.icon?.location,
+                    contentDescription = null,
+                    modifier = shaped,
+                    contentScale = ContentScale.Crop,
+                    placeholder = placeholder,
+                    fallback = placeholder,
+                    error = placeholder
+                )
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
                     Column(
                         modifier = Modifier.fillMaxHeight(),
@@ -133,7 +126,7 @@ fun WorldItem(detail: WorldDetail, modifier: Modifier = Modifier, onClick: () ->
                 }
             }
             Text(
-                text = detail.location.location,
+                text = detail.location.toString(),
                 modifier = Modifier.basicMarquee(Int.MAX_VALUE),
                 style = MaterialTheme.typography.bodySmall
             )

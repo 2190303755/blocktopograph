@@ -6,12 +6,12 @@ import android.os.RemoteException
 import androidx.annotation.Keep
 import com.mithrilmania.blocktopograph.IFileService
 import com.mithrilmania.blocktopograph.IWorldCallback
-import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
+import com.mithrilmania.blocktopograph.ParcelFileMetadata
+import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.size
 import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
-import com.mithrilmania.blocktopograph.world.FILE_WORLD_ICON
 import com.mithrilmania.blocktopograph.world.FOLDER_DATABASE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +21,14 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import java.io.File
 import java.io.FileInputStream
+import java.nio.file.FileSystemException
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.NoSuchFileException
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
 import kotlin.system.exitProcess
 
@@ -56,25 +64,16 @@ class FileService() : IFileService.Stub() {
             root.listFiles(File::isDirectory)?.forEach { folder ->
                 val config = File(folder, FILE_LEVEL_DAT)
                 if (!config.isFile) return@forEach
-                val icon = File(folder, FILE_WORLD_ICON)
                 val folderPath = folder.absolutePath
                 var datFd: ParcelFileDescriptor? = null
-                var iconFd: ParcelFileDescriptor? = null
                 try {
                     datFd = ParcelFileDescriptor.open(
                         config,
                         ParcelFileDescriptor.MODE_READ_WRITE
                     )
-                    if (icon.isFile) {
-                        iconFd = ParcelFileDescriptor.open(
-                            icon,
-                            ParcelFileDescriptor.MODE_READ_ONLY
-                        )
-                    }
-                    callback.onWorldSubmit(folderPath, datFd, iconFd)
+                    callback.onWorldSubmit(folderPath, datFd, null)
                 } catch (_: RemoteException) {
                     datFd?.close()
-                    iconFd?.close()
                 }
                 val behaviors = async {
                     val file = File(folder, FILE_BEHAVIOR_PACKS)
@@ -113,19 +112,12 @@ class FileService() : IFileService.Stub() {
     }
 
     override fun copyTo(src: String, dest: String) {
+        // TODO: check args
         File(src).copyRecursively(File(dest))
     }
 
-    override fun getFileDescriptor(path: String): ParcelFileDescriptor? {
-        val file = File(path)
-        return if (file.isFile) ParcelFileDescriptor.open(
-            file,
-            ParcelFileDescriptor.MODE_READ_WRITE
-        ) else null
-    }
 
     override fun prepareDB(cache: String, world: String): String? {
-        // runBlocking
         if (!File(cache).isDirectory) return null
         val src = File(world, FOLDER_DATABASE)
         if (!src.isDirectory) return null
@@ -135,5 +127,73 @@ class FileService() : IFileService.Stub() {
         } while (folder.exists())
         src.copyRecursively(folder)
         return folder.absolutePath
+    }
+
+    override fun canonicalize(path: String): String? {
+        return File(path).canonicalFile.takeIf(File::exists)?.path
+    }
+
+    override fun metadata(path: String): ParcelFileMetadata? {
+        val nioPath = Paths.get(path)
+        val attrs = try {
+            Files.readAttributes(
+                nioPath,
+                BasicFileAttributes::class.java,
+                LinkOption.NOFOLLOW_LINKS,
+            )
+        } catch (_: NoSuchFileException) {
+            return null
+        } catch (_: FileSystemException) {
+            return null
+        }
+
+        return ParcelFileMetadata().apply {
+            isRegularFile = attrs.isRegularFile
+            isDirectory = attrs.isDirectory
+            symlinkTarget = if (attrs.isSymbolicLink) {
+                Files.readSymbolicLink(nioPath).toString()
+            } else {
+                null
+            }
+            size = attrs.size()
+            createdAtMillis = attrs.creationTime()?.toMillis() ?: 0L
+            lastModifiedAtMillis = attrs.lastModifiedTime()?.toMillis() ?: 0L
+            lastAccessedAtMillis = attrs.lastAccessTime()?.toMillis() ?: 0L
+        }
+    }
+
+    override fun openReadOnly(path: String): ParcelFileDescriptor? {
+        return File(path).takeIf(File::isFile)
+            ?.open(ParcelFileDescriptor.MODE_READ_ONLY)
+    }
+
+    override fun openReadWrite(
+        path: String,
+        mustCreate: Boolean,
+        mustExist: Boolean
+    ): ParcelFileDescriptor? {
+        val file = File(path)
+        require(!mustCreate || !mustExist) {
+            "Cannot require mustCreate and mustExist at the same time."
+        }
+        if (mustCreate && file.exists()) return null
+        if (mustExist && !file.isFile) return null
+        return file.open(ParcelFileDescriptor.MODE_READ_WRITE)
+    }
+
+    override fun createDirectory(path: String): Boolean {
+        return File(path).mkdir()
+    }
+
+    override fun atomicMove(source: String, target: String): Boolean {
+        runSuppressing {
+            Files.move(Paths.get(source), Paths.get(target), ATOMIC_MOVE, REPLACE_EXISTING)
+            return true
+        }
+        return false
+    }
+
+    override fun delete(path: String): Boolean {
+        return File(path).delete()
     }
 }

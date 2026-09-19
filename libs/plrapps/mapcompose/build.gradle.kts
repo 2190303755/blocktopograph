@@ -31,16 +31,14 @@ kotlin {
     }
 }
 dependencies {
-    api(platform("androidx.compose:compose-bom:2026.05.01"))
-    api("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.ui:ui-util")
-    implementation("androidx.compose.ui:ui-unit")
-    /*implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:${coroutine_version}")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${coroutine_version}")*/
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.16")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    api(platform(libs.compose.bom))
+    api(libs.compose.foundation)
+    implementation(libs.compose.ui.tooling.preview)
+    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.compose.ui.util)
+    implementation(libs.compose.ui.unit)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    androidTestImplementation(libs.junit.ext)
+    androidTestImplementation(libs.compose.ui.test.junit4)
 }

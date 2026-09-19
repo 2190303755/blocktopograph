@@ -108,6 +108,7 @@ import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.ui.component.showSnackbar
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
+import com.mithrilmania.blocktopograph.util.tryOrNull
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.KEY_FLAT_WORLD_LAYERS
 import com.mithrilmania.blocktopograph.world.KEY_LAST_PLAYED_TIME
@@ -173,15 +174,13 @@ class CreateWorldActivity : ComponentActivity() {
                                     ?: return@launch
                                 val config = folder.createFile(MIME_TYPE_DEFAULT, FILE_LEVEL_DAT)
                                     ?: return@launch
-                                val data = try {
+                                val data = tryOrNull {
                                     BedrockNBTInput(
                                         activity.assets.open("dats/1_2_13.dat").buffered()
                                     ).use {
                                         it.skipBytes(8)
                                         it.readBinaryTag() as? CompoundTag
                                     }
-                                } catch (_: Exception) {
-                                    null
                                 } ?: return@launch
                                 data[KEY_LEVEL_NAME] = StringTag(
                                     viewModel.name.text.ifBlank {

@@ -39,42 +39,51 @@ public final class ZLib
     {
     }
 
+    static ByteBuffer allocate(Inflater inflater, int extra) {
+        return ByteBuffer.allocate(Math.max(1024, inflater.getRemaining() * 2) + extra);
+    }
+
     public static ByteBuffer uncompress(ByteBuffer compressed, boolean raw) throws IOException
     {
         Inflater inflater = (raw ? INFLATER_RAW : INFLATER).get();
+        assert inflater != null;
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(1024);
-            /// ANDROID COMPAT START: `setInput(Ljava/nio/ByteBuffer;)V` is only available since Android 15
+            ByteBuffer buffer;
+            /* ANDROID COMPAT START */
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                byte[] input = new byte[compressed.remaining()];
-                compressed.get(input);
+                byte[] input;
+                if (compressed.hasArray()) {
+                    input = compressed.array();
+                } else {
+                    input = new byte[compressed.remaining()];
+                    compressed.get(input);
+                }
+                /// COMPAT NOTE: {@link Inflater#setInput(ByteBuffer)} is added in API level 35
                 inflater.setInput(input);
+                buffer = allocate(inflater, 0);
                 while (!inflater.finished()) {
                     if (buffer.remaining() == 0) {
                         // Grow buffer
-                        ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1024);
+                        ByteBuffer newBuffer = allocate(inflater, buffer.capacity());
                         buffer.flip();
                         newBuffer.put(buffer);
                         buffer = newBuffer;
                     }
-                    int length = inflater.inflate(buffer.array(), buffer.position(), buffer.remaining());
-                    buffer.position(buffer.position() + length);
+                    int cursor = buffer.position();
+                    buffer.position(
+                            /// COMPAT NOTE: {@link Inflater#inflate(ByteBuffer)} is added in API level 35
+                            cursor + inflater.inflate(buffer.array(), cursor, buffer.remaining())
+                    );
                 }
-                /// ANDROID COMPAT END
-            } else {
+            } else /* ANDROID COMPAT END */ {
                 inflater.setInput(compressed);
+                buffer = allocate(inflater, 0);
                 while (!inflater.finished()) {
                     if (inflater.inflate(buffer) == 0) {
                         // Grow buffer
-                        ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1024);
-                        int position = buffer.position();
-
-                        // Reset reader index
+                        ByteBuffer newBuffer = allocate(inflater, buffer.capacity());
                         buffer.flip();
-                        newBuffer.put(buffer);
-
-                        // Set position to the original
-                        newBuffer.position(position);
+                        newBuffer.put(buffer); // actually it updates the position
                         buffer = newBuffer;
                     }
                 }

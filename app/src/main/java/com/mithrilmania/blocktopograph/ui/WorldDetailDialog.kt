@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.Intent
 import android.os.Build
 import android.text.format.DateFormat
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipEntry
@@ -52,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
 import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
@@ -188,22 +187,16 @@ fun WorldDetailDialog(
                     .size(210.dp, 120.dp)
                     .border(CardDefaults.outlinedCardBorder(), shape)
                     .clip(shape)
-                val icon = detail.icon
-                if (icon === null) {
-                    Image(
-                        painter = painterResource(R.drawable.world_icon_default),
-                        contentDescription = null,
-                        modifier = shaped,
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        bitmap = icon.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = shaped,
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                val placeholder = painterResource(R.drawable.world_icon_default)
+                AsyncImage(
+                    model = detail.icon?.location,
+                    contentDescription = null,
+                    modifier = shaped,
+                    contentScale = ContentScale.Crop,
+                    placeholder = placeholder,
+                    fallback = placeholder,
+                    error = placeholder
+                )
                 Text(
                     text = detail.name,
                     modifier = center,
@@ -214,7 +207,7 @@ fun WorldDetailDialog(
             CopyableWorldDetailEntry(
                 Icons.Filled.LocationOn,
                 stringResource(R.string.world_detail_location),
-                detail.location.location
+                detail.location.toString()
             )
             Grid(config = grid, modifier = Modifier.padding(bottom = 6.dp)) {
                 val played = remember(detail, context) {

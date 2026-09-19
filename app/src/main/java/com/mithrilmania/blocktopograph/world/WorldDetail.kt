@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.world
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.EXTRA_TITLE
-import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +23,7 @@ import java.io.InputStream
 
 class WorldDetail(
     val location: Location,
+    val icon: Location?,
     val config: Location,
     val name: String,
     val mode: String,
@@ -34,7 +34,6 @@ class WorldDetail(
 ) {
     var behaviors: Int by mutableIntStateOf(0)
     var resources: Int by mutableIntStateOf(0)
-    var icon: Bitmap? by mutableStateOf(null)
     var size: String? by mutableStateOf(null)
 
     fun applyTo(intent: Intent) = this.location.applyTo(intent)
@@ -51,6 +50,7 @@ fun InputStream.extractDetail(
     location: Location,
     config: Location,
     context: Context,
+    icon: Location? = null,
     tag: String = ""
 ): WorldDetail? {
     var name: String? = null
@@ -98,6 +98,7 @@ fun InputStream.extractDetail(
     val unknown by lazy { context.getString(R.string.generic_unknown) }
     return WorldDetail(
         location,
+        icon,
         config,
         name ?: location.queryName(context),
         mode ?: unknown,

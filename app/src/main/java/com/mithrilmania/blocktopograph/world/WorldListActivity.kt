@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +76,7 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
+import com.mithrilmania.blocktopograph.storage.awaitFileService
 import com.mithrilmania.blocktopograph.ui.WorldDetailDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
@@ -87,10 +89,12 @@ import com.mithrilmania.blocktopograph.ui.component.clickableItem
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.asFolder
 import com.mithrilmania.blocktopograph.util.collectText
+import com.mithrilmania.blocktopograph.util.rpc
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
 
 class WorldListActivity : ComponentActivity() {
@@ -103,6 +107,7 @@ class WorldListActivity : ComponentActivity() {
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
             var openViaShizuku by remember { mutableStateOf(false) }
             var showAbout by remember { mutableStateOf(false) }
+            val coroutineScope = rememberCoroutineScope()
             Scaffold(
                 modifier = Modifier
                     .fillMaxSize()
@@ -135,32 +140,43 @@ class WorldListActivity : ComponentActivity() {
                                     Icons.Filled.DriveFolderUpload,
                                     resources.getString(R.string.open)
                                 ) {
-                                    val service = Blocktopograph.fileService
-                                    if (service === null) {
-                                        when (Blocktopograph.getShizukuStatus()) {
-                                            ShizukuStatus.UNAUTHORIZED -> {
-                                                if (!Shizuku.shouldShowRequestPermissionRationale()) {
-                                                    Shizuku.requestPermission(1)
-                                                }
-                                            }
-
-                                            ShizukuStatus.UNSUPPORTED -> {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Shizuku版本过低",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-
-                                            ShizukuStatus.UNKNOWN -> context.upcoming()
-
-                                            ShizukuStatus.AVAILABLE -> {
-                                                Toast.makeText(context, "!", Toast.LENGTH_SHORT)
-                                                    .show()
+                                    when (Blocktopograph.getShizukuStatus()) {
+                                        ShizukuStatus.UNAUTHORIZED -> {
+                                            if (!Shizuku.shouldShowRequestPermissionRationale()) {
+                                                Shizuku.requestPermission(1)
                                             }
                                         }
-                                    } else {
-                                        openViaShizuku = true
+
+                                        ShizukuStatus.UNSUPPORTED -> {
+                                            Toast.makeText(
+                                                context,
+                                                "Shizuku版本过低",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+
+                                        ShizukuStatus.UNKNOWN -> context.upcoming()
+
+                                        ShizukuStatus.AVAILABLE -> coroutineScope.launch {
+                                            if (Blocktopograph.fileService.service === null) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Connecting",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                if (withContext(Dispatchers.IO) { awaitFileService() } === null) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Failed",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                } else {
+                                                    openViaShizuku = true
+                                                }
+                                            } else {
+                                                openViaShizuku = true
+                                            }
+                                        }
                                     }
                                 }
                                 clickableItem(
@@ -249,7 +265,7 @@ class WorldListActivity : ComponentActivity() {
                         verticalArrangement = spacing,
                         horizontalArrangement = spacing
                     ) {
-                        items(items = viewModel.worlds, key = { it.location.uid }) {
+                        items(items = viewModel.worlds, key = { it.location.location }) {
                             WorldItem(it, Modifier.animateItem()) {
                                 viewModel.selected = it
                             }
@@ -320,10 +336,33 @@ class WorldListActivity : ComponentActivity() {
                     },
                     onConfirm = {
                         openViaShizuku = false
-                        val service = Blocktopograph.fileService ?: return@PastableDialog
-                        val path = input.text.toString()
-                        if (path.isBlank() || !service.loadWorlds(path, viewModel.callback)) {
-                            Toast.makeText(this, "invalid path", Toast.LENGTH_SHORT).show()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val service = awaitFileService()
+                            if (service === null) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        this@WorldListActivity,
+                                        "File service timeout",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                return@launch
+                            }
+                            val path = input.text.toString()
+                            if (path.isBlank() || service.rpc {
+                                    it.loadWorlds(
+                                        path,
+                                        viewModel.callback
+                                    )
+                                } != true) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        this@WorldListActivity,
+                                        "invalid path",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         }
                     }
                 ) {

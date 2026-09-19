@@ -5,18 +5,20 @@ import android.content.Intent
 import android.net.Uri
 import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.util.queryName
+import java.io.File as JvmFile
 
-interface Location {
-    val location: String
-    val uid: Any
+sealed interface Location {
+    val location: Any
     fun applyTo(intent: Intent): Intent
     fun queryName(context: Context): String
+
+    override fun toString(): String
 }
 
-class SAFLocation(val uri: Uri) : Location {
-    override val uid get() = this.uri
-    override val location get() = this.uri.let { it.lastPathSegment ?: it.toString() }
+class SAFLocation(@JvmField val uri: Uri) : Location {
+    override val location get() = this.uri
     override fun queryName(context: Context) = this.uri.queryName(context) ?: ""
+
     override fun applyTo(intent: Intent) =
         intent.setData(this.uri)
 
@@ -27,19 +29,23 @@ class SAFLocation(val uri: Uri) : Location {
     }
 
     override fun hashCode(): Int = this.uri.hashCode()
+
+    override fun toString(): String = this.uri.let { it.lastPathSegment ?: it.toString() }
 }
 
-class ShizukuLocation(override val location: String) : Location {
-    override val uid get() = this.location
-    override fun queryName(context: Context): String = java.io.File(this.location).name
+class ShizukuLocation(@JvmField val path: String) : Location {
+    override val location get() = this.path
+    override fun queryName(context: Context): String = JvmFile(this.path).name
     override fun applyTo(intent: Intent) =
-        intent.putExtra(EXTRA_PATH, this.location)
+        intent.putExtra(EXTRA_PATH, this.path)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        return this.location == (other as ShizukuLocation).location
+        return this.path == (other as ShizukuLocation).path
     }
 
-    override fun hashCode(): Int = this.location.hashCode()
+    override fun hashCode(): Int = this.path.hashCode()
+
+    override fun toString(): String = this.path
 }

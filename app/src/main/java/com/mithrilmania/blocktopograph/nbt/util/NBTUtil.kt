@@ -18,13 +18,12 @@ import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.TAG_END
 import com.mithrilmania.blocktopograph.nbt.io.SNBTStringReader
+import com.mithrilmania.blocktopograph.util.tryOrNull
 
 val SIMPLE_VALUE: Regex = "[A-Za-z0-9._+-]+".toRegex()
 
-fun String.parseSNBT() = try {
+fun String.parseSNBT() = tryOrNull {
     SNBTParser(SNBTStringReader(this)).parseRoot()
-} catch (_: Exception) {
-    null
 }
 
 fun StringBuilder.appendQuoted(text: String): StringBuilder {

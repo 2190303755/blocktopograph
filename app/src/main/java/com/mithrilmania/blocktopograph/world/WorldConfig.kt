@@ -9,8 +9,6 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.nbt.io.TagWithMeta
-import com.mithrilmania.blocktopograph.nbt.io.readNBT
-import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.error
@@ -21,16 +19,16 @@ class WorldConfig(
 ) : NBTSource {
     private var cache: CompoundTag? = null
 
-    fun getCached(context: Context? = null): CompoundTag {
+    suspend fun getCached(context: Context? = null): CompoundTag {
         if (this.cache === null && context !== null) {
-            this.readNBT(context, NBTImportConfigImpl())
+            this@WorldConfig.readNBT(context, NBTImportConfigImpl())
         }
         return this.cache ?: CompoundTag()
     }
 
-    override fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta? {
+    override suspend fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta? {
         val result = try {
-            this.source.read(context) { it.readNBT(config) }
+            this.source.readNBT(context, config)
         } catch (e: IOException) {
             e.error("Failed to read $source")
             return null
@@ -43,12 +41,15 @@ class WorldConfig(
         return result
     }
 
-    override fun saveNBT(context: Context, config: NBTExportConfig, name: String, tag: BinaryTag) {
-        this.source.save(context) {
-            it.writeNBT(name, tag, config)
-            if (tag is CompoundTag) {
-                this.cache = tag
-            }
+    override suspend fun saveNBT(
+        context: Context,
+        config: NBTExportConfig,
+        name: String,
+        tag: BinaryTag
+    ) {
+        this.source.saveNBT(context, config, name, tag)
+        if (tag is CompoundTag) {
+            this.cache = tag
         }
     }
 

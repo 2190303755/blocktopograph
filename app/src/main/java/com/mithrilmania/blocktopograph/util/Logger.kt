@@ -9,7 +9,8 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 const val APP_TAG = "Blocktopograph"
-const val LEVEL_DB_TAG = "LevelDB"
+const val RPC_TAG = "BTG-RPC"
+const val LEVEL_DB_TAG = "BTG-LDB"
 
 fun Throwable.error(
     message: String,

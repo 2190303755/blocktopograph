@@ -2,12 +2,8 @@ package com.mithrilmania.blocktopograph.world
 
 import android.content.ContentResolver
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
-import android.util.Size
 import androidx.lifecycle.application
-import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.storage.SAFLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.findChild
@@ -33,25 +29,9 @@ suspend fun WorldListModel.loadSAFWorld(
         SAFLocation(root),
         SAFLocation(config),
         context,
+        root.findChild(resolver, FILE_WORLD_ICON)?.let { SAFLocation(it) },
         tag
     ) ?: return
-    coroutineScope.launch {
-        val resources = context.resources
-        val icon = root.findChild(resolver, FILE_WORLD_ICON)?.let { icon ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                resolver.loadThumbnail(
-                    icon, Size(
-                        resources.getDimensionPixelSize(R.dimen.large_world_icon_width),
-                        resources.getDimensionPixelSize(R.dimen.large_world_icon_height)
-                    ), null
-                )
-            } else resolver.openInputStream(icon)
-                ?.let { BitmapFactory.decodeStream(it) }
-        }
-        withContext(Dispatchers.Main) {
-            world.icon = icon
-        }
-    }
     coroutineScope.launch {
         val behavior = root.findChild(
             resolver,

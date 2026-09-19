@@ -17,7 +17,7 @@ android {
 }
 
 dependencies {
-    implementation("org.iq80.snappy:snappy:0.5")
-    implementation("com.google.guava:guava:33.6.0-android")
-    implementation("com.hivemc.leveldb:leveldb-api:1.1.0")
+    implementation(libs.snappy)
+    implementation(libs.guava)
+    implementation(libs.leveldb.api)
 }

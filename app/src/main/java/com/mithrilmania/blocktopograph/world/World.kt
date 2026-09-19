@@ -12,17 +12,18 @@ import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
-import com.mithrilmania.blocktopograph.nbt.io.runSuppressing
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.error
 import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3
+import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.toLDBKey
 import com.mithrilmania.blocktopograph.world.impl.SAFWorld
 import com.mithrilmania.blocktopograph.world.impl.ShizukuWorld
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
 import java.io.Closeable
 
@@ -86,11 +87,13 @@ suspend inline fun <T> Deferred<WorldStorage?>.await(
 }?.let(action)
 
 fun World.resolveSeed(context: Context?): Long {
-    return this.config.getCached(context).getTyped<NumericTag>(KEY_RANDOM_SEED)?.toLong() ?: 0L
+    return runBlocking {
+        this@resolveSeed.config.getCached(context)
+    }.getTyped<NumericTag>(KEY_RANDOM_SEED)?.toLong() ?: 0L
 }
 
 fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
-    val tags = this.config.getCached(context)
+    val tags = runBlocking { this@resolveSpawnPoint.config.getCached(context) }
     val spawnX = tags.getTyped<NumericTag>("SpawnX")
     val spawnY = tags.getTyped<NumericTag>("SpawnY")
     val spawnZ = tags.getTyped<NumericTag>("SpawnZ")
@@ -114,7 +117,7 @@ fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
     try {
         val data: ByteArray? = this.storage?.db?.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
         val player: BinaryTag? = if (data === null) {
-            this.config.getCached(context)["Player"]
+            runBlocking { this@resolveLocalPlayerPos.config.getCached(context) }["Player"]
         } else {
             BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
         }

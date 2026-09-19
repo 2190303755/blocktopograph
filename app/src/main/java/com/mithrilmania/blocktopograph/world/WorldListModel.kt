@@ -1,16 +1,13 @@
 package com.mithrilmania.blocktopograph.world
 
 import android.app.Application
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID
 import android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED
 import android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
 import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
-import android.util.Size
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -21,11 +18,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.IWorldCallback
-import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.storage.Location
 import com.mithrilmania.blocktopograph.storage.ShizukuLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
-import com.mithrilmania.blocktopograph.util.loadThumbnail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -54,7 +49,8 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
                     FileInputStream(config.fileDescriptor).extractDetail(
                         ShizukuLocation(path),
                         ShizukuLocation("$path/$FILE_LEVEL_DAT"),
-                        application
+                        application,
+                        ShizukuLocation("$path/$FILE_WORLD_ICON")
                     )
                 }
                 if (world === null) {
@@ -63,17 +59,6 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
                 }
                 insertions.send(world)
                 loading = false
-                if (icon === null) return@launch
-                launch(Dispatchers.IO) {
-                    world.icon = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                        BitmapFactory.decodeStream(FileInputStream(icon.fileDescriptor))
-                    } else icon.loadThumbnail(application.resources.let {
-                        Size(
-                            it.getDimensionPixelSize(R.dimen.large_world_icon_width),
-                            it.getDimensionPixelSize(R.dimen.large_world_icon_height)
-                        )
-                    })
-                }
             }
         }
 
@@ -178,7 +163,6 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
-        super.onCleared()
         this.unscanned.close()
         this.insertions.close()
     }

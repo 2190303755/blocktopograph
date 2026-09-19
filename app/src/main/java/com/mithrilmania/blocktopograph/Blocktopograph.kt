@@ -2,38 +2,32 @@ package com.mithrilmania.blocktopograph
 
 import android.app.Application
 import android.content.ComponentName
-import android.content.ServiceConnection
+import android.content.Context
 import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.os.IBinder
 import android.widget.Toast
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ProcessLifecycleOwner
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.request.crossfade
 import com.google.android.material.color.DynamicColors
 import com.mithrilmania.blocktopograph.storage.FileService
+import com.mithrilmania.blocktopograph.storage.ShizukuFileSystem
+import com.mithrilmania.blocktopograph.util.ShizukuConnector
 import com.mithrilmania.blocktopograph.util.error
 import rikka.shizuku.Shizuku
-import rikka.shizuku.Shizuku.OnBinderDeadListener
-import rikka.shizuku.Shizuku.OnBinderReceivedListener
-import rikka.shizuku.Shizuku.OnRequestPermissionResultListener
 import java.io.File
 
 class Blocktopograph : Application(),
-    DefaultLifecycleObserver,
-    OnBinderReceivedListener,
-    OnBinderDeadListener,
-    OnRequestPermissionResultListener,
-    Thread.UncaughtExceptionHandler {
+    Shizuku.OnRequestPermissionResultListener,
+    Thread.UncaughtExceptionHandler,
+    SingletonImageLoader.Factory {
     companion object {
         lateinit var instance: Blocktopograph
             private set
-        var fileService: IFileService? = null
-            private set
-        var unbound: Boolean = true
+
+        lateinit var fileService: ShizukuConnector<IFileService>
             private set
 
         fun getShizukuStatus(): ShizukuStatus {
-            if (this.unbound) return ShizukuStatus.UNKNOWN
             if (Shizuku.isPreV11()) return ShizukuStatus.UNSUPPORTED
             try {
                 return if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) ShizukuStatus.AVAILABLE else ShizukuStatus.UNAUTHORIZED
@@ -47,21 +41,10 @@ class Blocktopograph : Application(),
     var exceptionHandler: Thread.UncaughtExceptionHandler? = null
         private set
 
-    override fun onBinderReceived() {
-        if (Shizuku.isPreV11() || Shizuku.checkSelfPermission() != PERMISSION_GRANTED) return
-        Shizuku.bindUserService(fileServiceArgs, fileServiceConnection)
-    }
-
-    override fun onBinderDead() {
-        fileService = null
-        unbound = true
-    }
-
     override fun onRequestPermissionResult(code: Int, result: Int) {
         if ((code and 1) == 1) {
             if (result == PERMISSION_GRANTED) {
-                Shizuku.bindUserService(fileServiceArgs, fileServiceConnection)
-                Toast.makeText(this, "正在绑定服务", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "已授权", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "已拒绝", Toast.LENGTH_SHORT).show()
             }
@@ -70,43 +53,30 @@ class Blocktopograph : Application(),
 
     init {
         instance = this
-        Shizuku.addBinderReceivedListenerSticky(this)
-        Shizuku.addBinderDeadListener(this)
-        Shizuku.addRequestPermissionResultListener(this)
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-    }
-
-    override fun onDestroy(owner: LifecycleOwner) {
-        Shizuku.removeBinderReceivedListener(this)
-        Shizuku.removeBinderDeadListener(this)
-        Shizuku.removeRequestPermissionResultListener(this)
-    }
-
-    private val fileServiceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            if (binder != null && binder.pingBinder()) {
-                fileService = IFileService.Stub.asInterface(binder)
-                Toast.makeText(this@Blocktopograph, "服务已绑定", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            fileService = null
-        }
-    }
-
-    private val fileServiceArgs = Shizuku.UserServiceArgs(
-        ComponentName(
-            BuildConfig.APPLICATION_ID,
-            FileService::class.java.name
+        fileService = ShizukuConnector(
+            Shizuku.UserServiceArgs(
+                ComponentName(
+                    BuildConfig.APPLICATION_ID,
+                    FileService::class.java.name
+                )
+            ).daemon(false)
+                .processNameSuffix("service")
+                .debuggable(BuildConfig.DEBUG)
+                .version(BuildConfig.VERSION_CODE),
+            IFileService.Stub::asInterface
         )
-    ).daemon(false)
-        .processNameSuffix("service")
-        .debuggable(BuildConfig.DEBUG)
-        .version(BuildConfig.VERSION_CODE)
+        Shizuku.addRequestPermissionResultListener(this)
+    }
+
+    override fun newImageLoader(context: Context): ImageLoader {
+        return ImageLoader.Builder(context)
+            .crossfade(true)
+            .fileSystem(ShizukuFileSystem)
+            .build()
+    }
 
     override fun onCreate() {
-        super<Application>.onCreate()
+        super.onCreate()
         DynamicColors.applyToActivitiesIfAvailable(this)
         this.exceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)

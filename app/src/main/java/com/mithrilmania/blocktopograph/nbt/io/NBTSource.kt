@@ -5,8 +5,8 @@ import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 
 interface NBTSource {
-    fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta?
-    fun saveNBT(context: Context, config: NBTExportConfig, name: String, tag: BinaryTag)
+    suspend fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta?
+    suspend fun saveNBT(context: Context, config: NBTExportConfig, name: String, tag: BinaryTag)
     fun resolveName(context: Context): String
     override fun equals(other: Any?): Boolean
 }
@@ -16,7 +16,7 @@ class LocalPlayerSource(
 ) : NBTSource, NBTImportConfig {
     override var format: NBTFormat = NBTFormat.LITTLE_ENDIAN
     override var header: HeaderPresence = HeaderPresence.PRESENT
-    override fun readNBT(
+    override suspend fun readNBT(
         context: Context,
         config: NBTImportConfig
     ): TagWithMeta? {
@@ -43,7 +43,7 @@ class LocalPlayerSource(
         return null
     }
 
-    override fun saveNBT(
+    override suspend fun saveNBT(
         context: Context,
         config: NBTExportConfig,
         name: String,
