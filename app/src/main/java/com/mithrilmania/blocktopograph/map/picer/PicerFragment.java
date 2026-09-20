@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -15,7 +14,6 @@ import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -27,11 +25,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.databinding.FragPicerBinding;
@@ -278,20 +271,7 @@ public final class PicerFragment extends DialogFragment {
         mBinding.finalButton.setTag(bitmap);
         mBinding.previewCase.setVisibility(View.VISIBLE);
 
-        Glide.with(this).load(bitmap).listener(new RequestListener<>() {
-            @Override
-            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                // How could.
-                return false;
-            }
-
-            @Override
-            public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                mBinding.scroll.post(() ->
-                        mBinding.scroll.fullScroll(ScrollView.FOCUS_DOWN));
-                return false;
-            }
-        }).into(mBinding.image);
+        PicerFragmentCompatKt.loadBitmap(mBinding, bitmap);
 
     }
 

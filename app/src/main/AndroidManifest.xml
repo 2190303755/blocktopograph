@@ -53,7 +53,8 @@
             android:name=".editor.nbt.NBTEditorActivity"
             android:exported="true"
             android:label="@string/activity_nbt_editor"
-            android:theme="@style/ComposeTheme">
+            android:theme="@style/ComposeTheme"
+            android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 

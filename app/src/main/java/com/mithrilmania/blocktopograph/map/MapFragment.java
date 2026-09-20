@@ -407,7 +407,7 @@ public class MapFragment extends Fragment {
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                model.getShowDrawer().setValue(true);
+                model.showDrawer();
                 FragmentActivity activity = getActivity();
                 if (activity != null)
                     activity.getPreferences(Context.MODE_PRIVATE)
@@ -447,9 +447,6 @@ public class MapFragment extends Fragment {
         });
         mBinding.fabMenuGpsPicer.setImageDrawable(
                 VectorDrawableCompat.create(resources, R.drawable.ic_menu_camera, null));
-
-        // Show the toolbar if the fab menu is opened
-        mBinding.fabMenu.setOnMenuToggleListener(visible -> model.getShowActionBar().setValue(visible));
 
 
         try {
@@ -846,7 +843,7 @@ public class MapFragment extends Fragment {
                 AlertDialog dialog = new AlertDialog.Builder(act)
                         .setTitle(R.string.map_smart_notice_too_many_markers)
                         .setMessage(R.string.map_smart_notice_too_many_markers_message)
-                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.getShowDrawer().setValue(true))
+                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.showDrawer())
                         .setNegativeButton(R.string.general_got_it, null)
                         .create();
                 dialog.setCanceledOnTouchOutside(false);

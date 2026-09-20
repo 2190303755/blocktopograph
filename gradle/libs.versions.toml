@@ -1,6 +1,6 @@
 [versions]
-kotlin = "2.4.10"
-gradle = "9.2.1"
+kotlin = "2.4.20"
+agp = "9.4.0"
 compose-bom = "2026.09.00"
 paging = "3.5.0"
 activity = "1.13.0"
@@ -12,7 +12,6 @@ annotation = "1.10.0"
 appcompat = "1.7.1"
 recyclerview = "1.4.0"
 material = "1.14.0"
-glide = "5.0.9"
 photoview = "2.3.0"
 expansionpanel = "1.2.4"
 guava = "33.7.1-android"
@@ -34,7 +33,7 @@ coil = "3.6.2"
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-compose-compiler = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
-android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 
 activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
@@ -71,9 +70,7 @@ fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragm
 drawerlayout = { module = "androidx.drawerlayout:drawerlayout", version.ref = "drawerlayout" }
 window = { module = "androidx.window:window", version.ref = "window" }
 
-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-glide-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 clans-fab = { module = "com.github.clans:fab", version.ref = "clans-fab" }
 photoview = { module = "com.github.chrisbanes:PhotoView", version.ref = "photoview" }
 expansionpanel = { module = "com.github.florent37:expansionpanel", version.ref = "expansionpanel" }

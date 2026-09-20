@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -78,8 +80,9 @@ class MapNode(
     @Composable
     override fun summary() = "${this.children.size}个键值对" // TODO i18n
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Editor(editor: NBTEditorModel) {
+    override fun Editor(editor: NBTEditorModel, sheetState: SheetState) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             val context = LocalContext.current
             BottomSheetActionButton(

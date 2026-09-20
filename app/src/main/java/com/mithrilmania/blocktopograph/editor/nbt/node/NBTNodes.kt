@@ -1,5 +1,7 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -56,8 +58,9 @@ sealed class NBTNode(
     @Composable
     abstract fun summary(): String
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    abstract fun Editor(editor: NBTEditorModel)
+    abstract fun Editor(editor: NBTEditorModel, sheetState: SheetState)
 }
 
 sealed class RootNode(
@@ -80,9 +83,9 @@ sealed class ValueNode(
     override val children: Collection<NBTNode> get() = emptyList()
     abstract override fun toBinaryTag(): PrimitiveTag
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Editor(editor: NBTEditorModel) {
-
+    override fun Editor(editor: NBTEditorModel, sheetState: SheetState) {
     }
 }
 

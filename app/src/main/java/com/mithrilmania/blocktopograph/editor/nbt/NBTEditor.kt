@@ -18,6 +18,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,12 +36,18 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -59,6 +67,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SplitButtonDefaults
@@ -72,12 +82,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
@@ -115,6 +129,7 @@ import com.mithrilmania.blocktopograph.ui.component.AnimatedExpanderIndicator
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
+import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
@@ -140,13 +155,53 @@ fun NBTEditorModel.saveAsync() {
 
 inline fun NBTEditorModel.requestOrExecute(
     request: ConfirmationRequest,
-    executor: (ConfirmationRequest?) -> Unit
+    action: (ConfirmationRequest?) -> Unit
 ) {
     if (this.modified) {
         this.confirmation = request
     } else {
-        executor(request)
+        action(request)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TagEditor(
+    sheetState: SheetState,
+    textFieldState: TextFieldState,
+    supportingText: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.SingleLine,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    inputTransformation: InputTransformation? = null,
+    onAction: KeyboardActionHandler
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(sheetState.currentValue === SheetValue.Expanded) {
+        focusRequester.requestFocus()
+    }
+    OutlinedTextField(
+        state = textFieldState,
+        modifier = modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .focusProperties {
+                canFocus = sheetState.currentValue === SheetValue.Expanded
+            },
+        shape = OutlinedTextFieldDefaults.roundedShape,
+        lineLimits = lineLimits,
+        isError = isError,
+        supportingText = supportingText,
+        keyboardOptions = keyboardOptions,
+        inputTransformation = inputTransformation,
+        onKeyboardAction = onAction,
+        trailingIcon = {
+            IconButton(Icons.Filled.Check) {
+                onAction.onKeyboardAction {}
+            }
+        }
+    )
 }
 
 @Composable
@@ -182,7 +237,7 @@ fun NBTSummary(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NBTEditor(
     editor: NBTEditorModel = viewModel(),
@@ -306,6 +361,7 @@ fun NBTEditor(
                                 WindowInsets.systemBars
                                     .union(WindowInsets.displayCutout)
                                     .only(WindowInsetsSides.Bottom)
+                                    .union(WindowInsets.ime)
                             ),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -499,7 +555,7 @@ fun NBTEditor(
                                 }
                             }
                         }
-                        focused.Editor(editor)
+                        focused.Editor(editor, scaffoldState.bottomSheetState)
                     }
                 }
             }

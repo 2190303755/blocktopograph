@@ -7,6 +7,9 @@ import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class WorldMapModel : ViewModel() {
     val markers: MutableLiveData<ArrayList<AbstractMarker>> =
@@ -17,13 +20,23 @@ class WorldMapModel : ViewModel() {
     val mapType: MutableLiveData<MapType> =
         MutableLiveData<MapType>(dimension.defaultMapTypeCompat())
 
-    val showActionBar: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
-    val showDrawer: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+
+    private val _showDrawerSignal = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    @JvmField
+    val showDrawerSignal = _showDrawerSignal.asSharedFlow()
 
     fun navigateTo(dimension: Dimension, type: MapType) {
         this.dimension = dimension
         this.mapType.value = type
+    }
+
+    fun showDrawer() {
+        this._showDrawerSignal.tryEmit(Unit)
     }
 }

@@ -1,28 +1,21 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.input.then
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
@@ -30,9 +23,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.editor.nbt.Operation
+import com.mithrilmania.blocktopograph.editor.nbt.TagEditor
 import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE
-import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.util.isNumber
 
 class ByteNode(
@@ -50,9 +43,9 @@ class ByteNode(
     @Composable
     override fun summary() = value.toString()
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Editor(editor: NBTEditorModel) {
-        val focusRequester = remember { FocusRequester() }
+    override fun Editor(editor: NBTEditorModel, sheetState: SheetState) {
         val textFieldState = rememberTextFieldState(value.toString())
         var isError by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(value) {
@@ -63,13 +56,9 @@ class ByteNode(
                 isError = it.toString().toByteOrNull() === null
             }
         }
-        OutlinedTextField(
-            state = textFieldState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            shape = OutlinedTextFieldDefaults.roundedShape,
-            lineLimits = TextFieldLineLimits.SingleLine,
+        TagEditor(
+            sheetState = sheetState,
+            textFieldState = textFieldState,
             isError = isError,
             supportingText = {
                 // TODO: i18n
@@ -84,27 +73,16 @@ class ByteNode(
                 if (!this.asCharSequence().isNumber()) {
                     this.revertAllChanges()
                 }
-            },
-            onKeyboardAction = {
-                val assign = textFieldState.text.toString().toByteOrNull()
-                if (assign === null) {
-                    isError = true
-                } else {
-                    editor.performOperation(Assign(assign))
-                    it()
-                }
-            },
-            trailingIcon = {
-                IconButton(Icons.Filled.Check) {
-                    val assign = textFieldState.text.toString().toByteOrNull()
-                    if (assign === null) {
-                        isError = true
-                    } else {
-                        editor.performOperation(Assign(assign))
-                    }
-                }
             }
-        )
+        ) {
+            val assign = textFieldState.text.toString().toByteOrNull()
+            if (assign === null) {
+                isError = true
+            } else {
+                editor.performOperation(Assign(assign))
+                it()
+            }
+        }
     }
 
     inner class Assign(val neo: Byte) : Operation {

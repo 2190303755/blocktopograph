@@ -7,10 +7,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.world.WorldMapModel
 import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import kotlinx.coroutines.launch
 
@@ -44,19 +41,5 @@ class NBTEditorFragment @JvmOverloads constructor(
             }
         }
         return view
-    }
-
-
-    override fun onStart() {
-        super.onStart()
-        this.activity?.setTitle(R.string.nbt_editor)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        val activity = this.activity
-        if (activity !== null) {
-            ViewModelProvider(activity)[WorldMapModel::class.java].showActionBar.value = true
-        }
     }
 }

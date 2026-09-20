@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.editor.world
 
 import android.app.AlertDialog
+import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
 import android.widget.ArrayAdapter
@@ -36,6 +37,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WorldEditorActivity : WorldActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        this.lifecycleScope.launch {
+            model.showDrawerSignal.collect {
+                mBinding.drawerLayout.openDrawer(mBinding.navView, true)
+            }
+        }
+    }
+
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
         val id = item.itemId
@@ -180,7 +190,7 @@ class WorldEditorActivity : WorldActivity() {
     /**
      * Loads local player data "~local-player" or level.dat>"Player" into an EditableNBT.
      */
-    override fun openLocalPlayer() {
+    fun openLocalPlayer() {
         val model = this.worldModel ?: return
         this.lifecycleScope.launch(Dispatchers.IO) {
             val db = model.storage.await(WorldStorage::db) ?: return@launch
@@ -194,14 +204,14 @@ class WorldEditorActivity : WorldActivity() {
         }
     }
 
-    override fun openLevelEditor() {
+    fun openLevelEditor() {
         this.checkAndOpenNBTEditor(
             this.worldModel?.world?.config ?: return,
             HeaderPresence.PRESENT
         )
     }
 
-    override fun openCustomEntry() {
+    fun openCustomEntry() {
         val keyInput = EditText(this).apply {
             setEms(16)
             setMaxEms(32)
@@ -232,7 +242,10 @@ class WorldEditorActivity : WorldActivity() {
             }.show()
     }
 
-    override fun openSpecialDBEntry(entry: SpecialDBEntryType?) {
+    /**
+     * Open NBT editor fragment for special database entry
+     */
+    fun openSpecialDBEntry(entry: SpecialDBEntryType?) {
         if (entry === null) return
         val activity = this
         this.lifecycleScope.launch(Dispatchers.IO) {
@@ -243,7 +256,7 @@ class WorldEditorActivity : WorldActivity() {
         }
     }
 
-    override fun openMultiplayerEditor() {
+    fun openMultiplayerEditor() {
         val dialog = AlertDialog.Builder(this)
             .setCancelable(false)
             .setView(ProgressBar(this).apply {

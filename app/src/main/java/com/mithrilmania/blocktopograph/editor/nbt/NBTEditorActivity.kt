@@ -22,8 +22,8 @@ class NBTEditorActivity : ComponentActivity() {
     private val viewModel by viewModels<NBTEditorModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         if (savedInstanceState === null) {
             this.onNewIntent(this.intent)
         }

@@ -9,8 +9,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
 import androidx.databinding.DataBindingUtil;
@@ -24,14 +22,13 @@ import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
 import com.mithrilmania.blocktopograph.map.MapFragment;
-import com.mithrilmania.blocktopograph.util.SpecialDBEntryType;
 import com.mithrilmania.blocktopograph.world.World;
 import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
 
 public abstract class WorldActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, DrawerLayout.DrawerListener {
+        implements NavigationView.OnNavigationItemSelectedListener {
 
     public static final String PREF_KEY_SHOW_MARKERS = "showMarkers";
     private static final String TAG = WorldActivity.class.getSimpleName();
@@ -148,8 +145,8 @@ public abstract class WorldActivity extends AppCompatActivity
                     new AlertDialog.Builder(WorldActivity.this)
                             .setMessage(R.string.ask_close_world)
                             .setCancelable(false)
-                            .setPositiveButton(android.R.string.yes, (dialog, id) -> WorldActivity.this.finish())
-                            .setNegativeButton(android.R.string.no, null)
+                            .setPositiveButton(android.R.string.ok, (dialog, id) -> WorldActivity.this.finish())
+                            .setNegativeButton(android.R.string.cancel, null)
                             .show();
 
                 } else if (confirmContentClose != null) {
@@ -159,11 +156,11 @@ public abstract class WorldActivity extends AppCompatActivity
                     new AlertDialog.Builder(WorldActivity.this)
                             .setMessage(confirmContentClose)
                             .setCancelable(false)
-                            .setPositiveButton(android.R.string.yes, (dialog, id) -> {
+                            .setPositiveButton(android.R.string.ok, (dialog, id) -> {
                                 manager.popBackStack();
                                 confirmContentClose = null;
                             })
-                            .setNegativeButton(android.R.string.no, null)
+                            .setNegativeButton(android.R.string.cancel, null)
                             .show();
                 } else {
                     //fragment is open, but it may be closed without warning
@@ -171,39 +168,8 @@ public abstract class WorldActivity extends AppCompatActivity
                 }
             }
         });
-        this.model.getShowActionBar().observe(this, visible -> {
-            ActionBar bar = this.getSupportActionBar();
-            if (bar != null) {
-                if (visible) {
-                    bar.show();
-                } else {
-                    bar.hide();
-                }
-            }
-        });
-        this.model.getShowDrawer().observe(this, visible -> {
-            if (visible) {
-                mBinding.drawerLayout.openDrawer(mBinding.navView, true);
-            } else {
-                mBinding.drawerLayout.closeDrawer(mBinding.navView, false);
-            }
-        });
-        mBinding.drawerLayout.addDrawerListener(this);
         LogUtil.d(this, "World activity created");
     }
-
-    public abstract void openCustomEntry();
-
-    /**
-     * Open NBT editor fragment for special database entry
-     */
-    public abstract void openSpecialDBEntry(final SpecialDBEntryType entryType);
-
-    public abstract void openMultiplayerEditor();
-
-    public abstract void openLocalPlayer();
-
-    public abstract void openLevelEditor();
 
     // TODO grid should be rendered independently of tiles, it could be faster and more responsive.
     // However, it does need to adjust itself to the scale and position of the map,
@@ -225,24 +191,6 @@ public abstract class WorldActivity extends AppCompatActivity
                         })
                 .setNegativeButton(android.R.string.no, null)
                 .show();
-    }
-
-    @Override
-    public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
-    }
-
-    @Override
-    public void onDrawerOpened(@NonNull View drawerView) {
-        this.model.getShowDrawer().setValue(true);
-    }
-
-    @Override
-    public void onDrawerClosed(@NonNull View drawerView) {
-        this.model.getShowDrawer().setValue(false);
-    }
-
-    @Override
-    public void onDrawerStateChanged(int newState) {
     }
 
     public String confirmContentClose = null;
