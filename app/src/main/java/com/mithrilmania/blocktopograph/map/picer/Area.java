@@ -1,9 +1,9 @@
 package com.mithrilmania.blocktopograph.map.picer;
 
+import androidx.annotation.NonNull;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.NonNull;
 
 public class Area {
 
@@ -82,7 +82,7 @@ public class Area {
         return mMaxZ - mMinZ;
     }
 
-    class Member {
+    static class Member {
 
         public int x;
         public int z;

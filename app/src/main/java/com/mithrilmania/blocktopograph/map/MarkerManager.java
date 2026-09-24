@@ -17,9 +17,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -190,8 +191,8 @@ public class MarkerManager {
         }
     }
 
-    public Collection<AbstractMarker> getMarkers() {
-        return Collections.unmodifiableSet(markers);
+    public List<AbstractMarker> getMarkers() {
+        return new ArrayList<>(markers);
     }
 
     public Collection<AbstractMarker> getMarkersOfChunk(int chunkX, int chunkZ) {

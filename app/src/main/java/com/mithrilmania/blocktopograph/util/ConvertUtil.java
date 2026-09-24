@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.util;
 
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import java.util.Locale;
 
@@ -11,28 +10,21 @@ import java.util.Locale;
  * Convert utils
  */
 public class ConvertUtil {
-
     @NonNull
     public static String getLegalFileName(@NonNull String text) {
         return text.replaceAll("[\\\\/:*?\"<>|.]", "_");
-    }
-
-    @Nullable
-    public static String guessPictureMimeFromExtension(@NonNull String extension, boolean inLower) {
-        // assert extension.length()>0;
-        if (extension.charAt(0) == '.') extension = extension.substring(1);
-        if (!inLower) extension = extension.toLowerCase();
-        return switch (extension) {
-            case "png" -> "image/png";
-            case "jpg", "jpeg" -> "image/jpg";
-            default -> null;
-        };
     }
 
     public static float distance(float x1, float y1, float x2, float y2) {
         float d1 = x2 - x1;
         float d2 = y2 - y1;
         return (float) Math.sqrt(d1 * d1 + d2 * d2);
+    }
+
+    public static float distanceSq(float x1, float y1, float x2, float y2) {
+        float d1 = x2 - x1;
+        float d2 = y2 - y1;
+        return d1 * d1 + d2 * d2;
     }
 
     public static double distance(double x1, double y1, double x2, double y2) {

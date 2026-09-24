@@ -14,8 +14,8 @@ fun Context.upcoming() {
     Toast.makeText(this, "前面的区域，以后再来探索吧！", Toast.LENGTH_SHORT).show()
 }
 
-fun Context.toast(@StringRes text: Int) =
-    Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+fun Context.toast(@StringRes text: Int, duration: Int = Toast.LENGTH_SHORT) =
+    Toast.makeText(this, text, duration).show()
 
 inline fun FragmentManager.popAndTransit(action: FragmentTransaction.() -> Unit) {
     this.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)

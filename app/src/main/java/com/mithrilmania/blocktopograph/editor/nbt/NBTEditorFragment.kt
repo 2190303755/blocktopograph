@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.editor.nbt
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
@@ -26,7 +27,7 @@ class NBTEditorFragment @JvmOverloads constructor(
         view.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         view.setContent {
             BlocktopographCompatTheme {
-                NBTEditor(this.viewModel) {
+                NBTEditor(Modifier, this.viewModel) {
                     this.parentFragmentManager.popBackStack()
                 }
             }

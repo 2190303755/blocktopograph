@@ -12,7 +12,7 @@ import com.mithrilmania.blocktopograph.nbt.PrimitiveTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput
-import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
+import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import java.io.Serializable
 
@@ -24,16 +24,13 @@ private fun BlockType?.getKnownPropertyIndex(prop: String): Int = if (this === n
 }
 
 fun BedrockNBTInput.readBlockFormV1d2d13TerrainSubChunk(): Block {
-    val block = this.readNamedTag().second
-    if (block !is CompoundTag) {
-        throw ClassCastException()
-    }
+    val block = this.readAnonymousTypedTag<CompoundTag>() ?: throw ClassCastException()
     val name = requireNotNull(block.getTyped<StringTag>(BlockStorage.PALETTE_KEY_NAME)).value
     val type = BlockType.get(name)
     val builder = if (type === null) Block.Builder(name) else Block.Builder(type)
     block.getTyped<CompoundTag>(BlockStorage.PALETTE_KEY_STATES)?.let {
-        it.forEach { (key, tag) ->
-            builder.setProperty(key, tag)
+        it.forEach { entry ->
+            builder.setProperty(entry.key, entry.value)
         }
     }
     block.getTyped<PrimitiveTag>(BlockStorage.PALETTE_KEY_VERSION)?.let {

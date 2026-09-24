@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.map;
 
 import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.util.LoggerKt.APP_TAG;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -9,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.util.Log;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
@@ -34,11 +36,11 @@ public class MCTileProvider implements BitmapProvider {
             viewSizeW = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION,
             viewSizeL = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION;
 
-    public final WorldMapModel world;
+    public final WorldMapModel mapModel;
     public final WorldModel worldModel;
 
-    public MCTileProvider(WorldMapModel world, WorldModel worldModel) {
-        this.world = world;
+    public MCTileProvider(WorldMapModel mapModel, WorldModel worldModel) {
+        this.mapModel = mapModel;
         this.worldModel = worldModel;
     }
 
@@ -61,7 +63,7 @@ public class MCTileProvider implements BitmapProvider {
 
         WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return null;
-        Dimension dimension = this.world.getDimension();
+        Dimension dimension = this.mapModel.getDimension();
         MapType mapType = (MapType) tile.getDetailLevel().getLevelType();
         if (mapType == null) return null;
         Bitmap bm = tile.hasBitmap() ? tile.getBitmap() : Bitmap.createBitmap(tile.getWidth(), tile.getHeight(), Bitmap.Config.RGB_565);//getRecycledBitmap();
@@ -131,7 +133,7 @@ public class MCTileProvider implements BitmapProvider {
 
                         MapType.ERROR.renderer.renderToBitmap(chunk, canvas, dimension,
                                 x, z, pX, pY, pixelsPerBlockW, pixelsPerBlockL, paint, storage);
-                        e.printStackTrace();
+                        Log.w(APP_TAG, "Error when rending chunk", e);
 
                     }
 
@@ -140,12 +142,13 @@ public class MCTileProvider implements BitmapProvider {
 
             //load all those markers with an async task, this task publishes its progress,
             // the UI thread picks it up and renders the markers
-            if (this.world.getShowMarkers().getValue())
-                new MarkerAsyncTask(this.world, this.worldModel, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension).execute();
+            if (this.mapModel.getShowMarkers().getValue()) {
+                MCTileProviderCompatKt.loadMarkers(this.worldModel, this.mapModel, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension);
+            }
 
 
             //draw the grid
-            if (this.world.getShowGrid().getValue()) {
+            if (this.mapModel.getShowGrid().getValue()) {
 
                 //draw tile-edges white
                 for (int i = 0; i < TILESIZE; i++) {

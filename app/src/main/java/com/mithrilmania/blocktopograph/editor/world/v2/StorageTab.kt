@@ -28,20 +28,16 @@ fun StorageTab(
                     val db = info.storage.db
                     val file = db.file(SpecialDBEntryType.LOCAL_PLAYER)
                     if (file.isPresent()) {
-                        viewModel.editing.emit(
-                            file to NBTImportConfigImpl(
+                        viewModel.editing.value = file to NBTImportConfigImpl(
                                 NBTFormat.LITTLE_ENDIAN,
                                 HeaderPresence.UNCERTAIN
-                            )
                         )
                     } else {
-                        viewModel.editing.emit(
-                            LocalPlayerSource(
-                                info.world.config
-                            ) to NBTImportConfigImpl(
-                                NBTFormat.LITTLE_ENDIAN,
-                                HeaderPresence.PRESENT
-                            )
+                        viewModel.editing.value = LocalPlayerSource(
+                            info.world.config
+                        ) to NBTImportConfigImpl(
+                            NBTFormat.LITTLE_ENDIAN,
+                            HeaderPresence.PRESENT
                         )
                     }
                 }

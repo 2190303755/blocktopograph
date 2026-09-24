@@ -6,8 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -80,6 +82,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -117,6 +120,8 @@ import com.mithrilmania.blocktopograph.editor.nbt.node.buildNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
+import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.nbt.toTagType
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
@@ -141,6 +146,8 @@ import com.mithrilmania.blocktopograph.util.collectText
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.util.upcoming
 import kotlinx.coroutines.launch
+
+typealias ConfiguredNBTSource = Pair<NBTSource, NBTImportConfig>
 
 fun NBTEditorModel.saveAsync() {
     val source = this.source
@@ -237,9 +244,41 @@ fun NBTSummary(
     }
 }
 
+@Composable
+fun NBTEditingHost(
+    source: MutableState<ConfiguredNBTSource?>,
+    content: @Composable AnimatedVisibilityScope.() -> Unit
+) {
+    AnimatedContent(
+        targetState = source.value,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            fadeIn(animationSpec = tween(220, delayMillis = 90))
+                .togetherWith(fadeOut(animationSpec = tween(90)))
+        }
+    ) {
+        if (it === null) {
+            this.content()
+        } else {
+            val editor = viewModel<NBTEditorModel>()
+            val onBack: () -> Unit = {
+                source.value = null
+                editor.navigation = null
+            }
+            BackHandler(true, onBack)
+            NBTEditor(Modifier.animateEnterExit(), editor, onBack)
+            LaunchedEffect(it) {
+                editor.navigation = it
+            }
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NBTEditor(
+    modifier: Modifier = Modifier,
     editor: NBTEditorModel = viewModel(),
     onExit: () -> Unit
 ) {
@@ -560,7 +599,7 @@ fun NBTEditor(
                 }
             }
         },
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         scaffoldState = scaffoldState,
         sheetPeekHeight = with(LocalDensity.current) {
             cutout.getBottom(this).toDp()

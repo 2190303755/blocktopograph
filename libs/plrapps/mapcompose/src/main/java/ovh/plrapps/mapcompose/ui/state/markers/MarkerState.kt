@@ -1,5 +1,6 @@
 package ovh.plrapps.mapcompose.ui.state.markers
 
+import androidx.annotation.Px
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
@@ -124,7 +125,7 @@ internal class MarkerState(
     fun addClusterer(
         mapState: MapState,
         id: String,
-        clusteringThreshold: Dp,
+        @Px clusteringThreshold: Float,
         clusterClickBehavior: ClusterClickBehavior,
         scaleThreshold: ClusterScaleThreshold,
         clusterFactory: (ids: List<String>) -> (@Composable () -> Unit)

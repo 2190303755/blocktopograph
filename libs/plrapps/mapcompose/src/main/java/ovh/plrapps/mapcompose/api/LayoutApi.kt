@@ -7,10 +7,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +23,6 @@ import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.VisibleAreaPadding
 import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 import ovh.plrapps.mapcompose.utils.Point
-import ovh.plrapps.mapcompose.utils.dpToPx
 import ovh.plrapps.mapcompose.utils.throttle
 import ovh.plrapps.mapcompose.utils.withRetry
 import kotlin.math.min
@@ -76,26 +73,6 @@ fun MapState.setStateChangeListener(cb: MapState.() -> Unit) {
  */
 fun MapState.removeStateChangeListener() {
     stateChangeListener = null
-}
-
-/**
- * Sets the padding of the visible area of the map viewport in [Dp], for the purpose of camera moves.
- * For example, if you have some UI obscuring the map on the left, you can set the appropriate
- * left padding. Then, when you use the scrollTo methods, the map will take that into account, by
- * centering on the visible portion of the viewport.
- */
-fun MapState.setVisibleAreaPadding(
-    left: Dp = 0.dp,
-    right: Dp = 0.dp,
-    top: Dp = 0.dp,
-    bottom: Dp = 0.dp
-) {
-    setVisibleAreaPadding(
-        left = dpToPx(left.value).roundToInt(),
-        right = dpToPx(right.value).roundToInt(),
-        top = dpToPx(top.value).roundToInt(),
-        bottom = dpToPx(bottom.value).roundToInt()
-    )
 }
 
 /**

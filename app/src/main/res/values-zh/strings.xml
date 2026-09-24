@@ -384,7 +384,7 @@
     <string name="map_edit_chbiome_to">改为</string>
     <string name="map_notice_try_selection">你可以长按地图，选择“开始框选”然后尝试编辑。</string>
     <string name="map_picer_world_too_large">世界太大</string>
-    <string name="map_picer_use_selection_instead">太♂大了。你可以:\\n(1) 在电脑上使用同类工具；\\n(2) 或者框选一部分区域然后从选区选项里选择截图。</string>
+    <string name="map_picer_use_selection_instead">太♂大了。你可以:\n(1) 在电脑上使用同类工具；\n(2) 或者框选一部分区域然后从选区选项里选择截图。</string>
     <string name="map_picer_scale_guide">你可以放大图片。每个方块至少1像素。</string>
     <string name="map_picer_selection_too_large">选区太大</string>
     <string name="map_picer_selection_too_large_detail">你选择的区域太♂大了。宽度和高度都应该在%1$d方块以内，同时面积在%2$d方块²以内。</string>

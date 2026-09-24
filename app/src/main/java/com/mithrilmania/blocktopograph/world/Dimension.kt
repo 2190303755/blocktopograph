@@ -7,10 +7,9 @@ import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
-import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
+import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import java.io.ByteArrayInputStream
 
 sealed interface Dimension {
     val identifier: String
@@ -49,9 +48,9 @@ val VANILLA_DIMENSIONS: Int2ObjectMap<VanillaDimension> = run {
 
 fun buildDimensionRegistry(serialized: ByteArray? = null): Int2ObjectMap<out Dimension> {
     if (serialized !== null) {
-        val dimensions = (BedrockNBTInput(
-            ByteArrayInputStream(serialized)
-        ).readNamedTag().second as? CompoundTag)?.get("entries")
+        val dimensions = BedrockNBTInput(serialized)
+            .readAnonymousTypedTag<CompoundTag>()
+            ?.get("entries")
         if (dimensions is CompoundTag) {
             val registry = Int2ObjectOpenHashMap<Dimension>(dimensions.size + 3)
             registry.putAll(VANILLA_DIMENSIONS)

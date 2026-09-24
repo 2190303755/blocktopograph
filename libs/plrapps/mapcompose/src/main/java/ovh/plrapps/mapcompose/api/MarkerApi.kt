@@ -2,6 +2,7 @@
 
 package ovh.plrapps.mapcompose.api
 
+import androidx.annotation.Px
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
@@ -93,7 +94,7 @@ fun MapState.addMarker(
  *
  * @param id The id of the clusterer.
  * @param clusteringThreshold When the distance between two markers goes below that threshold, a
- * cluster is formed. Defaults to 50 dp. There's one exception: when the scale reaches max scale,
+ * cluster is formed. There's one exception: when the scale reaches max scale,
  * in which case clustering is disabled.
  * @param clusterClickBehavior Defines the behavior when a cluster is clicked.
  * @param scaleThreshold Defines the scale above which the clusterer is disabled. Defaults to
@@ -103,7 +104,7 @@ fun MapState.addMarker(
  */
 fun MapState.addClusterer(
     id: String,
-    clusteringThreshold: Dp = 50.dp,
+    @Px clusteringThreshold: Float,
     clusterClickBehavior: ClusterClickBehavior = Default,
     scaleThreshold: ClusterScaleThreshold = ClusterScaleThreshold.MaxScale,
     clusterFactory: (ids: List<String>) -> (@Composable () -> Unit)

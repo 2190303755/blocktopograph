@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.util.fastForEach
@@ -55,8 +56,8 @@ internal fun ZoomPan(
                     onDoubleTapZoomFling = gestureListener::onFlingZoom,
                     onPress = { gestureListener.onPress() },
                     onLongPress = gestureListener::onLongPress,
-                    shouldConsumeTap = gestureListener::shouldConsumeTapGesture,
-                    shouldConsumeLongPress = gestureListener::shouldConsumeLongPress
+                    shouldConsumeTap = { gestureListener.shouldConsumeTapGesture(this, it) },
+                    shouldConsumeLongPress = { gestureListener.shouldConsumeLongPress(this, it) }
                 )
             }
             .onSizeChanged {
@@ -91,8 +92,8 @@ internal interface GestureListener {
     fun onTwoFingersTap(focalPt: Offset)
     fun onLongPress(focalPt: Offset)
     fun isListeningForGestures(): Boolean
-    fun shouldConsumeTapGesture(focalPt: Offset): Boolean
-    fun shouldConsumeLongPress(focalPt: Offset): Boolean
+    fun shouldConsumeTapGesture(density: Density, focalPt: Offset): Boolean
+    fun shouldConsumeLongPress(density: Density, focalPt: Offset): Boolean
 }
 
 internal interface LayoutSizeChangeListener {

@@ -33,7 +33,6 @@ import com.mithrilmania.blocktopograph.util.autoDecompress
 import com.mithrilmania.blocktopograph.util.readIntLE
 import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.writeIntLE
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
 import java.io.DataOutput
@@ -132,7 +131,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
                         )
                     ) {
                         val pair = BedrockNBTInput(
-                            ByteArrayInputStream(bytes, 8, bytes.size - 8)
+                            bytes.inputStream(8, bytes.size - 8)
                         ).readNamedTag()
                         return TagWithMeta(
                             pair.second,
@@ -147,9 +146,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
                             littleEndian = true
                         )
                     } else {
-                        val pair = BedrockNBTInput(
-                            ByteArrayInputStream(bytes)
-                        ).readNamedTag()
+                        val pair = BedrockNBTInput(bytes).readNamedTag()
                         return TagWithMeta(
                             pair.second,
                             pair.first,
@@ -167,7 +164,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
             if (config.header !== HeaderPresence.ABSENT) {
                 if (bytes.size > 8 && bytes.size == 8 + bytes.readIntLE(4)) runSuppressing {
                     val pair = BedrockNBTInput(
-                        ByteArrayInputStream(bytes, 8, bytes.size - 8)
+                        bytes.inputStream(8, bytes.size - 8)
                     ).readNamedTag()
                     return TagWithMeta(
                         pair.second,
@@ -189,9 +186,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
                 )
             }
             runSuppressing {
-                val pair = BedrockNBTInput(
-                    ByteArrayInputStream(bytes)
-                ).readNamedTag()
+                val pair = BedrockNBTInput(bytes).readNamedTag()
                 return TagWithMeta(
                     pair.second,
                     pair.first,
@@ -201,9 +196,7 @@ fun InputStream.readNBT(config: NBTImportConfig): TagWithMeta? {
                 )
             }
             runSuppressing {
-                val pair = JavaNBTInput(
-                    ByteArrayInputStream(bytes)
-                ).readNamedTag()
+                val pair = JavaNBTInput(bytes).readNamedTag()
                 return TagWithMeta(
                     pair.second,
                     pair.first,
@@ -227,7 +220,6 @@ fun OutputStream.writeNBT(name: String, tag: BinaryTag, config: NBTExportConfig)
         this.use {
             it.write(builder.toString().toByteArray(Charsets.UTF_8))
         }
-        this.close()
     } else if (config.littleEndian) {
         if (config.compressed) {
             BedrockNBTOutput(GZIPOutputStream(this.buffered())).use {
@@ -300,6 +292,8 @@ fun DataInput.readNamedTag(): Pair<String, BinaryTag> {
         this.readUTF() to type.toTagType().read(this, 0)
     }
 }
+
+inline fun <reified T> DataInput.readAnonymousTypedTag(): T? = this.readNamedTag().second as? T
 
 fun DataInput.skipBinaryTags(depth: Int = 0) {
     when (val type = this.readByte()) {

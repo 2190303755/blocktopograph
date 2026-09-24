@@ -3,12 +3,8 @@ package com.mithrilmania.blocktopograph.map.picer;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -25,16 +21,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.databinding.FragPicerBinding;
-import com.mithrilmania.blocktopograph.map.OpenLongPressMenuHandler;
 import com.mithrilmania.blocktopograph.util.ConvertUtil;
 import com.mithrilmania.blocktopograph.util.UiUtil;
 import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.World;
-
-import java.io.File;
 
 public final class PicerFragment extends DialogFragment {
 
@@ -46,13 +38,11 @@ public final class PicerFragment extends DialogFragment {
 
     World mWorld;
     Dimension mDimension;
-    AsyncTask mOngoingTask;
     private int stage = 0;
-    GenerateThread mOngoingThread;
-    private OpenLongPressMenuHandler mOpenLongPressMenuHandler;
+    private Runnable mOpenLongPressMenuHandler;
 
     public static PicerFragment create(@NonNull World world, @NonNull Dimension dimension,
-                                       @Nullable Rect range, @Nullable OpenLongPressMenuHandler openLongPressMenuHandler) {
+                                       @Nullable Rect range, @Nullable Runnable openLongPressMenuHandler) {
         PicerFragment ret = new PicerFragment();
         ret.mWorld = world;
         ret.mDimension = dimension;
@@ -92,7 +82,7 @@ public final class PicerFragment extends DialogFragment {
         if (dialog instanceof AlertDialog)
             ((AlertDialog) dialog).setView(root);
         if (mRange == null)
-            root.post(() -> mOngoingTask = new AnalyzeTask(this).execute());
+            PicerFragmentCompatKt.analyzeChunks(this);
         else goToScalePhase();
         return root;
     }
@@ -105,13 +95,6 @@ public final class PicerFragment extends DialogFragment {
                 .create();
         dialog.setCanceledOnTouchOutside(false);
         return dialog;
-    }
-
-    @Override
-    public void onDismiss(@NonNull DialogInterface dialog) {
-        super.onDismiss(dialog);
-        if (mOngoingTask != null) mOngoingTask.cancel(true);
-        if (mOngoingThread != null) mOngoingThread.cancel();
     }
 
     // Result callbacks from AnalyzeTask.
@@ -227,7 +210,7 @@ public final class PicerFragment extends DialogFragment {
             new AlertDialog.Builder(activity)
                     .setTitle(R.string.map_picer_world_too_large)
                     .setMessage(R.string.map_picer_use_selection_instead)
-                    .setPositiveButton(android.R.string.ok, (dia, i) -> mOpenLongPressMenuHandler.open())
+                    .setPositiveButton(android.R.string.ok, (dia, i) -> mOpenLongPressMenuHandler.run())
                     .create().show();
             dismiss();
         }
@@ -240,6 +223,9 @@ public final class PicerFragment extends DialogFragment {
         Activity activity = getActivity();
         if (activity == null) return;
 
+        var storage = this.mWorld.getStorage();
+        if (storage == null) return;
+
         int scale = mBinding.scaleSeek.getProgress() + 1;
         AlertDialog dialog = UiUtil.buildProgressWaitDialog(
                 activity, R.string.picer_progress_generating, dialogInterface -> dismiss());
@@ -248,12 +234,11 @@ public final class PicerFragment extends DialogFragment {
         mBinding.finalButton.setVisibility(View.GONE);
         mBinding.selectCase.setVisibility(View.GONE);
 
-        mOngoingThread = new GenerateThread(this, mRange, scale, Bitmap.Config.ARGB_8888, dialog);
-        mOngoingThread.start();
+        PicerFragmentCompatKt.generateBitmap(this, mRange, scale, storage, dialog);
     }
 
     @UiThread
-    void onGenerationDone(@Nullable Bitmap bitmap, @Nullable AlertDialog dialog) {
+    void onGenerationDone(@Nullable Bitmap bitmap, @Nullable DialogInterface dialog) {
 
         if (dialog != null) dialog.dismiss();
 
@@ -272,45 +257,15 @@ public final class PicerFragment extends DialogFragment {
         mBinding.previewCase.setVisibility(View.VISIBLE);
 
         PicerFragmentCompatKt.loadBitmap(mBinding, bitmap);
-
     }
 
     @UiThread
     private void onClickSave(@NonNull View view) {
         Object o = view.getTag();
         if (!(o instanceof Bitmap)) return;
-        Bitmap bmp = (Bitmap) o;
         view.setTag(null);
         String name = mWorld.getPlainName();
         name = ConvertUtil.getLegalFileName(name);
-        new SaveTask(this, name).execute(bmp);
+        PicerFragmentCompatKt.saveBitmap(this, (Bitmap) o, name + "_map");
     }
-
-    @UiThread
-    void onSavedBitmap(@Nullable File file) {
-        Activity activity = getActivity();
-        if (activity == null) return;
-        if (file == null)
-            Toast.makeText(activity, R.string.general_failed, Toast.LENGTH_SHORT).show();
-        else {
-            MediaScannerConnection.scanFile(activity,
-                    new String[]{file.getAbsolutePath()},
-                    new String[]{"image/png"}, null);
-            Snackbar snackbar = Snackbar.make(
-                    activity.getWindow().getDecorView(),
-                    getString(R.string.picer_saved), Snackbar.LENGTH_SHORT)
-                    .setAction(R.string.general_share, v -> {
-                        Intent shareIntent = new Intent();
-                        shareIntent.setAction(Intent.ACTION_SEND);
-                        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-                        shareIntent.setType("image/jpeg");
-                        getActivity().startActivity(
-                                Intent.createChooser(shareIntent,
-                                        v.getContext().getString(R.string.picer_share_title)));
-                    });
-            snackbar.show();
-            dismiss();
-        }
-    }
-
 }

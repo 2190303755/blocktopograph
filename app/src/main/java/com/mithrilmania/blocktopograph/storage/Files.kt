@@ -5,7 +5,9 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
+import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
+import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.nbt.io.TagWithMeta
@@ -16,7 +18,6 @@ import com.mithrilmania.blocktopograph.util.queryName
 import com.mithrilmania.blocktopograph.util.rpc
 import com.mithrilmania.blocktopograph.util.toLDBKey
 import org.iq80.leveldb.DB
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -124,11 +125,13 @@ class VirtualFile(
     val db: DB,
     val name: String,
     private val key: ByteArray,
-) : File {
+) : File, NBTImportConfig {
+    override val format: NBTFormat get() = NBTFormat.LITTLE_ENDIAN
+    override val header: HeaderPresence get() = HeaderPresence.UNCERTAIN
     override suspend fun isPresent(context: Context?): Boolean = this.db[this.key] !== null
 
     override suspend fun <T> read(context: Context, action: (InputStream) -> T?): T? =
-        this.db[this.key]?.let { action(ByteArrayInputStream(it)) }
+        this.db[this.key]?.let { action(it.inputStream()) }
 
     override suspend fun save(context: Context, action: (OutputStream) -> Unit) {
         val stream = ByteArrayOutputStream()

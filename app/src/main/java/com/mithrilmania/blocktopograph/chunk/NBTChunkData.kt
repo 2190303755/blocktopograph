@@ -1,14 +1,16 @@
 package com.mithrilmania.blocktopograph.chunk
 
+import android.util.Log
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.IntTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTOutput
 import com.mithrilmania.blocktopograph.nbt.io.readAsCompound
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
+import com.mithrilmania.blocktopograph.util.APP_TAG
+import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.chunk.ChunkTag
 import org.iq80.leveldb.DBException
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -19,6 +21,19 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
     @Throws(DBException::class, IOException::class)
     fun load() {
         val chunk: Chunk = this.chunk.get() ?: return
+        if (dataType == ChunkTag.ENTITY) {
+            // TODO remove log
+            Log.d(
+                APP_TAG, "Loading Chunk Data ${
+                    WorldStorage.makeChunkKey(
+                        chunk.mChunkX,
+                        chunk.mChunkZ,
+                        chunk.mDimension.runtimeId,
+                        dataType,
+                    ).toHexString()
+                }"
+            )
+        }
         loadFromByteArray(
             chunk.worldData.getChunkData(
                 chunk.mChunkX,
@@ -32,9 +47,9 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
     @Throws(IOException::class)
     fun loadFromByteArray(data: ByteArray?) {
         if (data === null || data.isEmpty()) return
-        val input = BedrockNBTInput(ByteArrayInputStream(data))
-        val tags = input.readAsCompound(linkedMapOf())
-        input.close()
+        val tags = BedrockNBTInput(data).use {
+            it.readAsCompound(linkedMapOf())
+        }
         this.tags.clear()
         this.tags.putAll(tags)
     }
@@ -42,12 +57,12 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
     @Throws(DBException::class, IOException::class)
     override fun write() {
         val bytes = ByteArrayOutputStream()
-        val output = BedrockNBTOutput(bytes)
-        this.tags.forEach { (key, tag) ->
-            output.writeNBT(key, tag)
+        BedrockNBTOutput(bytes).use {
+            this.tags.forEach { entry ->
+                it.writeNBT(entry.key, entry.value)
+            }
         }
-        output.close()
-        val chunk: Chunk = this.chunk.get() ?: return
+        val chunk = this.chunk.get() ?: return
         chunk.worldData.writeChunkData(
             chunk.mChunkX,
             chunk.mChunkZ,

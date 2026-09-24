@@ -7,7 +7,6 @@ import android.text.TextPaint
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
@@ -40,7 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -61,12 +59,10 @@ import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composeunstyled.SheetDetent
 import com.composeunstyled.rememberBottomSheetState
 import com.mithrilmania.blocktopograph.LogUtil
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditingHost
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_SHADER
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.ERROR_SHADER
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.renderSatellite
@@ -75,6 +71,7 @@ import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
+import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
 import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
@@ -108,7 +105,6 @@ import ovh.plrapps.mapcompose.api.reloadTiles
 import ovh.plrapps.mapcompose.api.scale
 import ovh.plrapps.mapcompose.api.setLayer
 import ovh.plrapps.mapcompose.ui.MapUI
-import java.io.ByteArrayInputStream
 import kotlin.math.floor
 import kotlin.math.log2
 import android.graphics.Paint as AndroidPaint
@@ -143,7 +139,7 @@ class WorldEditorActivity : ComponentActivity() {
                 val heightBounds = async(Dispatchers.IO) {
                     val bytes = storage.db[GlobalKey.CHUNK_METAS]
                     if (bytes === null) Long2IntMaps.EMPTY_MAP else {
-                        val input = BedrockNBTInput(ByteArrayInputStream(bytes))
+                        val input = BedrockNBTInput(bytes)
                         val size = input.readInt()
                         val ranges = Long2IntOpenHashMap(size)
                         repeat(size) {
@@ -179,7 +175,7 @@ class WorldEditorActivity : ComponentActivity() {
                         val player: BinaryTag? = if (bytes === null) {
                             world.config.getCached(viewModel.application)["Player"]
                         } else {
-                            BedrockNBTInput(ByteArrayInputStream(bytes)).readNamedTag().second
+                            BedrockNBTInput(bytes).readAnonymousTypedTag()
                         }
                         if (player is CompoundTag) {
                             player.extractPlayerPos()
@@ -318,8 +314,8 @@ class WorldEditorActivity : ComponentActivity() {
                         SheetDetent.FullyExpanded
                     )
                 )
-                NBTEditingHost(viewModel) {
-                    Box(contentAlignment = Alignment.Center) {
+                NBTEditingHost(viewModel.editing) {
+                    Box(Modifier.animateEnterExit(), contentAlignment = Alignment.Center) {
                         MapUI(
                             state = viewModel.map,
                             modifier = Modifier.background(Color(0xFFD6BE96))
@@ -498,42 +494,6 @@ fun WorldEditorScaffold(
 
             else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 LoadingIndicator()
-            }
-        }
-    }
-}
-
-@Composable
-fun NBTEditingHost(
-    viewModel: WorldEditorModel,
-    content: @Composable () -> Unit
-) {
-    AnimatedContent(
-        targetState = viewModel.editing.collectAsState().value,
-        modifier = Modifier.fillMaxSize(),
-        transitionSpec = {
-            fadeIn(animationSpec = tween(220, delayMillis = 90))
-                .togetherWith(fadeOut(animationSpec = tween(90)))
-        }
-    ) {
-        if (it === null) {
-            content()
-        } else {
-            val editor = viewModel<NBTEditorModel>()
-            val onBack: () -> Unit = {
-                viewModel.viewModelScope.launch {
-                    viewModel.editing.emit(null)
-                }
-                editor.navigation = null
-            }
-            BackHandler(true, onBack)
-            NBTEditor(editor, onBack)
-            LaunchedEffect(it) {
-                if (editor.navigation == it) return@LaunchedEffect
-                editor.viewModelScope.launch {
-                    editor.readFromFile(it.first, it.second)
-                }
-                editor.navigation = it
             }
         }
     }

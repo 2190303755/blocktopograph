@@ -9,11 +9,11 @@ import androidx.collection.LruCache;
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.Version;
+import com.mithrilmania.blocktopograph.util.ArrayUtilKt;
 import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
-import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.env.Env;
@@ -133,20 +133,23 @@ public class WorldStorage implements Closeable {
         this.chunks.evictAll();
     }
 
-    public List<String> getNetworkPlayerNameList() {
-        return this.getDBKeysStartingWith("player_");
+    public List<byte[]> getNetworkPlayerNameList() {
+        return this.getDBKeysStartingWith(KeyPrefix.PROFILE.bytes);
     }
 
-    public List<String> getDBKeysStartingWith(String startWith) {
-        DBIterator it = this.db.iterator(new ReadOptions().fillCache(false));
-        it.seek(toLDBKey(startWith));
-        ArrayList<String> items = new ArrayList<>();
+    public List<byte[]> getDBKeysStartingWith(String prefix) {
+        return getDBKeysStartingWith(toLDBKey(prefix));
+    }
+
+    public List<byte[]> getDBKeysStartingWith(byte[] prefix) {
+        var it = this.db.iterator(new ReadOptions().fillCache(false));
+        it.seek(prefix);
+        var items = new ArrayList<byte[]>();
         while (it.hasNext()) {
             byte[] key = it.next().getKey();
             if (key == null) continue;
-            String keyStr = new String(key);
-            if (!keyStr.startsWith(startWith)) break;
-            items.add(keyStr);
+            if (!ArrayUtilKt.startsWith(key, prefix)) break;
+            items.add(key);
         }
         it.close();
         return items;

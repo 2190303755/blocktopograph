@@ -1,5 +1,11 @@
 package com.mithrilmania.blocktopograph.util.math
 
+data class Vec3f(
+    @JvmField val x: Float,
+    @JvmField val y: Float,
+    @JvmField val z: Float
+)
+
 data class DimensionVec3i(
     @JvmField val dimensionId: Int,
     @JvmField val x: Int,

@@ -1,9 +1,9 @@
 package ovh.plrapps.mapcompose.ui.markers
 
+import androidx.annotation.Px
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +46,7 @@ import kotlin.math.pow
 
 internal class Clusterer(
     val id: String,
-    clusteringThreshold: Dp,
+    @Px clusteringThreshold: Float,
     private val mapState: MapState,
     private val markerRenderState: MarkerRenderState,
     markersDataFlow: MutableStateFlow<List<MarkerData>>,
@@ -77,7 +77,7 @@ internal class Clusterer(
         }
     }
     private val clusterIdPrefix = "#cluster#-$id"
-    private val epsilon = dpToPx(clusteringThreshold.value)
+    private val epsilon = clusteringThreshold
 
     init {
         scope.launch {

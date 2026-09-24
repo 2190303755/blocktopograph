@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
+import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.editor.nbt.node.RootLike
@@ -21,6 +22,7 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
@@ -59,6 +61,14 @@ class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig,
     override val depth: Int get() = 0
     override fun makePath(child: String): String = ""
     var navigation: Pair<NBTSource, NBTImportConfig>? = null
+        set(value) {
+            if (value !== null && field != value) {
+                viewModelScope.launch {
+                    readFromFile(value.first, value.second)
+                }
+            }
+            field = value
+        }
     var modified: Boolean by mutableStateOf(false)
     var flattening: Boolean by mutableStateOf(false)
     var confirmation: ConfirmationRequest? by mutableStateOf(null)

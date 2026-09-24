@@ -91,3 +91,11 @@ fun IntArray.removeAt(index: Int) =
 
 fun LongArray.removeAt(index: Int) =
     this.removeAt(index, LongArray::size, ::LongArray)
+
+fun ByteArray.startsWith(prefix: ByteArray): Boolean {
+    if (prefix.size > this.size) return false
+    for (i in prefix.indices) {
+        if (this[i] != prefix[i]) return false
+    }
+    return true
+}

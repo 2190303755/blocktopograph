@@ -15,11 +15,7 @@ public class ColorUtil {
         );
     }
 
-    private static int ensureRange(int val, int min, int max) {
-        return Math.min(Math.max(val, min), max);
-    }
-
     private static int ensureColorRange(int val) {
-        return ensureRange(val, 0, 255);
+        return Math.clamp(val, 0, 255);
     }
 }

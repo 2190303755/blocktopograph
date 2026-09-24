@@ -1,5 +1,6 @@
 package ovh.plrapps.mapcompose.ui.state
 
+import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -102,14 +103,22 @@ class MapState(
 
     override fun detectsLongPress(): Boolean = longPressCb != null
 
-    override fun interceptsTap(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
+    override fun interceptsTap(
+        density: Density,
+        x: Double,
+        y: Double,
+        xPx: Int,
+        yPx: Int
+    ): Boolean {
         return markerState.onHit(xPx, yPx, hitType = HitType.Click)
-                || pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.Click)
+                || pathState.onHit(density, x, y, zoomPanState.scale, hitType = HitType.Click)
     }
 
-    override fun interceptsLongPress(x: Double, y: Double, xPx: Int, yPx: Int): Boolean {
+    override fun interceptsLongPress(
+        density: Density, x: Double, y: Double, xPx: Int, yPx: Int
+    ): Boolean {
         return markerState.onHit(xPx, yPx, hitType = HitType.LongPress)
-                || pathState.onHit(x, y, zoomPanState.scale, hitType = HitType.LongPress)
+                || pathState.onHit(density, x, y, zoomPanState.scale, hitType = HitType.LongPress)
     }
 
     internal fun renderVisibleTilesThrottled() {

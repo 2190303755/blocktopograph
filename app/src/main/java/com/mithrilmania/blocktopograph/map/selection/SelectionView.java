@@ -348,10 +348,10 @@ public class SelectionView extends FrameLayout implements SelectionViewCompat {
                 float currentX = scrollX + hw;
                 float hh = sh / 2.0f;
                 float currentY = scrollY + hh;
-                float dlt = ConvertUtil.distance(currentX, currentY, r.left, r.top);
-                float drt = ConvertUtil.distance(currentX, currentY, r.right, r.top);
-                float dlb = ConvertUtil.distance(currentX, currentY, r.left, r.bottom);
-                float drb = ConvertUtil.distance(currentX, currentY, r.right, r.bottom);
+                float dlt = ConvertUtil.distanceSq(currentX, currentY, r.left, r.top);
+                float drt = ConvertUtil.distanceSq(currentX, currentY, r.right, r.top);
+                float dlb = ConvertUtil.distanceSq(currentX, currentY, r.left, r.bottom);
+                float drb = ConvertUtil.distanceSq(currentX, currentY, r.right, r.bottom);
                 if (dlt < drt && dlt < dlb && dlt < drb) {
                     tileView.setScrollX((int) (r.left - hw));
                     tileView.setScrollY((int) (r.top - hh));

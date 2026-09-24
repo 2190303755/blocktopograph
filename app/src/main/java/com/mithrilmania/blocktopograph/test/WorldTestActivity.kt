@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.test
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -60,7 +59,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,11 +76,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditor
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditingHost
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
-import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
@@ -97,7 +92,6 @@ import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
 import com.mithrilmania.blocktopograph.util.errorAndPop
-import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldModelFactory
 import com.mithrilmania.blocktopograph.world.WorldStorage
@@ -120,8 +114,8 @@ class WorldTestActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         val majorModel = this.majorModel
         try {
             this.majorModel.open(this)
@@ -137,289 +131,269 @@ class WorldTestActivity : ComponentActivity() {
                 )
             )
             val listState: LazyListState = rememberLazyListState()
-            AnimatedContent(
-                targetState = majorModel.editing
-            ) { editing ->
-                if (editing === null) {
-                    val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-                    val scope = rememberCoroutineScope()
-                    BottomSheetScaffold(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .nestedScroll(scrollBehavior.nestedScrollConnection),
-                        topBar = {
-                            TopAppBar(
-                                scrollBehavior = scrollBehavior,
-                                title = {
-                                    Text(stringResource(R.string.title_test_page))
-                                },
-                                navigationIcon = ::AppBarNavigationButton,
-                                actions = {
-                                    TooltipBox("repair") { tooltip ->
-                                        IconButton(Icons.Filled.Build, tooltip) {
-                                            upcoming()
-                                        }
+            NBTEditingHost(majorModel.editing) {
+                val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                val scope = rememberCoroutineScope()
+                BottomSheetScaffold(
+                    modifier = Modifier
+                        .animateEnterExit()
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    topBar = {
+                        TopAppBar(
+                            scrollBehavior = scrollBehavior,
+                            title = {
+                                Text(stringResource(R.string.title_test_page))
+                            },
+                            navigationIcon = ::AppBarNavigationButton,
+                            actions = {
+                                TooltipBox("repair") { tooltip ->
+                                    IconButton(Icons.Filled.Build, tooltip) {
+                                        upcoming()
                                     }
                                 }
-                            )
-                        },
-                        snackbarHost = { SnackbarHost(majorModel.snackbar) },
-                        scaffoldState = scaffoldState,
-                        sheetPeekHeight = with(LocalDensity.current) {
-                            cutout.getBottom(this).toDp()
-                        } + 36.dp,
-                        sheetContent = {
-                            AnimatedContent(
-                                targetState = majorModel.isHexed,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                transitionSpec = { fadeIn() togetherWith fadeOut() }
-                            ) { hexed ->
-                                if (hexed) {
-                                    OutlinedTextField(
-                                        state = majorModel.hexedInput,
-                                        shape = OutlinedTextFieldDefaults.roundedShape,
-                                        lineLimits = TextFieldLineLimits.SingleLine,
-                                        label = { Text("键") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        inputTransformation = InputTransformation.then {
-                                            if (this.asCharSequence()
-                                                    .startsWith("0x", ignoreCase = true)
-                                            ) {
-                                                delete(0, 2)
-                                            }
-                                        }.then {
-                                            if (this.asCharSequence().any {
-                                                    Character.digit(it.code, 16) < 0
-                                                }
-                                            ) {
-                                                revertAllChanges()
-                                            }
-                                        },
-                                        prefix = { Text("0x") },
-                                        trailingIcon = {
-                                            TooltipBox(stringResource(android.R.string.search_go)) { tooltip ->
-                                                IconButton(Icons.Filled.Search, tooltip) {
-                                                    val pattern = try {
-                                                        majorModel.hexedInput.text.toString()
-                                                            .hexToByteArray()
-                                                    } catch (e: IllegalArgumentException) {
-                                                        return@IconButton
-                                                    }
-                                                    majorModel.entries.clear()
-                                                    scope.launch {
-                                                        majorModel.storage.collectMatches(
-                                                            pattern,
-                                                            majorModel.entries
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    )
-                                } else {
-                                    OutlinedTextField(
-                                        state = majorModel.plainInput,
-                                        shape = OutlinedTextFieldDefaults.roundedShape,
-                                        lineLimits = TextFieldLineLimits.SingleLine,
-                                        label = { Text("键") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        trailingIcon = {
-                                            TooltipBox(stringResource(android.R.string.search_go)) { tooltip ->
-                                                IconButton(Icons.Filled.Search, tooltip) {
-                                                    val pattern = try {
-                                                        majorModel.plainInput.text.toString()
-                                                            .toByteArray(Charsets.UTF_8)
-                                                    } catch (e: IllegalArgumentException) {
-                                                        return@IconButton
-                                                    }
-                                                    majorModel.entries.clear()
-                                                    scope.launch {
-                                                        majorModel.storage.collectMatches(
-                                                            pattern,
-                                                            majorModel.entries
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
                             }
-                            InfoBar(
-                                title = "十六进制输入",
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                                    .toggleable(
-                                        value = majorModel.isHexed,
-                                        role = Role.Switch,
-                                    ) { majorModel.isHexed = it }
-                                    .applyInfoBarPadding()
-                            ) {
-                                Switch(
-                                    checked = majorModel.isHexed,
-                                    onCheckedChange = null
+                        )
+                    },
+                    snackbarHost = { SnackbarHost(majorModel.snackbar) },
+                    scaffoldState = scaffoldState,
+                    sheetPeekHeight = with(LocalDensity.current) {
+                        cutout.getBottom(this).toDp()
+                    } + 36.dp,
+                    sheetContent = {
+                        AnimatedContent(
+                            targetState = majorModel.isHexed,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            transitionSpec = { fadeIn() togetherWith fadeOut() }
+                        ) { hexed ->
+                            if (hexed) {
+                                OutlinedTextField(
+                                    state = majorModel.hexedInput,
+                                    shape = OutlinedTextFieldDefaults.roundedShape,
+                                    lineLimits = TextFieldLineLimits.SingleLine,
+                                    label = { Text("键") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    inputTransformation = InputTransformation.then {
+                                        if (this.asCharSequence()
+                                                .startsWith("0x", ignoreCase = true)
+                                        ) {
+                                            delete(0, 2)
+                                        }
+                                    }.then {
+                                        if (this.asCharSequence().any {
+                                                Character.digit(it.code, 16) < 0
+                                            }
+                                        ) {
+                                            revertAllChanges()
+                                        }
+                                    },
+                                    prefix = { Text("0x") },
+                                    trailingIcon = {
+                                        TooltipBox(stringResource(android.R.string.search_go)) { tooltip ->
+                                            IconButton(Icons.Filled.Search, tooltip) {
+                                                val pattern = try {
+                                                    majorModel.hexedInput.text.toString()
+                                                        .hexToByteArray()
+                                                } catch (e: IllegalArgumentException) {
+                                                    return@IconButton
+                                                }
+                                                majorModel.entries.clear()
+                                                scope.launch {
+                                                    majorModel.storage.collectMatches(
+                                                        pattern,
+                                                        majorModel.entries
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            } else {
+                                OutlinedTextField(
+                                    state = majorModel.plainInput,
+                                    shape = OutlinedTextFieldDefaults.roundedShape,
+                                    lineLimits = TextFieldLineLimits.SingleLine,
+                                    label = { Text("键") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = {
+                                        TooltipBox(stringResource(android.R.string.search_go)) { tooltip ->
+                                            IconButton(Icons.Filled.Search, tooltip) {
+                                                val pattern = try {
+                                                    majorModel.plainInput.text.toString()
+                                                        .toByteArray(Charsets.UTF_8)
+                                                } catch (e: IllegalArgumentException) {
+                                                    return@IconButton
+                                                }
+                                                majorModel.entries.clear()
+                                                scope.launch {
+                                                    majorModel.storage.collectMatches(
+                                                        pattern,
+                                                        majorModel.entries
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 )
                             }
-                            Spacer(Modifier.height(with(LocalDensity.current) {
-                                cutout.getBottom(this).toDp()
-                            }))
                         }
-                    ) { padding ->
-                        val creator = rememberLauncherForActivityResult(
-                            FileCreator
-                        ) callback@{ uri ->
-                            if (uri === null) return@callback
-                            val exporting = majorModel.exporting ?: return@callback
-                            scope.launch(Dispatchers.IO) {
-                                val bytes = exporting.db[exporting.key] ?: return@launch
-                                try {
-                                    this@WorldTestActivity.contentResolver.openOutputStream(uri)
-                                        ?.use {
-                                            it.write(bytes)
-                                        }
-                                } catch (e: Throwable) {
-                                    errorAndPop(
-                                        "Failed to query and export value with key ${exporting.key}",
-                                        e,
-                                        LEVEL_DB_TAG
-                                    )
-                                    return@launch
-                                }
-                                withContext(Dispatchers.Main) {
-                                    val resources = this@WorldTestActivity.resources
-                                    majorModel.snackbar.showSnackbar(
-                                        message = resources.getString(R.string.world_test_export_done),
-                                        actionLabel = resources.getString(R.string.world_test_open_file),
-                                        duration = SnackbarDuration.Long
-                                    ) {
-                                        this@WorldTestActivity.startActivity(
-                                            Intent()
-                                                .setAction(Intent.ACTION_VIEW)
-                                                .setFlags(VIEW_DOCUMENT_FLAG)
-                                                .setDataAndType(uri, MIME_TYPE_DEFAULT)
-                                        )
+                        InfoBar(
+                            title = "十六进制输入",
+                            modifier = Modifier
+                                .padding(vertical = 4.dp)
+                                .toggleable(
+                                    value = majorModel.isHexed,
+                                    role = Role.Switch,
+                                ) { majorModel.isHexed = it }
+                                .applyInfoBarPadding()
+                        ) {
+                            Switch(
+                                checked = majorModel.isHexed,
+                                onCheckedChange = null
+                            )
+                        }
+                        Spacer(Modifier.height(with(LocalDensity.current) {
+                            cutout.getBottom(this).toDp()
+                        }))
+                    }
+                ) { padding ->
+                    val creator = rememberLauncherForActivityResult(
+                        FileCreator
+                    ) callback@{ uri ->
+                        if (uri === null) return@callback
+                        val exporting = majorModel.exporting ?: return@callback
+                        scope.launch(Dispatchers.IO) {
+                            val bytes = exporting.db[exporting.key] ?: return@launch
+                            try {
+                                this@WorldTestActivity.contentResolver.openOutputStream(uri)
+                                    ?.use {
+                                        it.write(bytes)
                                     }
+                            } catch (e: Throwable) {
+                                errorAndPop(
+                                    "Failed to query and export value with key ${exporting.key}",
+                                    e,
+                                    LEVEL_DB_TAG
+                                )
+                                return@launch
+                            }
+                            withContext(Dispatchers.Main) {
+                                val resources = this@WorldTestActivity.resources
+                                majorModel.snackbar.showSnackbar(
+                                    message = resources.getString(R.string.world_test_export_done),
+                                    actionLabel = resources.getString(R.string.world_test_open_file),
+                                    duration = SnackbarDuration.Long
+                                ) {
+                                    this@WorldTestActivity.startActivity(
+                                        Intent()
+                                            .setAction(Intent.ACTION_VIEW)
+                                            .setFlags(VIEW_DOCUMENT_FLAG)
+                                            .setDataAndType(uri, MIME_TYPE_DEFAULT)
+                                    )
                                 }
                             }
                         }
-                        LazyColumn(
-                            state = listState,
-                            contentPadding = padding,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(majorModel.entries) {
-                                InfoBar(
-                                    title = it.plainText,
-                                    description = it.hexedText,
-                                    modifier = Modifier.applyInfoBoxPadding()
-                                ) {
-                                    var expanded by remember { mutableStateOf(false) }
-                                    Box(modifier = Modifier.wrapContentSize()) {
-                                        SplitButtonLayout(
-                                            leadingButton = {
-                                                SplitButtonDefaults.TonalLeadingButton(onClick = {
-                                                    majorModel.editing = it.toFile()
-                                                }) {
+                    }
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = padding,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(majorModel.entries) {
+                            InfoBar(
+                                title = it.plainText,
+                                description = it.hexedText,
+                                modifier = Modifier.applyInfoBoxPadding()
+                            ) {
+                                var expanded by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.wrapContentSize()) {
+                                    SplitButtonLayout(
+                                        leadingButton = {
+                                            SplitButtonDefaults.TonalLeadingButton(onClick = {
+                                                val file = it.toFile()
+                                                majorModel.editing.value = file to file
+                                            }) {
+                                                Icon(
+                                                    Icons.Filled.Edit,
+                                                    modifier = Modifier.size(SplitButtonDefaults.LeadingIconSize),
+                                                    contentDescription = "Localized description",
+                                                )
+                                            }
+                                        },
+                                        trailingButton = {
+                                            TooltipBox("Toggle Button") { tooltip ->
+                                                SplitButtonDefaults.TonalTrailingButton(
+                                                    checked = expanded,
+                                                    onCheckedChange = { expanded = it },
+                                                    modifier =
+                                                        Modifier.semantics {
+                                                            stateDescription =
+                                                                if (expanded) "Expanded" else "Collapsed"
+                                                            contentDescription = tooltip
+                                                        },
+                                                ) {
+                                                    val rotation: Float by animateFloatAsState(
+                                                        targetValue = if (expanded) 180f else 0f,
+                                                        label = "Trailing Icon Rotation",
+                                                    )
                                                     Icon(
-                                                        Icons.Filled.Edit,
-                                                        modifier = Modifier.size(SplitButtonDefaults.LeadingIconSize),
+                                                        Icons.Filled.KeyboardArrowDown,
+                                                        modifier =
+                                                            Modifier
+                                                                .size(SplitButtonDefaults.TrailingIconSize)
+                                                                .graphicsLayer {
+                                                                    this.rotationZ = rotation
+                                                                },
                                                         contentDescription = "Localized description",
                                                     )
                                                 }
+                                            }
+                                        },
+                                        modifier = Modifier.wrapContentSize()
+                                    )
+                                    DropdownMenu(
+                                        expanded = expanded,
+                                        onDismissRequest = { expanded = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Copy Key (Plain)") },
+                                            onClick = { },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.ContentCopy,
+                                                    contentDescription = null
+                                                )
                                             },
-                                            trailingButton = {
-                                                TooltipBox("Toggle Button") { tooltip ->
-                                                    SplitButtonDefaults.TonalTrailingButton(
-                                                        checked = expanded,
-                                                        onCheckedChange = { expanded = it },
-                                                        modifier =
-                                                            Modifier.semantics {
-                                                                stateDescription =
-                                                                    if (expanded) "Expanded" else "Collapsed"
-                                                                contentDescription = tooltip
-                                                            },
-                                                    ) {
-                                                        val rotation: Float by animateFloatAsState(
-                                                            targetValue = if (expanded) 180f else 0f,
-                                                            label = "Trailing Icon Rotation",
-                                                        )
-                                                        Icon(
-                                                            Icons.Filled.KeyboardArrowDown,
-                                                            modifier =
-                                                                Modifier
-                                                                    .size(SplitButtonDefaults.TrailingIconSize)
-                                                                    .graphicsLayer {
-                                                                        this.rotationZ = rotation
-                                                                    },
-                                                            contentDescription = "Localized description",
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                            modifier = Modifier.wrapContentSize()
                                         )
-                                        DropdownMenu(
-                                            expanded = expanded,
-                                            onDismissRequest = { expanded = false }
-                                        ) {
-                                            DropdownMenuItem(
-                                                text = { Text("Copy Key (Plain)") },
-                                                onClick = { },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        Icons.Filled.ContentCopy,
-                                                        contentDescription = null
-                                                    )
-                                                },
-                                            )
-                                            DropdownMenuItem(
-                                                text = { Text("Copy Key (Hexed)") },
-                                                onClick = { },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        Icons.Filled.ContentCopy,
-                                                        contentDescription = null
-                                                    )
-                                                },
-                                            )
-                                            HorizontalDivider()
-                                            DropdownMenuItem(
-                                                text = { Text("Export") },
-                                                onClick = {
-                                                    majorModel.exporting = it
-                                                    creator.launch(null)
-                                                },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        Icons.Filled.Output,
-                                                        contentDescription = null
-                                                    )
-                                                }
-                                            )
-                                        }
+                                        DropdownMenuItem(
+                                            text = { Text("Copy Key (Hexed)") },
+                                            onClick = { },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.ContentCopy,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                        )
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = { Text("Export") },
+                                            onClick = {
+                                                majorModel.exporting = it
+                                                creator.launch(null)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Output,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                        )
                                     }
                                 }
                             }
                         }
                     }
-                } else {
-                    BackHandler(true) {
-                        majorModel.editing = null
-                    }
-                    NBTEditor(this@WorldTestActivity.editor) {
-                        majorModel.editing = null
-                    }
-                }
-            }
-            LaunchedEffect(majorModel.editing) {
-                majorModel.editing?.let {
-                    editor.readFromFile(
-                        it,
-                        NBTImportConfigImpl(
-                            NBTFormat.LITTLE_ENDIAN,
-                            HeaderPresence.UNCERTAIN
-                        )
-                    )
                 }
             }
         }
@@ -437,23 +411,21 @@ suspend fun Deferred<WorldStorage?>.collectMatches(
         } catch (e: Throwable) {
             return@flow
         }
-        val iterator = db.iterator()
-        iterator.seekToFirst()
-        if (pattern.isEmpty()) {
-            while (iterator.hasNext()) {
-                emit(LDBEntry(db, iterator.next().key))
-            }
-        } else {
-            val failure = ByteArrayMatcher.computeFailure(pattern)
-            while (iterator.hasNext()) {
-                val key = iterator.next().key
-                if (ByteArrayMatcher.contains(key, pattern, failure)) {
-                    emit(LDBEntry(db, key))
+        db.iterator().use { iterator ->
+            iterator.seekToFirst()
+            if (pattern.isEmpty()) {
+                while (iterator.hasNext()) {
+                    emit(LDBEntry(db, iterator.next().key))
+                }
+            } else {
+                val failure = ByteArrayMatcher.computeFailure(pattern)
+                while (iterator.hasNext()) {
+                    val key = iterator.next().key
+                    if (ByteArrayMatcher.contains(key, pattern, failure)) {
+                        emit(LDBEntry(db, key))
+                    }
                 }
             }
-        }
-        runSuppressing {
-            iterator.close()
         }
     }.flowOn(Dispatchers.IO)
         .chunked(5)

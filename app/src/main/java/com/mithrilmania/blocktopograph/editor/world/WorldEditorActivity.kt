@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ProgressBar
@@ -42,6 +43,16 @@ class WorldEditorActivity : WorldActivity() {
         this.lifecycleScope.launch {
             model.showDrawerSignal.collect {
                 mBinding.drawerLayout.openDrawer(mBinding.navView, true)
+            }
+        }
+        this.lifecycleScope.launch {
+            for (markers in model.pendingMarkers) {
+                markers.forEach { marker ->
+                    marker.view?.let { view ->
+                        (view.parent as? ViewGroup)?.removeView(view)
+                    }
+                    mapFragment.addMarker(marker)
+                }
             }
         }
     }
@@ -275,7 +286,7 @@ class WorldEditorActivity : WorldActivity() {
                 }
                 return@launch
             }
-            val players: List<String> = try {
+            val players: List<ByteArray> = try {
                 storage.networkPlayerNameList
             } catch (e: Exception) {
                 Log.e(LEVEL_DB_TAG, "Failed to load player list", e)
@@ -308,8 +319,10 @@ class WorldEditorActivity : WorldActivity() {
                     .setPositiveButton(R.string.open_nbt) click@{ dialog, _ ->
                         val player = players.getOrNull(spinner.selectedItemPosition) ?: return@click
                         activity.lifecycleScope.launch(Dispatchers.IO) {
-                            if (activity.openIfPresent(storage.db.file(player))) return@launch
-                            activity.notifyMissingKey(player)
+                            val name = player.toString(Charsets.UTF_8)
+                            if (!activity.openIfPresent(storage.db.file(name, key = player))) {
+                                activity.notifyMissingKey(name)
+                            }
                         }
                     }.show()
             }

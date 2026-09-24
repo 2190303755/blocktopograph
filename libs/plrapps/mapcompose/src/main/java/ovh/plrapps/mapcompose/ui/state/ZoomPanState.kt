@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.CoroutineScope
@@ -354,8 +355,9 @@ internal class ZoomPanState(
 
     override fun isListeningForGestures(): Boolean = areGesturesEnabled
 
-    override fun shouldConsumeTapGesture(focalPt: Offset): Boolean {
+    override fun shouldConsumeTapGesture(density: Density, focalPt: Offset): Boolean {
         return stateChangeListener.interceptsTap(
+            density,
             focalPt.x.toDouble(),
             focalPt.y.toDouble(),
             focalPt.absoluteX().toInt(),
@@ -363,8 +365,9 @@ internal class ZoomPanState(
         )
     }
 
-    override fun shouldConsumeLongPress(focalPt: Offset): Boolean {
+    override fun shouldConsumeLongPress(density: Density, focalPt: Offset): Boolean {
         return stateChangeListener.interceptsLongPress(
+            density,
             focalPt.x.toDouble(),
             focalPt.y.toDouble(),
             focalPt.absoluteX().toInt(),
@@ -410,6 +413,6 @@ interface ZoomPanStateListener {
     fun onTap(x: Double, y: Double)
     fun detectsTap(): Boolean
     fun detectsLongPress(): Boolean
-    fun interceptsTap(x: Double, y: Double, xPx: Int, yPx: Int): Boolean
-    fun interceptsLongPress(x: Double, y: Double, xPx: Int, yPx: Int): Boolean
+    fun interceptsTap(density: Density, x: Double, y: Double, xPx: Int, yPx: Int): Boolean
+    fun interceptsLongPress(density: Density, x: Double, y: Double, xPx: Int, yPx: Int): Boolean
 }

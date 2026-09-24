@@ -8,12 +8,12 @@ import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 class WorldMapModel : ViewModel() {
-    val markers: MutableLiveData<ArrayList<AbstractMarker>> =
-        MutableLiveData<ArrayList<AbstractMarker>>(arrayListOf())
+    val pendingMarkers: Channel<List<AbstractMarker>> = Channel(capacity = 4)
 
     var dimension: Dimension = VanillaDimension.OVERWORLD
 

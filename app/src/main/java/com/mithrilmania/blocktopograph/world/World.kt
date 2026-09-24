@@ -11,7 +11,8 @@ import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
-import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
+import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
+import com.mithrilmania.blocktopograph.nbt.util.resolveVec3f
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.error
@@ -19,12 +20,10 @@ import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3
 import com.mithrilmania.blocktopograph.util.runSuppressing
-import com.mithrilmania.blocktopograph.util.toLDBKey
 import com.mithrilmania.blocktopograph.world.impl.SAFWorld
 import com.mithrilmania.blocktopograph.world.impl.ShizukuWorld
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
-import java.io.ByteArrayInputStream
 import java.io.Closeable
 
 abstract class World(name: String?, config: File) : Closeable {
@@ -113,13 +112,13 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
 }
 
 
-fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
+suspend fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
     try {
         val data: ByteArray? = this.storage?.db?.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
         val player: BinaryTag? = if (data === null) {
-            runBlocking { this@resolveLocalPlayerPos.config.getCached(context) }["Player"]
+            this@resolveLocalPlayerPos.config.getCached(context)["Player"]
         } else {
-            BedrockNBTInput(ByteArrayInputStream(data)).readNamedTag().second
+            BedrockNBTInput(data).readAnonymousTypedTag()
         }
         if (player !is CompoundTag) {
             LogUtil.d(this, "No local player. A server world?")
@@ -132,15 +131,8 @@ fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
     }
 }
 
-fun World.resolveMultiPlayerPos(key: String): DimensionVector3<Float>? {
-    try {
-        return this.storage?.db?.get(key.toLDBKey())?.let {
-            BedrockNBTInput(ByteArrayInputStream(it)).readNamedTag().second as? CompoundTag
-        }?.extractPlayerPosCompat()
-    } catch (e: Exception) {
-        LogUtil.d(this, e)
-        return null
-    }
+fun World.resolveLocalPlayerPosCompat(context: Context?) = runBlocking {
+    resolveLocalPlayerPos(context)
 }
 
 fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
@@ -160,12 +152,6 @@ fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
 
 fun CompoundTag.extractPlayerPos(): DimensionVec3f? {
     val dimension = this.getTyped<NumericTag>("DimensionId")?.toInt() ?: 0
-    val pos = this.getTyped<CollectionTag<*>>("Pos")
-    if (pos === null || pos.size != 3) return null
-    return DimensionVec3f(
-        dimension,
-        (pos.getAsTag(0) as? NumericTag ?: return null).toFloat(),
-        (pos.getAsTag(1) as? NumericTag ?: return null).toFloat(),
-        (pos.getAsTag(2) as? NumericTag ?: return null).toFloat()
-    )
+    val pos = this.getTyped<CollectionTag<*>>("Pos")?.resolveVec3f() ?: return null
+    return DimensionVec3f(dimension, pos.x, pos.y, pos.z)
 }

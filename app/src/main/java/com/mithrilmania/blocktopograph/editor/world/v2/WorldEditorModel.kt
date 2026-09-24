@@ -17,8 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
-import com.mithrilmania.blocktopograph.nbt.io.NBTSource
+import com.mithrilmania.blocktopograph.editor.nbt.ConfiguredNBTSource
 import com.mithrilmania.blocktopograph.registry.Registry
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
@@ -34,7 +33,6 @@ import it.unimi.dsi.fastutil.longs.Long2IntMap
 import it.unimi.dsi.fastutil.longs.Long2IntMaps
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.plrapps.mapcompose.api.setCamera
@@ -80,7 +78,7 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     val customIcons: MutableState<ImageBitmap?> = mutableStateOf(null)
     var initialization: InitState by mutableStateOf(InitState.Uninitialized)
     val tabPager: PagerState = PagerState(0, 0F) { 3 }
-    var editing: MutableStateFlow<Pair<NBTSource, NBTImportConfig>?> = MutableStateFlow(null)
+    var editing: MutableState<ConfiguredNBTSource?> = mutableStateOf(null)
     var enabledLayer: MapLayer by mutableStateOf(MapLayer.SATELLITE)
     var dimension: Dimension by mutableStateOf(VanillaDimension.OVERWORLD)
 
@@ -164,7 +162,6 @@ class WorldEditorModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
-        super.onCleared()
         (this.initialization as? InitState.Succeed)?.storage?.close()
     }
 }

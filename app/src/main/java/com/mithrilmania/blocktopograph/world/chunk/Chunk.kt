@@ -11,7 +11,6 @@ import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.chunk.Data3DTerrain.Companion.Data3DTerrain
 import com.mithrilmania.blocktopograph.world.chunk.SubChunkV1.Companion.readLayer
 import it.unimi.dsi.fastutil.longs.Long2IntMap
-import java.io.ByteArrayInputStream
 
 class Chunk(
     @JvmField val pos: ChunkPos,
@@ -49,7 +48,7 @@ class Chunk(
         }
         val format = data[0].toInt() and 0xFF
         subchunk = if (format == 1 || format > 7) {
-            val stream = ByteArrayInputStream(data)
+            val stream = data.inputStream()
             stream.skip(1L)
             val minor = format > 7 && (stream.read() and 0xFF) > 2
             if (format > 8) {

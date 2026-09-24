@@ -4,6 +4,7 @@ import com.mithrilmania.blocktopograph.EMPTY_CHAR
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
+import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
 import com.mithrilmania.blocktopograph.nbt.FloatTag
@@ -18,6 +19,7 @@ import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.TAG_END
 import com.mithrilmania.blocktopograph.nbt.io.SNBTStringReader
+import com.mithrilmania.blocktopograph.util.math.Vec3f
 import com.mithrilmania.blocktopograph.util.tryOrNull
 
 val SIMPLE_VALUE: Regex = "[A-Za-z0-9._+-]+".toRegex()
@@ -141,6 +143,12 @@ fun BinaryTag?.toDoubleTag(): DoubleTag = when (val tag = this.extracted()) {
     is StringTag -> DoubleTag(tag.value.toDoubleOrNull() ?: 0.0)
     else -> DoubleTag(0.0)
 }
+
+fun CollectionTag<*>.resolveVec3f(): Vec3f? = if (this.size == 3) Vec3f(
+    (this.getAsTag(0) as? NumericTag ?: return null).toFloat(),
+    (this.getAsTag(1) as? NumericTag ?: return null).toFloat(),
+    (this.getAsTag(2) as? NumericTag ?: return null).toFloat()
+) else null
 
 inline fun <T> List<T>.getHomogenousTypeId(typeId: (T) -> Byte): Byte {
     var first = TAG_END

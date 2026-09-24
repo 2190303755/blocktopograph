@@ -17,11 +17,14 @@ class JavaNBTInput(
     val stream: DataInputStream
 ) : NBTInput, DataInput by stream, Closeable by stream {
     constructor(stream: InputStream) : this(DataInputStream(stream))
+    constructor(bytes: ByteArray) : this(bytes.inputStream())
 }
 
 class BedrockNBTInput(
     val stream: InputStream
 ) : NBTInput, Closeable by stream {
+    constructor(bytes: ByteArray) : this(bytes.inputStream())
+
     @Deprecated(
         message = "Unsupported Operation",
         replaceWith = ReplaceWith("java.io.BufferedReader")
