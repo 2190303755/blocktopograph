@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="ComposeTheme" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="ComposeTheme" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <style name="ComposeDialog" parent="ThemeOverlay.Material3Expressive.Dialog" />
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.Material3.DayNight">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>

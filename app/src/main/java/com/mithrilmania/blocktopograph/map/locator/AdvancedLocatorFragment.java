@@ -64,7 +64,6 @@ public final class AdvancedLocatorFragment extends FloatPaneFragment {
                         .edit()
                         .putInt(PREF_KEY_LOCATOR_PAGE, i)
                         .apply();
-                mAdapter.doOverScroll(i);
             }
 
             @Override
@@ -116,11 +115,6 @@ public final class AdvancedLocatorFragment extends FloatPaneFragment {
                 locatorCoordFragment.mCameraMoveCallback = owner.mCameraMoveCallback;
             }
             return locatorCoordFragment;
-        }
-
-        void doOverScroll(int i) {
-            if (i == 0 && locatorCoordFragment != null)
-                locatorCoordFragment.doOverScroll();
         }
 
         @Nullable

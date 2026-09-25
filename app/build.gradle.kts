@@ -66,7 +66,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.coil)
     androidTestImplementation(libs.compose.ui.test.junit4)
-    implementation(libs.photoview)
     implementation(libs.expansionpanel)
     implementation(libs.guava)
     implementation(libs.leveldb.api)

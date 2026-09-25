@@ -41,7 +41,7 @@ class WorldEditorActivity : WorldActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.lifecycleScope.launch {
-            model.showDrawerSignal.collect {
+            model.showDrawer.collect {
                 mBinding.drawerLayout.openDrawer(mBinding.navView, true)
             }
         }

@@ -20,7 +20,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.navigation.NavigationView;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
-import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
+import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.MapFragment;
 import com.mithrilmania.blocktopograph.world.World;
 import com.mithrilmania.blocktopograph.world.WorldKt;
@@ -33,7 +33,7 @@ public abstract class WorldActivity extends AppCompatActivity
     public static final String PREF_KEY_SHOW_MARKERS = "showMarkers";
     private static final String TAG = WorldActivity.class.getSimpleName();
     protected ActivityWorldBinding mBinding;
-    protected WorldMapModel model;
+    protected WorldViewerModel model;
     protected WorldModel worldModel;
     protected MapFragment mapFragment;
 
@@ -66,7 +66,7 @@ public abstract class WorldActivity extends AppCompatActivity
         worldModel.open(this);
         this.worldModel = worldModel;
 
-        WorldMapModel model = new ViewModelProvider(this).get(WorldMapModel.class);
+        WorldViewerModel model = new ViewModelProvider(this).get(WorldViewerModel.class);
         this.model = model;
         model.getShowMarkers().setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
 
@@ -183,13 +183,13 @@ public abstract class WorldActivity extends AppCompatActivity
                 .setMessage(R.string.confirm_close_world)
                 .setCancelable(false)
                 .setIcon(R.drawable.ic_action_exit)
-                .setPositiveButton(android.R.string.yes,
+                .setPositiveButton(android.R.string.ok,
                         (dialog, id) -> {
                             //finish this activity
                             mapFragment.closeChunks();
                             finish();
                         })
-                .setNegativeButton(android.R.string.no, null)
+                .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
 
@@ -205,12 +205,12 @@ public abstract class WorldActivity extends AppCompatActivity
             new AlertDialog.Builder(this)
                     .setMessage(confirmContentClose)
                     .setCancelable(false)
-                    .setPositiveButton(android.R.string.yes,
+                    .setPositiveButton(android.R.string.ok,
                             (dialog, id) -> {
                                 manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
                                 callback.run();
                             })
-                    .setNegativeButton(android.R.string.no, null)
+                    .setNegativeButton(android.R.string.cancel, null)
                     .show();
         } else {
             manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
@@ -240,7 +240,7 @@ public abstract class WorldActivity extends AppCompatActivity
      * Open a dialog; user chooses chunk-type -> open editor for this type
      **/
     public void openChunkNBTEditor(final int chunkX, final int chunkZ, final NBTChunkData nbtChunkData, final ViewGroup viewGroup) {
-        /*if (nbtChunkData == null) {
+        /*fixme if (nbtChunkData == null) {
             //should never happen
             Log.e(TAG, "User tried to open null chunkData in the nbt-editor!!!");
             return;

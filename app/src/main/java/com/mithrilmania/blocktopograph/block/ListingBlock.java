@@ -487,21 +487,21 @@ public enum ListingBlock implements Serializable {
 //B_242_CAMERA("minecraft:camera", 242, "<Unknown>", 1320, 2760, 63, 51, 34),
 
 
-    private static int SIZE = 120;
+    private static final int SIZE = 120;
 
     private static WeakReference<Bitmap> iconsSheet = new WeakReference<>(null);
 
-    private String identifier;
+    private final String identifier;
 
-    private String name;
+    private final String name;
 
-    private int legacy_id;
+    private final int legacy_id;
 
-    private int iconX;
+    private final int iconX;
 
-    private int iconY;
+    private final int iconY;
 
-    private int color;
+    private final int color;
 
     //@Nullable
     private WeakReference<Bitmap> icon;

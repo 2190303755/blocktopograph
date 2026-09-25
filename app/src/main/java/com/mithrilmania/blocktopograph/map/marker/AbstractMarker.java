@@ -4,6 +4,7 @@ import android.content.Context;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatImageView;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
@@ -45,11 +46,12 @@ public class AbstractMarker implements NamedBitmapProviderHandle {
         return z >> 4;
     }
 
-    public MarkerImageView view;
+    public ImageView view;
 
-    public MarkerImageView getView(Context context) {
+    public ImageView getView(Context context) {
         if (view == null) {
-            view = new MarkerImageView(context, this);
+            view = new AppCompatImageView(context);
+            view.setTag(this);
             this.loadIcon(view);
         }
         return view;

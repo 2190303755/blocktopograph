@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -215,5 +218,49 @@ fun <T : Any> AnimatedBottomSheetDialog(
     }
     effectiveState?.let {
         content(sheetState, it)
+    }
+}
+
+@Composable
+fun DialogFragmentLayout(
+    title: String,
+    modifier: Modifier = Modifier,
+    buttonsArrangement: Arrangement.Horizontal = Arrangement.End,
+    buttons: (@Composable RowScope.() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier
+            .sizeIn(minWidth = 280.dp, maxWidth = 560.dp)
+            .padding(24.dp)
+    ) {
+        val titleStyle = MaterialTheme.typography.headlineSmall
+        Text(
+            title,
+            Modifier.padding(bottom = 16.dp),
+            color = titleStyle.color.takeOrElse {
+                AlertDialogDefaults.titleContentColor
+            },
+            style = titleStyle
+        )
+        CompositionLocalProvider(
+            LocalContentColor provides AlertDialogDefaults.textContentColor,
+            LocalTextStyle provides LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
+            content = content
+        )
+        buttons?.let {
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.primary,
+                LocalTextStyle provides LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge),
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp),
+                    horizontalArrangement = buttonsArrangement,
+                    content = buttons
+                )
+            }
+        }
     }
 }

@@ -13,7 +13,7 @@ import android.text.TextPaint;
 import android.util.Log;
 
 import com.mithrilmania.blocktopograph.chunk.Chunk;
-import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
+import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.world.Dimension;
 import com.mithrilmania.blocktopograph.world.WorldModel;
@@ -36,10 +36,10 @@ public class MCTileProvider implements BitmapProvider {
             viewSizeW = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION,
             viewSizeL = worldSizeInBlocks * TILESIZE / CHUNK_DIMENSION;
 
-    public final WorldMapModel mapModel;
+    public final WorldViewerModel mapModel;
     public final WorldModel worldModel;
 
-    public MCTileProvider(WorldMapModel mapModel, WorldModel worldModel) {
+    public MCTileProvider(WorldViewerModel mapModel, WorldModel worldModel) {
         this.mapModel = mapModel;
         this.worldModel = worldModel;
     }

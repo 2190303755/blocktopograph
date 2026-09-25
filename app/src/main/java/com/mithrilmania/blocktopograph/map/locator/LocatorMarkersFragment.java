@@ -22,7 +22,6 @@ import java.util.List;
 
 public final class LocatorMarkersFragment extends LocatorPageFragment {
 
-    private FragLocatorPlayersBinding mBinding;
     private World mWorld;
 
     public static LocatorMarkersFragment create(World world) {
@@ -34,7 +33,7 @@ public final class LocatorMarkersFragment extends LocatorPageFragment {
     @NonNull
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mBinding = DataBindingUtil.inflate(
+        FragLocatorPlayersBinding mBinding = DataBindingUtil.inflate(
                 inflater, R.layout.frag_locator_players, container, false);
         mBinding.list.setLayoutManager(new LinearLayoutManager(requireContext()));
         MarkersFragmentCompatKt.loadLocatorMarkers(this, mWorld, mBinding);

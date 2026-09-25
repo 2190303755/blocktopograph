@@ -82,7 +82,7 @@ public enum CustomIcon implements NamedBitmapProviderHandle, NamedBitmapProvider
         }
     }
 
-    private static HashMap<String, CustomIcon> iconsByName;
+    private static final HashMap<String, CustomIcon> iconsByName;
 
     static {
         iconsByName = new HashMap<>();

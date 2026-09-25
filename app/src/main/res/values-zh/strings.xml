@@ -325,7 +325,7 @@
     <string name="picer_failed_nodata">没找到地形。</string>
     <string name="picer_progress_analyzing">正在分析</string>
     <string name="picer_progress_generating">正在生成</string>
-    <string name="picer_preview">预览;</string>
+    <string name="picer_preview">预览：</string>
     <string name="picer_save">保存</string>
     <string name="picer_save_text">图片会保存到你的“下载”目录。</string>
     <string name="picer_saved">已保存。</string>

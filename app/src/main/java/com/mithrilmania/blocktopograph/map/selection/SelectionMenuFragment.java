@@ -54,11 +54,6 @@ public class SelectionMenuFragment extends FloatPaneFragment {
                 && (selection.top & 0xf) == 0 && (selection.bottom & 0xf) == 0;
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-    }
-
     public void setSelectionChangedListener(@Nullable SelectionChangedListener selectionChangedListener) {
         mSelectionChangedListener = selectionChangedListener;
     }

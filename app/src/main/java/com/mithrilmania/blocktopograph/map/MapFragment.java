@@ -32,7 +32,6 @@ import androidx.annotation.UiThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.databinding.DataBindingUtil;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
@@ -49,15 +48,15 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.MapFragmentBinding;
-import com.mithrilmania.blocktopograph.editor.world.WorldMapModel;
+import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.edit.EditFunction;
 import com.mithrilmania.blocktopograph.map.edit.EditFunctionCompatKt;
 import com.mithrilmania.blocktopograph.map.edit.RectEditTarget;
 import com.mithrilmania.blocktopograph.map.locator.AdvancedLocatorFragment;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
-import com.mithrilmania.blocktopograph.map.marker.MarkerImageView;
-import com.mithrilmania.blocktopograph.map.picer.PicerFragment;
+import com.mithrilmania.blocktopograph.map.picer.PicerDialogFragment;
+import com.mithrilmania.blocktopograph.map.picer.PicerState;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
@@ -123,7 +122,7 @@ public class MapFragment extends Fragment {
     private MCTileProvider minecraftTileProvider;
     private int proceduralMarkersInterval = 0;
     private volatile @NonNull Job shrinkProceduralMarkersJob = MapFragmentCompatKt.dummyJob();
-    private WorldMapModel model;
+    private WorldViewerModel model;
     private WorldModel worldModel;
 
     /**
@@ -172,11 +171,6 @@ public class MapFragment extends Fragment {
         WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return;
         storage.resetCache();
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
     }
 
     private String[] getMarkerTapOptions() {
@@ -391,7 +385,7 @@ public class MapFragment extends Fragment {
         FragmentActivity activity = this.requireActivity();
         WorldModel worldModel = WorldModelKt.getOrCreateWorldModel(activity);
         this.worldModel = worldModel;
-        WorldMapModel model = new ViewModelProvider(activity).get(WorldMapModel.class);
+        WorldViewerModel model = new ViewModelProvider(activity).get(WorldViewerModel.class);
 
         mBinding = DataBindingUtil.inflate(
                 inflater, R.layout.map_fragment, container, false);
@@ -405,7 +399,7 @@ public class MapFragment extends Fragment {
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                model.showDrawer();
+                model.showDrawer.trigger();
                 FragmentActivity activity = getActivity();
                 if (activity != null)
                     activity.getPreferences(Context.MODE_PRIVATE)
@@ -438,10 +432,9 @@ public class MapFragment extends Fragment {
         mBinding.fabMenuGpsOthers.setImageDrawable(
                 VectorDrawableCompat.create(resources, R.drawable.ic_action_search, null));
 
-        mBinding.fabMenuGpsPicer.setOnClickListener(unusedView -> {
-            DialogFragment fragment = PicerFragment.create(worldModel.getWorld(),
-                    model.getDimension(), null, this::triggerLongPressAtCenter);
-            fragment.show(getChildFragmentManager(), TAG_PICER);
+        mBinding.fabMenuGpsPicer.setOnClickListener(ignored -> {
+            MapFragmentCompatKt.setAnalyzingPicerState(this.model, this.worldModel.getWorld());
+            new PicerDialogFragment().show(getChildFragmentManager(), TAG_PICER);
         });
         mBinding.fabMenuGpsPicer.setImageDrawable(
                 VectorDrawableCompat.create(resources, R.drawable.ic_menu_camera, null));
@@ -530,10 +523,10 @@ public class MapFragment extends Fragment {
 
 
         tileView.getMarkerLayout().setMarkerTapListener((view, tapX, tapY) -> {
-            if (!(view instanceof MarkerImageView)) return;
+            if (!(view instanceof ImageView)) return;
 
-            final AbstractMarker marker = ((MarkerImageView) view).getMarkerHook();
-            if (marker == null) return;
+            var tag = view.getTag();
+            if (!(tag instanceof AbstractMarker marker)) return;
 
             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
             builder.setTitle(String.format(getString(R.string.marker_info), marker.getNamedBitmapProvider().getBitmapDisplayName(), marker.x, marker.y, marker.z))
@@ -696,6 +689,7 @@ public class MapFragment extends Fragment {
 
             }
         });
+        MapFragmentCompatKt.registerSignalListener(this, model);
         this.model = model;
         return mBinding.getRoot();
     }
@@ -741,13 +735,10 @@ public class MapFragment extends Fragment {
                 ), func, args);
                 break;
             case PICER: {
-                FragmentActivity activity = getActivity();
+                var activity = getActivity();
                 if (activity == null) return;
-                PicerFragment fragment = PicerFragment.create(
-                        worldModel.getWorld(), this.model.getDimension(),
-                        mBinding.selectionBoard.getSelection(), null
-                );
-                fragment.show(activity.getSupportFragmentManager(), TAG_PICER);
+                this.model.commitAnalyzedState(mBinding.selectionBoard.getSelection(), PicerState.SelectionOutOfSize.INSTANCE);
+                new PicerDialogFragment().show(activity.getSupportFragmentManager(), TAG_PICER);
             }
         }
     }
@@ -845,7 +836,7 @@ public class MapFragment extends Fragment {
                 AlertDialog dialog = new AlertDialog.Builder(act)
                         .setTitle(R.string.map_smart_notice_too_many_markers)
                         .setMessage(R.string.map_smart_notice_too_many_markers_message)
-                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.showDrawer())
+                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.showDrawer.trigger())
                         .setNegativeButton(R.string.general_got_it, null)
                         .create();
                 dialog.setCanceledOnTouchOutside(false);
@@ -853,7 +844,7 @@ public class MapFragment extends Fragment {
             }
         }
 
-        MarkerImageView markerView = marker.getView(act);
+        var markerView = marker.getView(act);
 
         this.filterMarker(marker);
 
@@ -893,7 +884,7 @@ public class MapFragment extends Fragment {
         return values;
     }
 
-    private void triggerLongPressAtCenter() {
+    public void triggerLongPressAtCenter() {
         MotionEvent event = MotionEvent.obtain(0L, 0L, 0,
                 (float) (mBinding.tileView.getMeasuredWidth() / 2),
                 (float) (mBinding.tileView.getMeasuredHeight() / 2), 0);
@@ -971,7 +962,7 @@ public class MapFragment extends Fragment {
                 alertDialog.getListView().smoothScrollToPositionFromTop(4, 40));
         Window window = alertDialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(getResources().getDrawable(R.drawable.bg_dialog_transparent));
+            window.setBackgroundDrawableResource(R.drawable.bg_dialog_transparent);
             window.setDimAmount(0.3f);
         }
 

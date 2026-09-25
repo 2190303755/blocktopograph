@@ -90,7 +90,7 @@ public abstract class TerrainSubChunk {
 
     abstract public int getSkyLightValue(int x, int y, int z);
 
-    protected static final int getOffset(int x, int y, int z) {
+    protected static int getOffset(int x, int y, int z) {
         return (((x << 4) | z) << 4) | y;
     }
 
