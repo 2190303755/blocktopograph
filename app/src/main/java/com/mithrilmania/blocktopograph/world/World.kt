@@ -103,7 +103,7 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
         if (y >= 256) runSuppressing {
             val chunk = this.storage?.getChunk(x shr 4, z shr 4, VanillaDimension.OVERWORLD)
             if (chunk !== null && !chunk.isError) {
-                y = chunk.getHeightMapValue(x % 16, z % 16) + 1
+                y = chunk.getHeightMapValue(x and 0xF, z and 0xF) + 1
             }
         }
         return DimensionVector3(x, y, z, VanillaDimension.OVERWORLD)
@@ -112,7 +112,7 @@ fun World.resolveSpawnPoint(context: Context?): DimensionVector3<Int> {
 }
 
 
-suspend fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Float>? {
+suspend fun World.resolveLocalPlayerPos(context: Context?): DimensionVec3f? {
     try {
         val data: ByteArray? = this.storage?.db?.get(SpecialDBEntryType.LOCAL_PLAYER.keyBytes)
         val player: BinaryTag? = if (data === null) {
@@ -124,7 +124,7 @@ suspend fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Flo
             LogUtil.d(this, "No local player. A server world?")
             return null
         }
-        return player.extractPlayerPosCompat()
+        return player.extractPlayerPos()
     } catch (e: Exception) {
         LogUtil.d(this, e)
         return null
@@ -133,20 +133,15 @@ suspend fun World.resolveLocalPlayerPos(context: Context?): DimensionVector3<Flo
 
 fun World.resolveLocalPlayerPosCompat(context: Context?) = runBlocking {
     resolveLocalPlayerPos(context)
-}
+}?.boxed()
 
-fun CompoundTag.extractPlayerPosCompat(): DimensionVector3<Float>? {
-    val pos = this.extractPlayerPos() ?: return null
+fun DimensionVec3f.boxed(): DimensionVector3<Float> {
     return DimensionVector3(
-        pos.x,
-        pos.y,
-        pos.z,
-        when (pos.dimensionId) {
-            0 -> VanillaDimension.OVERWORLD
-            1 -> VanillaDimension.NETHER
-            2 -> VanillaDimension.END
-            else -> CustomDimension("Unknown", pos.dimensionId)
-        }
+        this.x,
+        this.y,
+        this.z,
+        this.dimensionId.toVanillaDimension()
+            ?: CustomDimension("Unknown", this.dimensionId)
     )
 }
 

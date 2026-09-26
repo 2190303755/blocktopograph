@@ -7,30 +7,26 @@
 
     </data>
 
-    <RelativeLayout
+    <FrameLayout
         android:id="@+id/world_content_wrapper"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingLeft="0dp"
-        android:paddingTop="0dp"
-        android:paddingRight="0dp"
-        android:paddingBottom="0dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:context="com.mithrilmania.blocktopograph.WorldActivity"
         tools:showIn="@layout/app_bar_world">
 
-        <RelativeLayout
+        <FrameLayout
             android:id="@+id/world_content"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:paddingLeft="0dp"
-            android:paddingTop="0dp"
-            android:paddingRight="0dp"
-            android:paddingBottom="0dp">
+            android:layout_height="match_parent">
 
             <!-- fragments are inserted here -->
 
-        </RelativeLayout>
+        </FrameLayout>
 
-    </RelativeLayout>
+        <androidx.compose.ui.platform.ComposeView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/composer" />
+    </FrameLayout>
 </layout>

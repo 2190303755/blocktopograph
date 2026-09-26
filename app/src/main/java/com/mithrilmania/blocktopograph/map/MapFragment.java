@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
@@ -39,7 +38,6 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.LogUtil;
@@ -62,8 +60,10 @@ import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3f;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
 import com.mithrilmania.blocktopograph.world.Dimension;
+import com.mithrilmania.blocktopograph.world.DimensionKt;
 import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
@@ -90,7 +90,7 @@ public class MapFragment extends Fragment {
     private static final int MARKERS_ON_SCREEN_TOO_MANY = 100;
     private static final String PREF_KEY_HAS_NOTIFIED_MARKERS_TOO_MANY = "has_notified_markers_too_many";
     private static final String PREF_KEY_HAS_USED_SELECTION = "hasUsedSelection";
-    private static final String KEY_HAS_DOUBLE_TAP = "hasDoubleTap";
+    public static final String KEY_HAS_DOUBLE_TAP = "hasDoubleTap";
     //static, remember choice while app is open.
     private static Map<NamedBitmapProvider, BitmapChoiceListAdapter.NamedBitmapChoice> markerFilter = new HashMap<>();
 
@@ -158,13 +158,6 @@ public class MapFragment extends Fragment {
 
         //resume drawing the map
         mBinding.tileView.resume();
-        FragmentActivity activity = getActivity();
-        if (activity == null) return;
-
-//        Toast toast = new Toast(activity);
-//        toast.setView(getLayoutInflater().inflate(R.layout.toast_warn, (ViewGroup) activity.getWindow().getDecorView(), false));
-//        toast.setDuration(Toast.LENGTH_LONG);
-//        toast.show();
     }
 
     public void closeChunks() {
@@ -183,92 +176,32 @@ public class MapFragment extends Fragment {
         return options;
     }
 
-    /**
-     * Move map viewer camera to local player's position.
-     *
-     * <p>
-     * Triggered by fab click action.
-     * </p>
-     *
-     * @param view no use. Yes we pass it to snack maker, but we can just use root view instead.
-     */
-    @UiThread
-    private void moveCameraToPlayer(View view) {
-//        if (Math.random() < 2) {
-//            try {
-//                Chunk chunk = world.getWorldData().getChunk(0, 0, Dimension.OVERWORLD);
-//                //byte[] arr = world.getWorldData().getChunkData(0, 0, ChunkTag.TERRAIN, Dimension.OVERWORLD, (byte) 0, true);
-//                //V1d2d13TerrainSubChunk subChunk = new V1d2d13TerrainSubChunk(ByteBuffer.wrap(arr));
-//                for (int z = 0; z < 16; z++)
-//                    chunk.setBlock(0, 6, z, 0, KnownBlockRepr.B_5_0_PLANKS_OAK.getRuntimeId());
-//                chunk.save();//world.getWorldData(), 0, 0, Dimension.OVERWORLD, 1);
-//                Log.d(this, "ok");
-//            } catch (Exception e) {
-//                Log.d(this, e);
-//            }
-//            return;
-//        }
-        try {
-            Activity activity = getActivity();
-            if (activity == null) return;
-            var handler = this.worldModel.getWorld();
-
-            DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPosCompat(handler, activity);
-
-            if (playerPos == null) return;
-            Snackbar.make(mBinding.tileView,
-                    getString(R.string.something_at_xyz_dim_float, getString(R.string.player),
-                            playerPos.x, playerPos.y, playerPos.z),
-                    Snackbar.LENGTH_SHORT)
-                    .setAction("Action", null).show();
-
-            if (playerPos.dimension != this.model.getDimension()) {
-                this.model.setDimension(playerPos.dimension);
-                this.model.getMapType().postValue(defaultMapTypeCompat(playerPos.dimension));
-            }
-
-            frameTo((double) playerPos.x, (double) playerPos.z);
-
-        } catch (Exception e) {
-            LogUtil.d(this, e);
-            Snackbar.make(view, R.string.failed_find_player, Snackbar.LENGTH_LONG)
-                    .show();
+    public void moveCameraToPlayer(DimensionVec3f pos) {
+        var dimension = DimensionKt.toVanillaDimension(pos.dimensionId);
+        if (dimension == null) return;
+        if (dimension != this.model.getDimension()) {
+            this.model.setDimension(dimension);
+            this.model.getMapType().setValue(defaultMapTypeCompat(dimension));
         }
+        this.frameTo(pos.x, pos.z);
+        Snackbar.make(
+                mBinding.tileView,
+                getString(R.string.something_at_xyz_dim_float, getString(R.string.player), pos.x, pos.y, pos.z),
+                Snackbar.LENGTH_SHORT
+        ).show();
     }
 
-    /**
-     * Move map viewer camera to world spawn position.
-     *
-     * <p>
-     * Triggered by fab click action.
-     * </p>
-     *
-     * @param view no use. Yes we pass it to snack maker, but we can just use root view instead.
-     */
-    @UiThread
-    private void moveCameraToSpawn(View view) {
-        try {
-            Activity activity = getActivity();
-            if (activity == null) return;
-            var handler = this.worldModel.getWorld();
-
-            DimensionVector3<Integer> spawnPos = WorldKt.resolveSpawnPoint(handler, activity);
-
-            Snackbar.make(mBinding.tileView,
-                    getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn),
-                            spawnPos.x, spawnPos.y, spawnPos.z),
-                    Snackbar.LENGTH_SHORT)
-                    .setAction("Action", null).show();
-            if (spawnPos.dimension != this.model.getDimension()) {
-                this.model.setDimension(spawnPos.dimension);
-                this.model.getMapType().setValue(defaultMapTypeCompat(spawnPos.dimension));
-            }
-            frameTo((double) spawnPos.x, (double) spawnPos.z);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Snackbar.make(view, R.string.failed_find_spawn, Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+    public void moveCameraToSpawn(Dimension dimension, int x, int y, int z) {
+        if (dimension != this.model.getDimension()) {
+            this.model.setDimension(dimension);
+            this.model.getMapType().setValue(defaultMapTypeCompat(dimension));
         }
+        this.frameTo(x, z);
+        Snackbar.make(
+                mBinding.tileView,
+                getString(R.string.something_at_xyz_dim_int, getString(R.string.spawn), x, y, z),
+                Snackbar.LENGTH_SHORT
+        ).show();
     }
 
     /**
@@ -345,6 +278,10 @@ public class MapFragment extends Fragment {
         mBinding.selectionBoard.setSelectionChangedListener(null);
     }
 
+    public void openAdvancedLocator() {
+        this.openFloatPane(AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo));
+    }
+
     /**
      * Show a floating pane fragment. Will remove already existing one.
      *
@@ -360,23 +297,6 @@ public class MapFragment extends Fragment {
         if (mFloatingFragment != null) trans.remove(mFloatingFragment);
         trans.add(R.id.float_window_container, fragment).commit();
         mFloatingFragment = fragment;
-    }
-
-    private void onOpenFab(View view) {
-        if (mBinding.fabMenu.isOpened())
-            mBinding.fabMenu.close(true);
-        else {
-            mBinding.fabMenu.open(true);
-            FragmentActivity activity = getActivity();
-            if (activity != null) {
-                SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
-                if (!preferences
-                        .getBoolean(KEY_HAS_DOUBLE_TAP, false)) {
-                    Toast.makeText(activity, getString(R.string.map_dblclick_notice), Toast.LENGTH_SHORT).show();
-                    preferences.edit().putBoolean(KEY_HAS_DOUBLE_TAP, true).apply();
-                }
-            }
-        }
     }
 
     @Nullable
@@ -412,33 +332,6 @@ public class MapFragment extends Fragment {
                 return false;
             }
         });
-
-        mBinding.fabMenu.setOnMenuButtonClickListener(this::onOpenFab);
-
-        // GPS button: moves camera to player position
-        mBinding.fabMenuGpsPlayer.setOnClickListener(this::moveCameraToPlayer);
-        Resources resources = activity.getResources();
-        mBinding.fabMenuGpsPlayer.setImageDrawable(
-                VectorDrawableCompat.create(resources, R.drawable.ic_person, null));
-
-        // GPS button: moves camera to spawn
-        mBinding.fabMenuGpsSpawn.setOnClickListener(this::moveCameraToSpawn);
-        mBinding.fabMenuGpsSpawn.setImageDrawable(
-                VectorDrawableCompat.create(resources, R.drawable.ic_action_home, null));
-
-        // Display a menu allowing user to move camera to many places.
-        mBinding.fabMenuGpsOthers.setOnClickListener(unusedView ->
-                openFloatPane(AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo)));
-        mBinding.fabMenuGpsOthers.setImageDrawable(
-                VectorDrawableCompat.create(resources, R.drawable.ic_action_search, null));
-
-        mBinding.fabMenuGpsPicer.setOnClickListener(ignored -> {
-            MapFragmentCompatKt.setAnalyzingPicerState(this.model, this.worldModel.getWorld());
-            new PicerDialogFragment().show(getChildFragmentManager(), TAG_PICER);
-        });
-        mBinding.fabMenuGpsPicer.setImageDrawable(
-                VectorDrawableCompat.create(resources, R.drawable.ic_menu_camera, null));
-
 
         try {
             Entity.loadEntityBitmaps(activity.getAssets());
@@ -583,7 +476,7 @@ public class MapFragment extends Fragment {
                                         Snackbar.make(mBinding.tileView,
                                                 activity.getString(R.string.teleported_player_to_xyz_dimension) + newX + ";" + newY + ";" + newZ + " [" + newDimension.name + "] (" + marker.getNamedBitmapProvider().getBitmapDisplayName() + ")",
                                                 Snackbar.LENGTH_LONG)
-                                                .setAction("Action", null).show();
+                                                .show();
 
                                     } else throw new Exception("Failed saving player");
 
@@ -592,7 +485,7 @@ public class MapFragment extends Fragment {
 
                                     Snackbar.make(mBinding.tileView, R.string.failed_teleporting_player,
                                             Snackbar.LENGTH_LONG)
-                                            .setAction("Action", null).show();
+                                            .show();
                                 }*/
                                 return;
                             }
@@ -608,7 +501,7 @@ public class MapFragment extends Fragment {
                                     //only custom markers are meant to be removable
                                     Snackbar.make(mBinding.tileView, R.string.marker_is_not_removable,
                                             Snackbar.LENGTH_LONG)
-                                            .setAction("Action", null).show();
+                                            .show();
                                 }*/
                             }
                         }
@@ -648,7 +541,7 @@ public class MapFragment extends Fragment {
         AsyncKt.openDB(worldModel, this, handler -> {
             boolean framedToPlayer = false;
             try {
-                DimensionVector3<Float> playerPos = WorldKt.resolveLocalPlayerPosCompat(handler, activity);
+                var playerPos = WorldKt.resolveLocalPlayerPosCompat(handler, activity);
                 if (playerPos != null) {
                     float x = playerPos.x, y = playerPos.y, z = playerPos.z;
                     LogUtil.d(this, "Placed player marker at: " + x + ";" + y + ";" + z + " [" + playerPos.dimension.getIdentifier() + "]");
@@ -692,6 +585,11 @@ public class MapFragment extends Fragment {
         MapFragmentCompatKt.registerSignalListener(this, model);
         this.model = model;
         return mBinding.getRoot();
+    }
+
+    public void showPicerDialog() {
+        MapFragmentCompatKt.setAnalyzingPicerState(this.model, this.worldModel.getWorld());
+        new PicerDialogFragment().show(getChildFragmentManager(), TAG_PICER);
     }
 
     /**
@@ -1006,7 +904,7 @@ public class MapFragment extends Fragment {
                     getString(isEntity ?
                             R.string.open_chunk_entity_nbt : R.string.open_chunk_tile_entity_nbt)),
                     Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+                    .show();
         }
     }
 
@@ -1033,7 +931,7 @@ public class MapFragment extends Fragment {
                     void failParseSnackbarReport(int msg) {
                         Snackbar.make(container, msg,
                                 Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
+                                .show();
                     }
 
                     @Override
@@ -1169,12 +1067,12 @@ public class MapFragment extends Fragment {
                             Snackbar.make(container,
                                     getString(R.string.teleported_player_to_xyz_dim, newX, newY, newZ),
                                     Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
+                                    .show();
                         } else {
                             Snackbar.make(container,
                                     R.string.failed_teleporting_player,
                                     Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
+                                    .show();
                         }
                     })
                     .setCancelable(true)
@@ -1185,7 +1083,7 @@ public class MapFragment extends Fragment {
             e.printStackTrace();
             Snackbar.make(container, R.string.failed_to_find_or_edit_local_player_data,
                     Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+                    .show();
         }*/
     }
 

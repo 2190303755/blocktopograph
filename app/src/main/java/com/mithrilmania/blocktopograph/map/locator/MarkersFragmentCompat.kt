@@ -12,11 +12,12 @@ import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
-import com.mithrilmania.blocktopograph.util.math.DimensionVector3
+import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
 import com.mithrilmania.blocktopograph.util.startsWith
 import com.mithrilmania.blocktopograph.world.KeyPrefix
 import com.mithrilmania.blocktopograph.world.World
-import com.mithrilmania.blocktopograph.world.extractPlayerPosCompat
+import com.mithrilmania.blocktopograph.world.boxed
+import com.mithrilmania.blocktopograph.world.extractPlayerPos
 import com.mithrilmania.blocktopograph.world.resolveLocalPlayerPos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,9 +68,11 @@ fun loadPlayerMarkers(
     fragment.lifecycleScope.launch(Dispatchers.IO) {
         val players = mutableListOf<Player>()
         try {
-            val localPlayerPos: DimensionVector3<Float>? = world.resolveLocalPlayerPos(context)
+            val localPlayerPos: DimensionVec3f? = world.resolveLocalPlayerPos(context)
             if (localPlayerPos !== null) {
-                players.add(Player.localPlayer().apply { position = localPlayerPos })
+                players.add(Player.localPlayer().apply {
+                    position = localPlayerPos.boxed()
+                })
             }
             world.storage?.db?.iterator(ReadOptions().fillCache(false))?.use { iterator ->
                 val prefix = KeyPrefix.ONLINE_PLAYER.bytes
@@ -82,7 +85,8 @@ fun loadPlayerMarkers(
                     players.add(player)
                     player.position = BedrockNBTInput(entry.value)
                         .readAnonymousTypedTag<CompoundTag>()
-                        ?.extractPlayerPosCompat()
+                        ?.extractPlayerPos()
+                        ?.boxed()
                         ?: continue
                 }
             }

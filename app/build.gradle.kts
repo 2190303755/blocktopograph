@@ -59,7 +59,6 @@ dependencies {
     implementation(project(":tileview"))
     implementation(project(":libs:hivemc:leveldb"))
     implementation(project(":libs:plrapps:mapcompose"))
-    implementation(libs.clans.fab)
     implementation(libs.annotation)
     implementation(libs.appcompat)
     implementation(libs.recyclerview)

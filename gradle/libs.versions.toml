@@ -7,7 +7,6 @@ activity = "1.13.0"
 material3 = "1.5.0-alpha28"
 lifecycle = "2.11.0"
 junit = "4.13.2"
-clans-fab = "1.6.4"
 annotation = "1.10.0"
 appcompat = "1.7.1"
 recyclerview = "1.4.0"
@@ -70,7 +69,6 @@ drawerlayout = { module = "androidx.drawerlayout:drawerlayout", version.ref = "d
 window = { module = "androidx.window:window", version.ref = "window" }
 
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-clans-fab = { module = "com.github.clans:fab", version.ref = "clans-fab" }
 expansionpanel = { module = "com.github.florent37:expansionpanel", version.ref = "expansionpanel" }
 
 guava = { module = "com.google.guava:guava", version.ref = "guava" }

@@ -70,3 +70,10 @@ fun Dimension.defaultMapTypeCompat(): MapType = when (this.runtimeId) {
     2 -> MapType.END_SATELLITE
     else -> MapType.ERROR
 }
+
+fun Int.toVanillaDimension(): VanillaDimension? = when (this) {
+    0 -> VanillaDimension.OVERWORLD
+    1 -> VanillaDimension.NETHER
+    2 -> VanillaDimension.END
+    else -> null
+}

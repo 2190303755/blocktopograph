@@ -9,6 +9,21 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +33,7 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
 import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
+import com.mithrilmania.blocktopograph.map.MapFragment
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
@@ -38,6 +54,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WorldEditorActivity : WorldActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.lifecycleScope.launch {
@@ -53,6 +70,32 @@ class WorldEditorActivity : WorldActivity() {
                     }
                     mapFragment.addMarker(marker)
                 }
+            }
+        }
+        this.findViewById<ComposeView>(R.id.composer).setContent {
+            Box(Modifier.fillMaxSize()) {
+                WorldEditorMenu({ mapFragment }) {
+                    val preferences = getPreferences(MODE_PRIVATE)
+                    if (!preferences.getBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, false)) {
+                        preferences.edit { putBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, true) }
+                        toast(R.string.map_dblclick_notice)
+                    }
+                }
+                Text(
+                    stringResource(R.string.map_water_mark),
+                    Modifier
+                        .padding(4.dp)
+                        .align(Alignment.BottomStart),
+                    fontFamily = FontFamily.SansSerif,
+                    color = colorResource(R.color.waterMark),
+                    style = LocalTextStyle.current.copy(
+                        shadow = Shadow(
+                            color = colorResource(R.color.waterMarkShadow),
+                            offset = Offset(2.0F, 2.0F),
+                            blurRadius = 2.0F
+                        )
+                    )
+                )
             }
         }
     }
@@ -241,7 +284,7 @@ class WorldEditorActivity : WorldActivity() {
                         this.mBinding?.drawerLayout ?: return@click,
                         R.string.invalid_keyname,
                         Snackbar.LENGTH_LONG
-                    ).setAction("Action", null).show();
+                    ).show();
                 } else {
                     this.lifecycleScope.launch(Dispatchers.IO) {
                         val db = activity.worldModel?.storage?.await(WorldStorage::db)
@@ -303,7 +346,7 @@ class WorldEditorActivity : WorldActivity() {
                         activity.mBinding?.root ?: return@feedback,
                         R.string.no_multiplayer_data_found,
                         Snackbar.LENGTH_LONG
-                    ).setAction("Action", null).show()
+                    ).show()
                 }
                 return@launch
             }
@@ -372,7 +415,7 @@ class WorldEditorActivity : WorldActivity() {
             this.mBinding?.root ?: return,
             this.getString(R.string.failed_read_player_from_db_with_key_x, key),
             Snackbar.LENGTH_LONG
-        ).setAction("Action", null).show()
+        ).show()
     }
 
     fun notifyMissingKey(key: String) {

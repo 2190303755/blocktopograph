@@ -223,7 +223,7 @@ class PicerDialogFragment : DialogFragment() {
                 val owner =
                     LocalActivity.current as? ViewModelStoreOwner ?: this@PicerDialogFragment
                 val viewer = viewModel<WorldViewerModel>(owner)
-                val level = viewModel<WorldModel>(owner)
+                val handle = viewModel<WorldModel>(owner)
                 AnimatedContent(
                     viewer.picerState,
                     Modifier
@@ -301,7 +301,7 @@ class PicerDialogFragment : DialogFragment() {
                                 stringResource(R.string.picer_title),
                                 buttons = {
                                     TextButton({
-                                        val storage = level.world.storage
+                                        val storage = handle.world.storage
                                         viewer.picerState =
                                             if (storage === null) PicerState.NoTerrain
                                             else PicerState.Generating(
@@ -351,7 +351,7 @@ class PicerDialogFragment : DialogFragment() {
                                     viewer.picerState = PicerState.Saving
                                     saveBitmap(
                                         state.bitmap,
-                                        ConvertUtil.getLegalFileName(level.world.plainName) + "_map"
+                                        ConvertUtil.getLegalFileName(handle.world.plainName) + "_map"
                                     )
                                 }) { Text(stringResource(R.string.picer_save)) }
                             }

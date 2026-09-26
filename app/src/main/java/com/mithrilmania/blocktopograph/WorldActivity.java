@@ -251,7 +251,7 @@ public abstract class WorldActivity extends AppCompatActivity
             nbtChunkData.load();
         } catch (Exception e) {
             Snackbar.make(viewGroup, this.getString(R.string.failed_to_load_x, this.getString(R.string.nbt_chunk_data)), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+                    .show();
             return;
         }
 
@@ -268,11 +268,11 @@ public abstract class WorldActivity extends AppCompatActivity
                                     try {
                                         nbtChunkData.write();
                                         Snackbar.make(viewGroup, R.string.created_and_saved_chunk_NBT_data, Snackbar.LENGTH_LONG)
-                                                .setAction("Action", null).show();
+                                                .show();
                                         //WorldActivity.this.openChunkNBTEditor(chunkX, chunkZ, nbtChunkData, viewGroup);fixme
                                     } catch (Exception e) {
                                         Snackbar.make(viewGroup, R.string.failed_to_create_or_save_chunk_NBT_data, Snackbar.LENGTH_LONG)
-                                                .setAction("Action", null).show();
+                                                .show();
                                         LogUtil.d(this, e);
                                     }
                                 }
