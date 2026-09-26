@@ -7,8 +7,8 @@ import androidx.compose.material3.SnackbarResult
 suspend inline fun SnackbarHostState.showSnackbar(
     message: String,
     actionLabel: String,
-    withDismissAction: Boolean = false,
     duration: SnackbarDuration = SnackbarDuration.Short,
+    withDismissAction: Boolean = false,
     onConfirm: () -> Unit
 ) {
     if (SnackbarResult.ActionPerformed ==

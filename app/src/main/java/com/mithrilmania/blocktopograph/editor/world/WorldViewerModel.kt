@@ -1,13 +1,18 @@
 package com.mithrilmania.blocktopograph.editor.world
 
-import android.graphics.Rect
+import android.app.Application
+import android.content.Intent
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.IntRect
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceRequest
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
-import com.mithrilmania.blocktopograph.map.picer.PicerDialogFragment
+import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_AREA
+import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_LENGTH
 import com.mithrilmania.blocktopograph.map.picer.PicerState
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.util.Signal
@@ -17,7 +22,11 @@ import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
 import kotlinx.coroutines.channels.Channel
 import kotlin.math.sqrt
 
-class WorldViewerModel : ViewModel() {
+class WorldViewerModel(app: Application) : AndroidViewModel(app) {
+    @JvmField
+    val pendingIntent: Channel<Intent> = Channel()
+
+    @JvmField
     val pendingMarkers: Channel<List<AbstractMarker>> = Channel(capacity = 4)
 
     var dimension: Dimension = VanillaDimension.OVERWORLD
@@ -29,25 +38,26 @@ class WorldViewerModel : ViewModel() {
     val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
     @JvmField
-    val showDrawer = Signal()
+    val showDrawer = Signal<Unit>()
 
     @JvmField
-    val longPressCenter = Signal()
-
+    val longPressCenter = Signal<Unit>()
+    val snackbar = SnackbarHostState()
     var picerState by mutableStateOf<PicerState?>(null)
+    var replacingRequest by mutableStateOf<SearchAndReplaceRequest?>(null)
 
     fun navigateTo(dimension: Dimension, type: MapType) {
         this.dimension = dimension
         this.mapType.value = type
     }
 
-    fun commitAnalyzedState(rect: Rect, fallback: PicerState) {
-        val width = rect.width()
-        val height = rect.height()
+    fun commitAnalyzedState(rect: IntRect, fallback: PicerState) {
+        val width = rect.width
+        val height = rect.height
         if (width > 0 && height > 0) {
-            val maxEdgeScale = PicerDialogFragment.MAX_LENGTH / maxOf(width, height)
+            val maxEdgeScale = PICER_MAX_LENGTH / maxOf(width, height)
             if (maxEdgeScale >= 1) {
-                val maxAreaFactor = PicerDialogFragment.MAX_AREA / (width * height)
+                val maxAreaFactor = PICER_MAX_AREA / (width * height)
                 val maxScale = if (maxEdgeScale * maxEdgeScale > maxAreaFactor)
                     sqrt(maxAreaFactor.toDouble()).toInt()
                 else maxEdgeScale

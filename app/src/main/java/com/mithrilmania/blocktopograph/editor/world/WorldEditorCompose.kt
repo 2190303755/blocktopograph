@@ -2,8 +2,6 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -28,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -49,10 +46,13 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.traversalIndex
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.IntRect
+import androidx.lifecycle.application
+import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.map.MapFragment
+import com.mithrilmania.blocktopograph.map.analyzeChunksImpl
+import com.mithrilmania.blocktopograph.map.picer.PicerState
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.util.APP_TAG
@@ -93,8 +93,13 @@ fun FloatingActionButtonMenuScope.WorldEditorMenuItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BoxScope.WorldEditorMenu(fragment: () -> MapFragment, onShow: () -> Unit) {
-    val handle = viewModel<WorldModel>()
+fun WorldEditorMenu(
+    viewer: WorldViewerModel,
+    handle: WorldModel,
+    modifier: Modifier,
+    fragment: () -> MapFragment,
+    onShow: () -> Unit
+) {
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
@@ -102,9 +107,7 @@ fun BoxScope.WorldEditorMenu(fragment: () -> MapFragment, onShow: () -> Unit) {
     BackHandler(menuExpanded) { menuExpanded = false }
 
     FloatingActionButtonMenu(
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(end = 16.dp, bottom = 32.dp),
+        modifier = modifier,
         expanded = menuExpanded,
         button = {
             TooltipBox(
@@ -201,6 +204,9 @@ fun BoxScope.WorldEditorMenu(fragment: () -> MapFragment, onShow: () -> Unit) {
                     handle.world.resolveLocalPlayerPos(context)
                 } catch (e: Exception) {
                     Log.d(APP_TAG, "Failed to locate local player", e)
+                    null
+                }
+                if (pos === null) {
                     withContext(Dispatchers.Main) {
                         context.toast(R.string.failed_find_player)
                     }
@@ -227,7 +233,35 @@ fun BoxScope.WorldEditorMenu(fragment: () -> MapFragment, onShow: () -> Unit) {
                 true
             }
         ) {
-            fragment().showPicerDialog()
+            viewer.picerState = PicerState.Analyzing(
+                viewer.viewModelScope.launch(Dispatchers.IO) {
+                    val area = try {
+                        handle.world.analyzeChunksImpl(viewer.dimension)
+                    } catch (e: InterruptedException) {
+                        throw e
+                    } catch (_: IllegalStateException) {
+                        viewer.picerState =
+                            PicerState.Failed(R.string.picer_failed_corrupt)
+                        return@launch
+                    } catch (_: UnsupportedOperationException) {
+                        viewer.picerState =
+                            PicerState.Failed(R.string.picer_failed_old)
+                        return@launch
+                    } catch (_: Exception) {
+                        viewer.picerState = null
+                        withContext(Dispatchers.Main) {
+                            viewer.application.toast(R.string.picer_failed_nodata)
+                        }
+                        return@launch
+                    }
+                    withContext(Dispatchers.Main) {
+                        viewer.commitAnalyzedState(
+                            IntRect(area.left, area.top, area.right, area.bottom),
+                            PicerState.WorldOutOfSize
+                        )
+                    }
+                }
+            )
             menuExpanded = false
         }
     }

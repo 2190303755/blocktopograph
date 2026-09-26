@@ -30,6 +30,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.compose.ui.unit.IntRect;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -53,7 +54,6 @@ import com.mithrilmania.blocktopograph.map.edit.RectEditTarget;
 import com.mithrilmania.blocktopograph.map.locator.AdvancedLocatorFragment;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
-import com.mithrilmania.blocktopograph.map.picer.PicerDialogFragment;
 import com.mithrilmania.blocktopograph.map.picer.PicerState;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
@@ -81,6 +81,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import kotlin.Unit;
 import kotlinx.coroutines.Job;
 
 public class MapFragment extends Fragment {
@@ -319,7 +320,7 @@ public class MapFragment extends Fragment {
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                model.showDrawer.trigger();
+                model.showDrawer.tryEmit(Unit.INSTANCE);
                 FragmentActivity activity = getActivity();
                 if (activity != null)
                     activity.getPreferences(Context.MODE_PRIVATE)
@@ -587,11 +588,6 @@ public class MapFragment extends Fragment {
         return mBinding.getRoot();
     }
 
-    public void showPicerDialog() {
-        MapFragmentCompatKt.setAnalyzingPicerState(this.model, this.worldModel.getWorld());
-        new PicerDialogFragment().show(getChildFragmentManager(), TAG_PICER);
-    }
-
     /**
      * Creates a new marker (looking exactly the same as the old one) on the new position,
      * while removing the old marker.
@@ -635,8 +631,11 @@ public class MapFragment extends Fragment {
             case PICER: {
                 var activity = getActivity();
                 if (activity == null) return;
-                this.model.commitAnalyzedState(mBinding.selectionBoard.getSelection(), PicerState.SelectionOutOfSize.INSTANCE);
-                new PicerDialogFragment().show(activity.getSupportFragmentManager(), TAG_PICER);
+                var rect = mBinding.selectionBoard.getSelection();
+                this.model.commitAnalyzedState(
+                        new IntRect(rect.left, rect.top, rect.right, rect.bottom),
+                        PicerState.SelectionOutOfSize.INSTANCE
+                );
             }
         }
     }
@@ -734,7 +733,7 @@ public class MapFragment extends Fragment {
                 AlertDialog dialog = new AlertDialog.Builder(act)
                         .setTitle(R.string.map_smart_notice_too_many_markers)
                         .setMessage(R.string.map_smart_notice_too_many_markers_message)
-                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.showDrawer.trigger())
+                        .setPositiveButton(R.string.map_uioption_open_drawer, (dialogInterface, i) -> this.model.showDrawer.tryEmit(Unit.INSTANCE))
                         .setNegativeButton(R.string.general_got_it, null)
                         .create();
                 dialog.setCanceledOnTouchOutside(false);

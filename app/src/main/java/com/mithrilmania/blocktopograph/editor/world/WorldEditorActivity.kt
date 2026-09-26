@@ -10,10 +10,13 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,10 +26,12 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.R
@@ -35,6 +40,8 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
 import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
 import com.mithrilmania.blocktopograph.map.MapFragment
 import com.mithrilmania.blocktopograph.map.TileEntity
+import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceDialog
+import com.mithrilmania.blocktopograph.map.picer.PicerDialog
 import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.LocalPlayerSource
@@ -42,11 +49,13 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.storage.VirtualFile
 import com.mithrilmania.blocktopograph.storage.file
+import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.popAndTransit
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.VanillaDimension
+import com.mithrilmania.blocktopograph.world.WorldModel
 import com.mithrilmania.blocktopograph.world.WorldStorage
 import com.mithrilmania.blocktopograph.world.await
 import kotlinx.coroutines.Dispatchers
@@ -72,30 +81,60 @@ class WorldEditorActivity : WorldActivity() {
                 }
             }
         }
+        this.lifecycleScope.launch {
+            for (intent in model.pendingIntent) {
+                startActivity(intent)
+            }
+        }
         this.findViewById<ComposeView>(R.id.composer).setContent {
-            Box(Modifier.fillMaxSize()) {
-                WorldEditorMenu({ mapFragment }) {
-                    val preferences = getPreferences(MODE_PRIVATE)
-                    if (!preferences.getBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, false)) {
-                        preferences.edit { putBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, true) }
-                        toast(R.string.map_dblclick_notice)
+            BlocktopographCompatTheme {
+                val viewer = viewModel<WorldViewerModel>()
+                val handle = viewModel<WorldModel>()
+                Box(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomStart),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        SnackbarHost(viewer.snackbar)
+                        WorldEditorMenu(
+                            viewer,
+                            handle,
+                            Modifier.padding(end = 16.dp, bottom = 32.dp),
+                            { mapFragment }
+                        ) {
+                            val preferences = getPreferences(MODE_PRIVATE)
+                            if (!preferences.getBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, false)) {
+                                preferences.edit {
+                                    putBoolean(
+                                        MapFragment.KEY_HAS_DOUBLE_TAP,
+                                        true
+                                    )
+                                }
+                                toast(R.string.map_dblclick_notice)
+                            }
+                        }
                     }
-                }
-                Text(
-                    stringResource(R.string.map_water_mark),
-                    Modifier
-                        .padding(4.dp)
-                        .align(Alignment.BottomStart),
-                    fontFamily = FontFamily.SansSerif,
-                    color = colorResource(R.color.waterMark),
-                    style = LocalTextStyle.current.copy(
-                        shadow = Shadow(
-                            color = colorResource(R.color.waterMarkShadow),
-                            offset = Offset(2.0F, 2.0F),
-                            blurRadius = 2.0F
+                    Text(
+                        stringResource(R.string.map_water_mark),
+                        Modifier
+                            .padding(4.dp)
+                            .align(Alignment.BottomStart),
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Light,
+                        color = colorResource(R.color.waterMark),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            shadow = Shadow(
+                                color = colorResource(R.color.waterMarkShadow),
+                                offset = Offset(2.0F, 2.0F),
+                                blurRadius = 2.0F
+                            )
                         )
                     )
-                )
+                    PicerDialog(viewer, handle)
+                    SearchAndReplaceDialog(viewer)
+                }
             }
         }
     }

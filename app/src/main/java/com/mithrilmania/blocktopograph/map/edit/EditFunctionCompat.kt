@@ -54,7 +54,7 @@ fun performSelectionBasedEdit(
             } else {
                 BundleCompat.getSerializable(
                     args,
-                    SearchAndReplaceDialogFragment.CONFIG,
+                    SEARCH_AND_REPLACE_SPEC,
                     SnrConfig::class.java
                 )?.perform(area) ?: EditResultCode.GENERAL_FAILURE
             }

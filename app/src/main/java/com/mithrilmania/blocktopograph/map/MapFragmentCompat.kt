@@ -2,13 +2,11 @@ package com.mithrilmania.blocktopograph.map
 
 import android.graphics.Rect
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
-import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.chunk.Version
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
-import com.mithrilmania.blocktopograph.map.picer.PicerDialogFragment
-import com.mithrilmania.blocktopograph.map.picer.PicerState
+import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_AREA
+import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_LENGTH
 import com.mithrilmania.blocktopograph.util.readIntLE
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.World
@@ -90,9 +88,9 @@ suspend fun World.analyzeChunksImpl(dimension: Dimension): Rect {
                         rect = Rect(chunkX, chunkZ, chunkX, chunkZ)
                     } else {
                         rect.union(chunkX, chunkZ)
-                        if (((count and 0x1F) == 0 && rect.width() * rect.height() > PicerDialogFragment.MAX_AREA)
-                            || rect.width() > PicerDialogFragment.MAX_LENGTH
-                            || rect.height() > PicerDialogFragment.MAX_LENGTH
+                        if (((count and 0x1F) == 0 && rect.width() * rect.height() > PICER_MAX_AREA)
+                            || rect.width() > PICER_MAX_LENGTH
+                            || rect.height() > PICER_MAX_LENGTH
                         ) break
                     }
                 }
@@ -111,26 +109,3 @@ suspend fun World.analyzeChunksImpl(dimension: Dimension): Rect {
     return rect
 }
 
-fun WorldViewerModel.setAnalyzingPicerState(world: World) {
-    picerState = PicerState.Analyzing(
-        viewModelScope.launch(Dispatchers.IO) {
-            val area = try {
-                world.analyzeChunksImpl(dimension)
-            } catch (e: InterruptedException) {
-                throw e
-            } catch (_: IllegalStateException) {
-                picerState = PicerState.Failed(R.string.picer_failed_corrupt)
-                return@launch
-            } catch (_: UnsupportedOperationException) {
-                picerState = PicerState.Failed(R.string.picer_failed_old)
-                return@launch
-            } catch (_: Exception) {
-                picerState = PicerState.NoTerrain
-                return@launch
-            }
-            withContext(Dispatchers.Main) {
-                commitAnalyzedState(area, PicerState.WorldOutOfSize)
-            }
-        }
-    )
-}

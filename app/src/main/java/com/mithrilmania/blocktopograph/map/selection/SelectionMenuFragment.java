@@ -16,13 +16,15 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.databinding.FragSelMenuBinding;
+import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.FloatPaneFragment;
 import com.mithrilmania.blocktopograph.map.edit.ChBiomeFragment;
 import com.mithrilmania.blocktopograph.map.edit.EditFunction;
-import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceDialogFragment;
+import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceRequest;
 import com.mithrilmania.blocktopograph.util.UiUtil;
 
 import java.lang.ref.WeakReference;
@@ -114,7 +116,10 @@ public class SelectionMenuFragment extends FloatPaneFragment {
     }
 
     private void onChooseSnr(View view) {
-        new SearchAndReplaceDialogFragment(mEditFunctionEntry).show(getMeowFragmentManager(), TAG_SNR);
+        var activity = this.getActivity();
+        if (activity == null) return;
+        new ViewModelProvider(activity).get(WorldViewerModel.class)
+                .setReplacingRequest(new SearchAndReplaceRequest(mEditFunctionEntry));
     }
 
     private void onChooseDchunk(View view) {

@@ -1,5 +1,6 @@
 package com.mithrilmania.blocktopograph.map.edit
 
+import android.os.Bundle
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -28,12 +30,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
+import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
+import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
+import com.mithrilmania.blocktopograph.ui.component.TextButton
+
+const val SEARCH_AND_REPLACE_SPEC = "S&RSpec"
 
 enum class SearchMode(@JvmField @param:StringRes val text: Int) {
     BACKGROUND(R.string.map_edit_snr_bg),
@@ -57,7 +63,7 @@ class BlockStates(major: String, minor: String) {
     )
 }
 
-class SearchAndReplaceModel : ViewModel() {
+class SearchAndReplaceRequest(val handler: SelectionMenuFragment.EditFunctionEntry) {
     var searchMode: SearchMode by mutableStateOf(SearchMode.FOREGROUND)
     var placeMode: PlaceMode by mutableStateOf(PlaceMode.FOREGROUND)
     val search: BlockStates = BlockStates("minecraft:grass", "minecraft:air")
@@ -86,6 +92,7 @@ class SearchAndReplaceModel : ViewModel() {
         }
         return config
     }
+
 }
 
 @Composable
@@ -124,85 +131,99 @@ fun BlockStatesPreview(
     }
 }
 
-
 @OptIn(ExperimentalGridApi::class)
 @Composable
-fun SearchAndReplaceLayout(
-    viewModel: SearchAndReplaceModel
-) {
-    Column(Modifier.verticalScroll(rememberScrollState())) {
-        Text(
-            text = stringResource(R.string.map_edit_snr_find_in),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Grid(
-            config = {
-                column(1.fr)
-                column(1.fr)
-            },
-            modifier = Modifier.selectableGroup()
-        ) {
-            SearchMode.entries.forEach { mode ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .selectable(
-                            selected = mode === viewModel.searchMode,
-                            onClick = { viewModel.searchMode = mode },
-                            role = Role.RadioButton,
-                        )
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = mode === viewModel.searchMode, onClick = null)
+fun SearchAndReplaceDialog(viewer: WorldViewerModel) {
+    viewer.replacingRequest?.let { request ->
+        AlertDialog(
+            onDismissRequest = { viewer.replacingRequest = null },
+            title = { Text(stringResource(R.string.map_edit_snr_find_in)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Grid(
+                        config = {
+                            column(1.fr)
+                            column(1.fr)
+                        },
+                        modifier = Modifier.selectableGroup()
+                    ) {
+                        SearchMode.entries.forEach { mode ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .selectable(
+                                        selected = mode === request.searchMode,
+                                        onClick = { request.searchMode = mode },
+                                        role = Role.RadioButton,
+                                    )
+                                    .padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = mode === request.searchMode,
+                                    onClick = null
+                                )
+                                Text(
+                                    text = stringResource(mode.text),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.padding(start = 16.dp),
+                                )
+                            }
+                        }
+                    }
                     Text(
-                        text = stringResource(mode.text),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(start = 16.dp),
+                        text = stringResource(R.string.map_edit_snr_find_for),
+                        style = MaterialTheme.typography.bodyMedium
                     )
+                    BlockStatesPreview(request.search, request.searchMode !== SearchMode.BOTH)
+                    Text(
+                        text = stringResource(R.string.map_edit_snr_place_in),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Grid(
+                        config = {
+                            column(1.fr)
+                            column(1.fr)
+                        },
+                        modifier = Modifier.selectableGroup()
+                    ) {
+                        PlaceMode.entries.forEach { mode ->
+                            val modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .selectable(
+                                    selected = mode === request.placeMode,
+                                    onClick = { request.placeMode = mode },
+                                    role = Role.RadioButton,
+                                )
+                                .padding(horizontal = 16.dp)
+                            Row(
+                                if (mode === PlaceMode.BOTH) modifier.gridItem(columnSpan = 2) else modifier,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = mode === request.placeMode, onClick = null)
+                                Text(
+                                    text = stringResource(mode.text),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.padding(start = 16.dp),
+                                )
+                            }
+                        }
+                    }
+                    BlockStatesPreview(request.place, request.placeMode !== PlaceMode.BOTH)
+                }
+            },
+            confirmButton = {
+                TextButton(stringResource(android.R.string.ok)) {
+                    viewer.replacingRequest?.let {
+                        val bundle = Bundle()
+                        bundle.putSerializable(SEARCH_AND_REPLACE_SPEC, it.buildConfig())
+                        it.handler.invokeEditFunction(EditFunction.SNR, bundle)
+                    }
+                    viewer.replacingRequest = null
                 }
             }
-        }
-        Text(
-            text = stringResource(R.string.map_edit_snr_find_for),
-            style = MaterialTheme.typography.bodyMedium
         )
-        BlockStatesPreview(viewModel.search, viewModel.searchMode !== SearchMode.BOTH)
-        Text(
-            text = stringResource(R.string.map_edit_snr_place_in),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Grid(
-            config = {
-                column(1.fr)
-                column(1.fr)
-            },
-            modifier = Modifier.selectableGroup()
-        ) {
-            PlaceMode.entries.forEach { mode ->
-                val modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .selectable(
-                        selected = mode === viewModel.placeMode,
-                        onClick = { viewModel.placeMode = mode },
-                        role = Role.RadioButton,
-                    )
-                    .padding(horizontal = 16.dp)
-                Row(
-                    if (mode === PlaceMode.BOTH) modifier.gridItem(columnSpan = 2) else modifier,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = mode === viewModel.placeMode, onClick = null)
-                    Text(
-                        text = stringResource(mode.text),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(start = 16.dp),
-                    )
-                }
-            }
-        }
-        BlockStatesPreview(viewModel.place, viewModel.placeMode !== PlaceMode.BOTH)
     }
 }

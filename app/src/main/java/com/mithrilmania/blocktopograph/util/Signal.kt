@@ -1,20 +1,20 @@
 package com.mithrilmania.blocktopograph.util
 
+import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 
-class Signal {
-    private val flow = MutableSharedFlow<Unit>(
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
+class Signal<E>(
+    private val flow: MutableSharedFlow<E> = MutableSharedFlow(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-
-    suspend fun collect(collector: FlowCollector<Unit>) {
-        this.flow.collect(collector)
+) : SharedFlow<E> by flow {
+    suspend fun emit(event: E) {
+        this.flow.emit(event)
     }
 
-    fun trigger() {
-        this.flow.tryEmit(Unit)
-    }
+    fun tryEmit(event: E) = this.flow.tryEmit(event)
 }

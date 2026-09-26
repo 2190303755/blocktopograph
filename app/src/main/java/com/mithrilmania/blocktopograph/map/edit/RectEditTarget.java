@@ -5,6 +5,7 @@ import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.compose.ui.unit.IntRect;
 
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
@@ -16,7 +17,7 @@ import com.mithrilmania.blocktopograph.world.WorldStorage;
 public class RectEditTarget extends EditTarget {
 
     @NonNull
-    private final Rect mArea;
+    private final IntRect mArea;
 
     private final int yLowest;
 
@@ -26,10 +27,12 @@ public class RectEditTarget extends EditTarget {
     private final Dimension dimension;
 
     public RectEditTarget(@NonNull WorldStorage storage, @NonNull Rect area, @NonNull Dimension dimension) {
+        this(storage, new IntRect(area.left, area.top, area.right, area.bottom), dimension);
+    }
+
+    public RectEditTarget(@NonNull WorldStorage storage, @NonNull IntRect area, @NonNull Dimension dimension) {
         super(true, storage);
-        mArea = new Rect(area);
-        mArea.right--;
-        mArea.bottom--;
+        mArea = area;
         yLowest = 0;
         yHighest = 255;
         this.dimension = dimension;
@@ -37,40 +40,46 @@ public class RectEditTarget extends EditTarget {
 
     @Override
     public EditResultCode forEachXyz(RandomAccessEdit edit) {
-        return forEach(false, false, null, edit);
+        return forEach(false, null, edit);
     }
 
     @Override
     public EditResultCode forEachXz(RandomAccessEdit edit) {
-        return forEach(false, true, null, edit);
+        return forEach(true, null, edit);
     }
 
     @Override
     public EditResultCode forEachChunk(ChunkBasedEdit edit) {
-        return forEach(true, false, edit, null);
+        return forEach(false, edit, null);
     }
 
     @SuppressLint("DefaultLocale")
-    private EditResultCode forEach(boolean chunkBased, boolean is2d,
+    private EditResultCode forEach(boolean is2d,
                                    @Nullable ChunkBasedEdit chunkBasedEdit,
                                    @Nullable RandomAccessEdit randomAccessEdit) {
 
+        boolean chunkBased = chunkBasedEdit != null;
         int exceptionCount = 0;
 
-        int chunkMinX = mArea.left >> 4;
-        int chunkMaxX = mArea.right >> 4;
-        int chunkMinZ = mArea.top >> 4;
-        int chunkMaxZ = mArea.bottom >> 4;
+        int left = mArea.getLeft();
+        int top = mArea.getTop();
+        int right = mArea.getRight() - 1;
+        int bottom = mArea.getBottom() - 1;
+
+        int chunkMinX = left >> 4;
+        int chunkMaxX = right >> 4;
+        int chunkMinZ = top >> 4;
+        int chunkMaxZ = bottom >> 4;
 
         // Cache should not be used till end.
 
         for (int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
-            int innerMinX = (chunkX == chunkMinX) ? (mArea.left & 0xf) : 0;
-            int innerMaxX = (chunkX == chunkMaxX) ? (mArea.right & 0xf) : 15;
+            int innerMinX = (chunkX == chunkMinX) ? (left & 0xf) : 0;
+            int innerMaxX = (chunkX == chunkMaxX) ? (right & 0xf) : 15;
 
             for (int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
-                int innerMinZ = (chunkZ == chunkMinZ) ? (mArea.top & 0xf) : 0;
-                int innerMaxZ = (chunkZ == chunkMaxZ) ? (mArea.bottom & 0xf) : 15;
+                int innerMinZ = (chunkZ == chunkMinZ) ? (top & 0xf) : 0;
+                int innerMaxZ = (chunkZ == chunkMaxZ) ? (bottom & 0xf) : 15;
 
                 Chunk chunk = this.storage.getChunkStreaming(chunkX, chunkZ, dimension, false, Version.V1_2_PLUS);
 
