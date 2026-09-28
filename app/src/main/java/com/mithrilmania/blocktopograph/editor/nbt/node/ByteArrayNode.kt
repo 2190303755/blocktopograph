@@ -46,7 +46,7 @@ class ByteArrayNode(
                 val value = if (tag is NumericTag) {
                     tag.toByte()
                 } else {
-                    tag.toString().toByteOrNull() ?: return null
+                    tag.toString().trim().toByteOrNull() ?: return null
                 }
                 return ByteNode(node.parent, node.key, value)
             }

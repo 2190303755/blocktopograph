@@ -471,7 +471,7 @@ class CreateWorldActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 viewModel.picked?.let { selected.state = it }
-                                textFieldState.text.toString().toIntOrNull()?.let {
+                                textFieldState.text.trim().toString().toIntOrNull()?.let {
                                     selected.height = it
                                 }
                                 viewModel.selected = null

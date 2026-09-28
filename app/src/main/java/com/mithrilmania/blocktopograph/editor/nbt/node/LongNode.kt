@@ -54,7 +54,7 @@ class LongNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toLongOrNull() === null
+                isError = it.trim().toString().toLongOrNull() === null
             }
         }
         TagEditor(
@@ -76,7 +76,7 @@ class LongNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toLongOrNull()
+            val assign = textFieldState.text.trim().toString().toLongOrNull()
             if (assign === null) {
                 isError = true
             } else {

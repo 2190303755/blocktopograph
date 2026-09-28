@@ -25,14 +25,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -141,6 +139,7 @@ import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.TopAppBar
 import com.mithrilmania.blocktopograph.ui.component.cascadingMenu
 import com.mithrilmania.blocktopograph.ui.component.clickableItem
+import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.collectText
 import com.mithrilmania.blocktopograph.util.toast
@@ -359,7 +358,7 @@ fun NBTEditor(
         }
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+    val cutout = safeLayoutInsets()
     val scaffoldState = rememberBottomSheetScaffoldState(
         rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
@@ -397,8 +396,7 @@ fun NBTEditor(
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
                             .windowInsetsPadding(
-                                WindowInsets.systemBars
-                                    .union(WindowInsets.displayCutout)
+                                safeLayoutInsets()
                                     .only(WindowInsetsSides.Bottom)
                                     .union(WindowInsets.ime)
                             ),

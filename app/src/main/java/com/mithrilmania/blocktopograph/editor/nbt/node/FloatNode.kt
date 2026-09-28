@@ -54,7 +54,7 @@ class FloatNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toFloatOrNull() === null
+                isError = it.trim().toString().toFloatOrNull() === null
             }
         }
         TagEditor(
@@ -76,7 +76,7 @@ class FloatNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toFloatOrNull()
+            val assign = textFieldState.text.trim().toString().toFloatOrNull()
             if (assign === null) {
                 isError = true
             } else {

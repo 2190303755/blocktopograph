@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import org.iq80.leveldb.ReadOptions
 import java.util.concurrent.CopyOnWriteArraySet
 
-data class ViewPort(
+data class Viewport(
     @JvmField val minX: Long,
     @JvmField val maxX: Long,
     @JvmField val minZ: Long,
@@ -39,7 +39,7 @@ fun retainViewPortMarkers(
     fragment: MapFragment,
     markers: CopyOnWriteArraySet<AbstractMarker>,
     sticky: Set<AbstractMarker>,
-    viewport: ViewPort
+    viewport: Viewport
 ): Job = fragment.lifecycleScope.launch {
     withContext(Dispatchers.Default) {
         val (minX, maxX, minZ, maxZ, dimension) = viewport

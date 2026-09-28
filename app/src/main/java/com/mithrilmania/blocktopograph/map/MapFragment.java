@@ -51,7 +51,6 @@ import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.edit.EditFunction;
 import com.mithrilmania.blocktopograph.map.edit.EditFunctionCompatKt;
 import com.mithrilmania.blocktopograph.map.edit.RectEditTarget;
-import com.mithrilmania.blocktopograph.map.locator.AdvancedLocatorFragment;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
 import com.mithrilmania.blocktopograph.map.picer.PicerState;
@@ -236,9 +235,7 @@ public class MapFragment extends Fragment {
         super.onConfigurationChanged(newConfig);
         if (mFloatingFragment != null) {
             FloatPaneFragment fragment;
-            if (mFloatingFragment instanceof AdvancedLocatorFragment) {
-                fragment = AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo);
-            } else if (mFloatingFragment instanceof SelectionMenuFragment) {
+            if (mFloatingFragment instanceof SelectionMenuFragment) {
                 WorldStorage storage = this.worldModel.getWorld().getStorage();
                 if (storage == null) return;
                 fragment = SelectionMenuFragment
@@ -277,10 +274,6 @@ public class MapFragment extends Fragment {
             fragment.setSelectionChangedListener(null);
         }
         mBinding.selectionBoard.setSelectionChangedListener(null);
-    }
-
-    public void openAdvancedLocator() {
-        this.openFloatPane(AdvancedLocatorFragment.create(worldModel.getWorld(), this::frameTo));
     }
 
     /**
@@ -647,7 +640,7 @@ public class MapFragment extends Fragment {
      * @param marginZ vertical viewport-margin, in pixels
      * @return minimum_X, maximum_X, minimum_Z, maximum_Z, dimension. (min and max are expressed in blocks!)
      */
-    public ViewPort calculateViewPort(int marginX, int marginZ) {
+    public Viewport calculateViewPort(int marginX, int marginZ) {
 
         // 1 chunk per tile on scale 1.0
         int pixelsPerBlockW_unscaled = MCTileProvider.TILESIZE / 16;
@@ -665,7 +658,7 @@ public class MapFragment extends Fragment {
         long blockW = Math.round((tileView.getWidth() + marginX + marginX) / pixelsPerBlockW);
         long blockH = Math.round((tileView.getHeight() + marginZ + marginZ) / pixelsPerBlockL);
 
-        return new ViewPort(
+        return new Viewport(
                 blockX,
                 blockX + blockW,
                 blockZ,

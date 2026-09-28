@@ -109,38 +109,38 @@ fun BinaryTag?.extracted(): BinaryTag? = when (this) {
 
 fun BinaryTag?.toByteTag(): ByteTag = when (val tag = this.extracted()) {
     is NumericTag -> ByteTag(tag.toByte())
-    is StringTag -> ByteTag(tag.value.toByteOrNull() ?: 0.toByte())
+    is StringTag -> ByteTag(tag.value.trim().toByteOrNull() ?: 0.toByte())
     else -> ByteTag(0.toByte())
 }
 
 fun BinaryTag?.toShortTag(): ShortTag = when (val tag = this.extracted()) {
     is NumericTag -> ShortTag(tag.toShort())
-    is StringTag -> ShortTag(tag.value.toShortOrNull() ?: 0.toShort())
+    is StringTag -> ShortTag(tag.value.trim().toShortOrNull() ?: 0.toShort())
     else -> ShortTag(0.toShort())
 }
 
 fun BinaryTag?.toIntTag(): IntTag = when (val tag = this.extracted()) {
     is NumericTag -> IntTag(tag.toInt())
-    is StringTag -> IntTag(tag.value.toIntOrNull() ?: 0)
+    is StringTag -> IntTag(tag.value.trim().toIntOrNull() ?: 0)
     else -> IntTag(0)
 }
 
 fun BinaryTag?.toLongTag(): LongTag = when (val tag = this.extracted()) {
     is NumericTag -> LongTag(tag.toLong())
-    is StringTag -> LongTag(tag.value.toLongOrNull() ?: 0L)
+    is StringTag -> LongTag(tag.value.trim().toLongOrNull() ?: 0L)
     else -> LongTag(0L)
 }
 
 fun BinaryTag?.toFloatTag(): FloatTag = when (val tag = this.extracted()) {
     is NumericTag -> FloatTag(tag.toFloat())
-    is StringTag -> FloatTag(tag.value.toFloatOrNull() ?: 0.0F)
+    is StringTag -> FloatTag(tag.value.trim().toFloatOrNull() ?: 0.0F)
     else -> FloatTag(0.0F)
 
 }
 
 fun BinaryTag?.toDoubleTag(): DoubleTag = when (val tag = this.extracted()) {
     is NumericTag -> DoubleTag(tag.toDouble())
-    is StringTag -> DoubleTag(tag.value.toDoubleOrNull() ?: 0.0)
+    is StringTag -> DoubleTag(tag.value.trim().toDoubleOrNull() ?: 0.0)
     else -> DoubleTag(0.0)
 }
 

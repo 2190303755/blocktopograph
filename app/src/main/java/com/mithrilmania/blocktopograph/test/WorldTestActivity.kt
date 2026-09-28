@@ -13,15 +13,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -85,6 +81,7 @@ import com.mithrilmania.blocktopograph.ui.component.PartiallyOrFullyExpanded
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBoxPadding
+import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.ui.component.showSnackbar
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.ByteArrayMatcher
@@ -132,7 +129,7 @@ class WorldTestActivity : ComponentActivity() {
             )
             val listState: LazyListState = rememberLazyListState()
             NBTEditingHost(majorModel.editing) {
-                val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                val cutout = safeLayoutInsets()
                 val scope = rememberCoroutineScope()
                 BottomSheetScaffold(
                     modifier = Modifier

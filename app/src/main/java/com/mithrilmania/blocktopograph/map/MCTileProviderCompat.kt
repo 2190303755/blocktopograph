@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.chunk.Chunk
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
-import com.mithrilmania.blocktopograph.map.locator.getMarkerManager
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag

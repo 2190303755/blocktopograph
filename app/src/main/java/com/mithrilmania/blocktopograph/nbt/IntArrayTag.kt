@@ -79,7 +79,7 @@ data class IntArrayTag(
 
         override fun transform(tag: BinaryTag) = when (tag) {
             is NumericTag -> IntArrayTag(intArrayOf(tag.toInt()))
-            is StringTag -> IntArrayTag(intArrayOf(tag.value.toIntOrNull() ?: 0))
+            is StringTag -> IntArrayTag(intArrayOf(tag.value.trim().toIntOrNull() ?: 0))
             is ByteArrayTag -> IntArrayTag(IntArray(tag.size) { tag[it].toInt() })
             is IntArrayTag -> tag
             is LongArrayTag -> IntArrayTag(IntArray(tag.size) { tag[it].toInt() })

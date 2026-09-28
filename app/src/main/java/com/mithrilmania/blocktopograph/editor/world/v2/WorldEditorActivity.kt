@@ -17,13 +17,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
@@ -76,6 +72,7 @@ import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
 import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.Marker
+import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3i
@@ -294,7 +291,7 @@ class WorldEditorActivity : ComponentActivity() {
                         viewModel.map.clearLayer()
                     }
                 }
-                val cutout = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                val cutout = safeLayoutInsets()
                 val density = LocalDensity.current
                 val collapse = SheetDetent("collapse") { _, _ ->
                     with(density) {

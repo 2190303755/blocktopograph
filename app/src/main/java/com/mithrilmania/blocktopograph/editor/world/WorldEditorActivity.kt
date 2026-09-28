@@ -86,6 +86,11 @@ class WorldEditorActivity : WorldActivity() {
                 startActivity(intent)
             }
         }
+        this.lifecycleScope.launch {
+            for (camera in model.pendingMovement) {
+                mapFragment.frameTo(camera.x, camera.y)
+            }
+        }
         this.findViewById<ComposeView>(R.id.composer).setContent {
             BlocktopographCompatTheme {
                 val viewer = viewModel<WorldViewerModel>()
@@ -116,6 +121,7 @@ class WorldEditorActivity : WorldActivity() {
                             }
                         }
                     }
+                    FloatingPanes(viewer, handle)
                     Text(
                         stringResource(R.string.map_water_mark),
                         Modifier

@@ -46,7 +46,7 @@ class IntArrayNode(
                 val value = if (tag is NumericTag) {
                     tag.toInt()
                 } else {
-                    tag.toString().toIntOrNull() ?: return null
+                    tag.toString().trim().toIntOrNull() ?: return null
                 }
                 return IntNode(node.parent, node.key, value)
             }

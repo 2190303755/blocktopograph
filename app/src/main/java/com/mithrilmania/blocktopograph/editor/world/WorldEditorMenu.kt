@@ -222,7 +222,12 @@ fun WorldEditorMenu(
             Icons.Filled.Search,
             stringResource(R.string.gps_advanced_locator)
         ) {
-            fragment().openAdvancedLocator()
+            if (viewer.paneType == PaneType.NONE) {
+                viewer.locatorPaneState.reset()
+            } else {
+                viewer.locatorPaneState.expanded.value = true
+            }
+            viewer.paneType = PaneType.LOCATOR
             menuExpanded = false
         }
         WorldEditorMenuItem(

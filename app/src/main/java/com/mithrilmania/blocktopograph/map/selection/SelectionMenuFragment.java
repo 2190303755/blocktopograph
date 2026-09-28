@@ -31,7 +31,6 @@ import java.lang.ref.WeakReference;
 
 public class SelectionMenuFragment extends FloatPaneFragment {
 
-    public static final String TAG_SNR = "Snr";
     public static final String TAG_CHBIOME = "Chbiome";
 
     @NonNull

@@ -53,7 +53,7 @@ class ByteNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toByteOrNull() === null
+                isError = it.trim().toString().toByteOrNull() === null
             }
         }
         TagEditor(
@@ -75,7 +75,7 @@ class ByteNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toByteOrNull()
+            val assign = textFieldState.text.trim().toString().toByteOrNull()
             if (assign === null) {
                 isError = true
             } else {

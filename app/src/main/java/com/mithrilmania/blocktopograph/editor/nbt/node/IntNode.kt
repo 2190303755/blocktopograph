@@ -54,7 +54,7 @@ class IntNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toIntOrNull() === null
+                isError = it.trim().toString().toIntOrNull() === null
             }
         }
         TagEditor(
@@ -76,7 +76,7 @@ class IntNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toIntOrNull()
+            val assign = textFieldState.text.trim().toString().toIntOrNull()
             if (assign === null) {
                 isError = true
             } else {

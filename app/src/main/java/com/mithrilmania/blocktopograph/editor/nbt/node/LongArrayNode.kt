@@ -46,7 +46,7 @@ class LongArrayNode(
                 val value = if (tag is NumericTag) {
                     tag.toLong()
                 } else {
-                    tag.toString().toLongOrNull() ?: return null
+                    tag.toString().trim().toLongOrNull() ?: return null
                 }
                 return LongNode(node.parent, node.key, value)
             }

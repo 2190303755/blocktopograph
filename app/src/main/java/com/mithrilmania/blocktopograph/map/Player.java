@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
 
+import java.util.Objects;
 
 public class Player {
 
@@ -55,5 +56,16 @@ public class Player {
 
     public void setPosition(DimensionVector3<Float> position) {
         this.position = position;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        return Objects.equals(dbName, ((Player) o).dbName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(dbName);
     }
 }

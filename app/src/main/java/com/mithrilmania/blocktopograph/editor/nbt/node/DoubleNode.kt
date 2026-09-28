@@ -54,7 +54,7 @@ class DoubleNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toDoubleOrNull() === null
+                isError = it.trim().toString().toDoubleOrNull() === null
             }
         }
         TagEditor(
@@ -76,7 +76,7 @@ class DoubleNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toDoubleOrNull()
+            val assign = textFieldState.text.trim().toString().toDoubleOrNull()
             if (assign === null) {
                 isError = true
             } else {

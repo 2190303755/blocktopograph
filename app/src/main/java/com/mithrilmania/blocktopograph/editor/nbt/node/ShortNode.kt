@@ -53,7 +53,7 @@ class ShortNode(
         }
         LaunchedEffect(Unit) {
             snapshotFlow { textFieldState.text }.collect {
-                isError = it.toString().toShortOrNull() === null
+                isError = it.trim().toString().toShortOrNull() === null
             }
         }
         TagEditor(
@@ -75,7 +75,7 @@ class ShortNode(
                 }
             }
         ) {
-            val assign = textFieldState.text.toString().toShortOrNull()
+            val assign = textFieldState.text.trim().toString().toShortOrNull()
             if (assign === null) {
                 isError = true
             } else {
