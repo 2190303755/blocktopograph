@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
@@ -106,6 +107,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -125,6 +127,7 @@ import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.storage.SAFFile
+import com.mithrilmania.blocktopograph.ui.LazyListStateBridge
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AllSheetValues
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
@@ -840,11 +843,16 @@ fun NBTTree(
         }
         val itemShape = MaterialTheme.shapes.small
         val coroutineScope = rememberCoroutineScope()
+        val listState = rememberLazyListState()
+        AndroidView(::LazyListStateBridge) {
+            it.bind(listState, coroutineScope)
+        }
         LazyColumn(
-            contentPadding = padding,
             modifier = Modifier
                 .fillMaxSize()
-                .horizontalScroll(rememberScrollState())
+                .horizontalScroll(rememberScrollState()),
+            state = listState,
+            contentPadding = padding
         ) {
             items(
                 items = editor.nodes,

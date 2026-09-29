@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -66,6 +67,7 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.text.toHtml
 import androidx.core.text.toSpanned
@@ -77,6 +79,7 @@ import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
 import com.mithrilmania.blocktopograph.storage.awaitFileService
+import com.mithrilmania.blocktopograph.ui.LazyGridStateBridge
 import com.mithrilmania.blocktopograph.ui.WorldDetailDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
@@ -238,6 +241,10 @@ class WorldListActivity : ComponentActivity() {
                 }
             ) { padding ->
                 Box(Modifier.padding(PaddingValues(top = padding.calculateTopPadding()))) {
+                    val gridState = rememberLazyGridState()
+                    AndroidView(::LazyGridStateBridge) {
+                        it.bind(gridState, coroutineScope)
+                    }
                     AnimatedVisibility(
                         visible = viewModel.loading,
                         enter = fadeIn(),
@@ -260,8 +267,9 @@ class WorldListActivity : ComponentActivity() {
                     val spacing = Arrangement.spacedBy(12.dp)
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(300.dp),
-                        contentPadding = edge,
                         modifier = Modifier.fillMaxSize(),
+                        state = gridState,
+                        contentPadding = edge,
                         verticalArrangement = spacing,
                         horizontalArrangement = spacing
                     ) {

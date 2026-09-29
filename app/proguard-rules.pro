@@ -21,3 +21,9 @@
 
 # @see https://github.com/google/guava/issues/8345 , but I don't think the bug is actually resolved
 -keep class com.google.common.cache.** { *; }
+
+-keepclassmembers class com.mithrilmania.blocktopograph.ui.ScrollableStateBridge {
+    smoothScrollToPosition(int);
+    scrollToPosition(int);
+}
+

@@ -9,6 +9,7 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,6 +66,7 @@ import kotlinx.coroutines.withContext
 class WorldEditorActivity : WorldActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        this.enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         this.lifecycleScope.launch {
             model.showDrawer.collect {
@@ -106,7 +108,7 @@ class WorldEditorActivity : WorldActivity() {
                         WorldEditorMenu(
                             viewer,
                             handle,
-                            Modifier.padding(end = 16.dp, bottom = 32.dp),
+                            Modifier.padding(end = 16.dp, bottom = 16.dp),
                             { mapFragment }
                         ) {
                             val preferences = getPreferences(MODE_PRIVATE)

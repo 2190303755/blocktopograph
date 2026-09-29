@@ -2,6 +2,7 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -55,6 +56,7 @@ import com.mithrilmania.blocktopograph.map.analyzeChunksImpl
 import com.mithrilmania.blocktopograph.map.picer.PicerState
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
+import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.toast
@@ -107,7 +109,7 @@ fun WorldEditorMenu(
     BackHandler(menuExpanded) { menuExpanded = false }
 
     FloatingActionButtonMenu(
-        modifier = modifier,
+        modifier = modifier.windowInsetsPadding(safeLayoutInsets()),
         expanded = menuExpanded,
         button = {
             TooltipBox(

@@ -81,6 +81,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.isDigitsOnly
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
@@ -95,6 +96,7 @@ import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readBinaryTag
 import com.mithrilmania.blocktopograph.nbt.io.writeNBTWithHeader
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
+import com.mithrilmania.blocktopograph.ui.LazyListStateBridge
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
@@ -219,9 +221,13 @@ class CreateWorldActivity : ComponentActivity() {
                     }
                 }
             ) { padding ->
+                val listState = rememberLazyListState()
+                val scope = rememberCoroutineScope()
+                AndroidView(::LazyListStateBridge) {
+                    it.bind(listState, scope)
+                }
                 val inset = HorizontalPadding(padding)
                 val hapticFeedback = LocalHapticFeedback.current
-                val listState = rememberLazyListState()
                 val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
                     viewModel.layers.apply {
                         add(to.index - 2, removeAt(from.index - 2))
@@ -229,7 +235,6 @@ class CreateWorldActivity : ComponentActivity() {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 }
                 val context = LocalContext.current
-                val scope = rememberCoroutineScope()
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
                     state = listState,
