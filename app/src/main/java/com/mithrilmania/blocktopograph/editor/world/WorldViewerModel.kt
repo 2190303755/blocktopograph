@@ -102,6 +102,7 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     private var blockingJob: Job = dummyJob()
     var waitingJob by mutableStateOf(false)
         private set
+    var longPressPos by mutableStateOf<LongPressPos?>(null)
 
     fun cancelBlockingJob() {
         this.blockingJob.cancel()

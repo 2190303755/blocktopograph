@@ -199,42 +199,6 @@ fun SelectorPane(
         }
         var edit by rememberSaveable { mutableStateOf<EditFunction?>(null) }
         val coroutineScope = rememberCoroutineScope()
-        val actions = remember {
-            arrayOf(
-                R.string.map_edit_func_lampshade to {
-                    edit = EditFunction.LAMPSHADE
-                },
-                R.string.map_edit_func_snr to {
-                    // TODO set edit
-                    viewer.replacingRequest = SearchAndReplaceRequest { config ->
-                        viewer.waitForJob(
-                            coroutineScope.launch(Dispatchers.IO) {
-                                val code = config.perform(
-                                    RectEditTarget(
-                                        handle.world.storage ?: return@launch,
-                                        viewer.selection.toIntRect(),
-                                        viewer.dimension
-                                    )
-                                )
-                                viewer.editResult.emit(code)
-                            }
-                        )
-                    }
-                },
-                R.string.map_edit_func_dchunk to {
-                    edit = EditFunction.DCHUNK
-                },
-                R.string.map_edit_func_chbiome to {
-                    edit = EditFunction.CHBIOME
-                },
-                R.string.map_edit_func_picer to {
-                    viewer.commitAnalyzedState(
-                        viewer.selection.toIntRect(),
-                        PicerState.SelectionOutOfSize
-                    )
-                }
-            )
-        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 stringResource(R.string.map_sel_menu_op),
@@ -259,7 +223,42 @@ fun SelectorPane(
                 .verticalScroll(rememberScrollState())
                 .weight(1.0F)
         ) {
-            actions.forEach {
+            remember {
+                arrayOf(
+                    R.string.map_edit_func_lampshade to {
+                        edit = EditFunction.LAMPSHADE
+                    },
+                    R.string.map_edit_func_snr to {
+                        // TODO set edit
+                        viewer.replacingRequest = SearchAndReplaceRequest { config ->
+                            viewer.waitForJob(
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val code = config.perform(
+                                        RectEditTarget(
+                                            handle.world.storage ?: return@launch,
+                                            viewer.selection.toIntRect(),
+                                            viewer.dimension
+                                        )
+                                    )
+                                    viewer.editResult.emit(code)
+                                }
+                            )
+                        }
+                    },
+                    R.string.map_edit_func_dchunk to {
+                        edit = EditFunction.DCHUNK
+                    },
+                    R.string.map_edit_func_chbiome to {
+                        edit = EditFunction.CHBIOME
+                    },
+                    R.string.map_edit_func_picer to {
+                        viewer.commitAnalyzedState(
+                            viewer.selection.toIntRect(),
+                            PicerState.SelectionOutOfSize
+                        )
+                    }
+                )
+            }.forEach {
                 OutlinedButton(
                     onClick = it.second,
                     modifier = Modifier.fillMaxWidth(),

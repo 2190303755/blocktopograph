@@ -384,7 +384,6 @@ class SelectionView : FrameLayout {
         mSelectionRect?.isSelecting = true
         mSelectionRect?.set(selection)
         visibility = VISIBLE
-        requestLayout()
     }
 
     fun beginSelection(centerX: Int, centerZ: Int) {
@@ -416,16 +415,10 @@ class SelectionView : FrameLayout {
             centerZ + rad
         )
         visibility = VISIBLE
-        requestLayout()
     }
 
     fun onSelectionChangedOutsides(rect: Selection) {
-        (mSelectionRect ?: return).apply {
-            left = rect.left
-            top = rect.top
-            right = rect.right
-            bottom = rect.bottom
-        }
+        // fixme, or leave it here
         // If the selection's far away from current viewport,
         // We want tho scroll the tileView to a nearest corner of the selection.
         mTileView?.get()?.let { tileView ->
@@ -469,7 +462,6 @@ class SelectionView : FrameLayout {
                 }
             }
         }
-        requestLayout()
     }
 
     fun endSelection() {

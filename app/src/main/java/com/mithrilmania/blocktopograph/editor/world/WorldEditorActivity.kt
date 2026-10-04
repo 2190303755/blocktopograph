@@ -144,6 +144,7 @@ class WorldEditorActivity : WorldActivity() {
                         }
                     }
                     FloatingPanes(viewer, handle)
+                    LongPressDialog(viewer, mapFragment)
                     Text(
                         stringResource(R.string.map_water_mark),
                         Modifier

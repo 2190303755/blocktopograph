@@ -14,7 +14,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -27,7 +26,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.compose.material3.SnackbarDuration;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -43,11 +42,13 @@ import com.mithrilmania.blocktopograph.block.KnownBlockRepr;
 import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.MapFragmentBinding;
+import com.mithrilmania.blocktopograph.editor.world.LongPressPos;
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
 import com.mithrilmania.blocktopograph.map.selection.SelectionView;
+import com.mithrilmania.blocktopograph.ui.component.SnackbarKt;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
@@ -637,19 +638,6 @@ public class MapFragment extends Fragment {
         }
     }
 
-    private String[] getLongClickOptions() {
-        return new String[]{
-                getString(R.string.teleport_local_player),
-                getString(R.string.create_custom_marker),
-                getString(R.string.open_chunk_entity_nbt),
-                getString(R.string.open_chunk_tile_entity_nbt),
-                getString(mBinding.selectionBoard.hasSelection()
-                        ? R.string.func_cancel_selection
-                        : R.string.func_begin_selection
-                )
-        };
-    }
-
     public void triggerLongPressAtCenter() {
         MotionEvent event = MotionEvent.obtain(0L, 0L, 0,
                 (float) (mBinding.tileView.getMeasuredWidth() / 2),
@@ -687,54 +675,16 @@ public class MapFragment extends Fragment {
         double chunkZ = worldZ / CHUNK_DIMENSION;
 
         //negative doubles are rounded up when casting to int; floor them
-        final int chunkXint = chunkX < 0 ? (((int) chunkX) - 1) : ((int) chunkX);
-        final int chunkZint = chunkZ < 0 ? (((int) chunkZ) - 1) : ((int) chunkZ);
 
-
-        final View container = activity.findViewById(R.id.world_content);
-        if (container == null) {
-            LogUtil.d(this, "CANNOT FIND MAIN CONTAINER, WTF");
-            return;
-        }
-
-        AlertDialog alertDialog = new AlertDialog.Builder(new ContextThemeWrapper(activity, R.style.AppTheme_Floating))
-                .setTitle(getString(R.string.postion_2D_floats_with_chunkpos, worldX, worldZ, chunkXint, chunkZint))
-                .setItems(getLongClickOptions(), (dialog, which) -> {
-
-
-                    switch (which) {
-                        case 0:
-                            onChooseTeleportPlayer((float) worldX, (float) worldZ, dimension, container);
-                            break;
-                        case 1:
-                            onChooseAddMarker((int) worldX, (int) worldZ, activity, dimension, container);
-                            break;
-                        case 2:
-                            onChooseEditEntitiesOrTileEntities(dimension, chunkXint, chunkZint, container, true);
-                            break;
-                        case 3:
-                            onChooseEditEntitiesOrTileEntities(dimension, chunkXint, chunkZint, container, false);
-                            break;
-                        case 4:
-                            beginOrEndSelection((int) worldX, (int) worldZ);
-                    }
-
-
-                })
-                .setCancelable(true)
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-        alertDialog.getListView().post(() ->
-                alertDialog.getListView().smoothScrollToPositionFromTop(4, 40));
-        Window window = alertDialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawableResource(R.drawable.bg_dialog_transparent);
-            window.setDimAmount(0.3f);
-        }
-
+        model.setLongPressPos(new LongPressPos(
+                worldX,
+                worldZ,
+                chunkX < 0 ? (((int) chunkX) - 1) : ((int) chunkX),
+                chunkZ < 0 ? (((int) chunkZ) - 1) : ((int) chunkZ)
+        ));
     }
 
-    private void beginOrEndSelection(int worldX, int worldZ) {
+    public void beginOrEndSelection(int worldX, int worldZ) {
         if (mBinding.selectionBoard.hasSelection()) {
             mBinding.selectionBoard.endSelection();
         } else {
@@ -750,7 +700,7 @@ public class MapFragment extends Fragment {
         }
     }
 
-    private void onChooseEditEntitiesOrTileEntities(Dimension dim, int chunkXint, int chunkZint, View container, boolean isEntity) {
+    public void onChooseEditEntitiesOrTileEntities(Dimension dim, int chunkXint, int chunkZint, boolean isEntity) {
         WorldStorage storage = this.worldModel.getWorld().getStorage();
         if (storage == null) return;
         final Chunk chunk;
@@ -763,16 +713,25 @@ public class MapFragment extends Fragment {
         }
 
         if (!chunkDataNBT(chunk, isEntity)) {
-            Snackbar.make(container, String.format(getString(R.string.failed_to_load_x),
-                    getString(isEntity ?
-                            R.string.open_chunk_entity_nbt : R.string.open_chunk_tile_entity_nbt)),
-                    Snackbar.LENGTH_LONG)
-                    .show();
+            SnackbarKt.showSnackbar(
+                    model.snackbar,
+                    this,
+                    String.format(
+                            getString(R.string.failed_to_load_x),
+                            getString(isEntity
+                                    ? R.string.open_chunk_entity_nbt
+                                    : R.string.open_chunk_tile_entity_nbt
+                            )
+                    ),
+                    SnackbarDuration.Long
+            );
         }
     }
 
-    private void onChooseAddMarker(int worldX, int worldZ, Activity activity, Dimension dim, View container) {
-        View createMarkerForm = LayoutInflater.from(activity).inflate(R.layout.create_marker_form, null);
+    public void onChooseAddMarker(int worldX, int worldZ, Dimension dim) {
+        var context = getContext();
+        if (context == null) return;
+        View createMarkerForm = LayoutInflater.from(context).inflate(R.layout.create_marker_form, null);
 
         final EditText markerNameInput = createMarkerForm.findViewById(R.id.marker_displayname_input);
         markerNameInput.setText(R.string.default_custom_marker_name);
@@ -786,15 +745,18 @@ public class MapFragment extends Fragment {
         zInput.setText(String.valueOf(worldZ));
 
 
-        new AlertDialog.Builder(activity)
+        new AlertDialog.Builder(context)
                 .setTitle(R.string.create_custom_marker)
                 .setView(createMarkerForm)
                 .setPositiveButton("Create marker", new DialogInterface.OnClickListener() {
 
                     void failParseSnackbarReport(int msg) {
-                        Snackbar.make(container, msg,
-                                Snackbar.LENGTH_LONG)
-                                .show();
+                        SnackbarKt.showSnackbar(
+                                model.snackbar,
+                                MapFragment.this,
+                                context.getString(msg),
+                                SnackbarDuration.Long
+                        );
                     }
 
                     @Override
@@ -858,7 +820,7 @@ public class MapFragment extends Fragment {
 
     }
 
-    private void onChooseTeleportPlayer(float worldX, float worldZ, Dimension dim, View container) {
+    public void onChooseTeleportPlayer(float worldX, float worldZ, Dimension dim) {
         /*fixme try {
             Activity activity = getActivity();
             assert activity != null;
@@ -983,7 +945,8 @@ public class MapFragment extends Fragment {
 
     public void openMarkerFilter() {
 
-        final Activity activity = this.getActivity();
+        final var context = this.getContext();
+        if (context == null) return;
 
 
         final List<BitmapChoiceListAdapter.NamedBitmapChoice> choices = new ArrayList<>(markerFilter.values());
@@ -992,9 +955,9 @@ public class MapFragment extends Fragment {
         choices.sort(Comparator.comparing(it -> it.namedBitmap.getNamedBitmapProvider().getBitmapDisplayName()));
 
 
-        new AlertDialog.Builder(activity)
+        new AlertDialog.Builder(context)
                 .setTitle(R.string.filter_markers)
-                .setAdapter(new BitmapChoiceListAdapter(activity, choices), null)
+                .setAdapter(new BitmapChoiceListAdapter(context, choices), null)
                 .setCancelable(true)
                 .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
                     //save all the temporary states.
