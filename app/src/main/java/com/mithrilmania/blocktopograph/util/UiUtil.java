@@ -1,83 +1,11 @@
 package com.mithrilmania.blocktopograph.util;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.EditText;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.graphics.ColorUtils;
-import androidx.databinding.DataBindingUtil;
-
-import com.mithrilmania.blocktopograph.R;
-import com.mithrilmania.blocktopograph.databinding.GeneralWaitBinding;
-import com.mithrilmania.blocktopograph.map.Biome;
 
 
 public final class UiUtil {
-    public static void blendBlockColor(@NonNull View view, Biome biome) {
-        Drawable drawable = view.getBackground();
-        if (!(drawable instanceof GradientDrawable)) return;
-        GradientDrawable gradientDrawable = (GradientDrawable) drawable;
-        int res = ColorUtils.blendARGB(biome.color, 0x7f7f7f7f, 0.5f);
-        gradientDrawable.setColor(res);
-    }
-
-    @Nullable
-    public static Integer readIntFromView(@NonNull EditText editText, boolean emptyAsZero) {
-        String string = editText.getText().toString();
-        if (emptyAsZero && string.isEmpty()) return 0;
-        try {
-            return Integer.parseInt(string);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    public static int readIntFromView(@NonNull EditText editText) {
-        String string = editText.getText().toString();
-        try {
-            return Integer.parseInt(string);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    public static int readIntFromViewWithDefault(@NonNull EditText editText, int defaultVal) {
-        String string = editText.getText().toString();
-        if (string.trim().isEmpty()) return defaultVal;
-        try {
-            return Integer.parseInt(string);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-
-    public static AlertDialog buildProgressWaitDialog(
-            @NonNull Context context, @StringRes int text,
-            @Nullable DialogInterface.OnCancelListener onCancelListener) {
-        GeneralWaitBinding binding = DataBindingUtil.inflate(
-                LayoutInflater.from(context),
-                R.layout.general_wait, null, false
-        );
-        binding.setText(text);
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(binding.getRoot())
-                .setCancelable(onCancelListener != null)
-                .create();
-        if (onCancelListener != null) dialog.setOnCancelListener(onCancelListener);
-        else dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        return dialog;
-    }
-
     public static float dpToPx(@NonNull Context context, float dp) {
         return context.getResources().getDisplayMetrics().density * dp;
     }

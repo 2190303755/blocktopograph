@@ -65,10 +65,6 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".BiomeSelectDialog"
-            android:label="@string/biome_pick_title"
-            android:theme="@style/AppTheme.Dialog" />
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

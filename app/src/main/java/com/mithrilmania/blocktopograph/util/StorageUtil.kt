@@ -3,31 +3,24 @@ package com.mithrilmania.blocktopograph.util
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.content.res.AssetFileDescriptor
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
-import android.graphics.Matrix
 import android.net.Uri
-import android.os.Build
-import android.os.CancellationSignal
-import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
 import android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID
 import android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
 import android.provider.DocumentsContract.Document.COLUMN_SIZE
 import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
-import android.provider.DocumentsContract.EXTRA_ORIENTATION
 import android.util.Log
-import android.util.Size
-import androidx.annotation.RequiresApi
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStreamReader
-import java.nio.charset.StandardCharsets
 
-fun Uri.findChild(resolver: ContentResolver, name: String): Uri? {
+typealias DocumentUri = Uri
+typealias TreeUri = Uri
+
+fun DocumentUri.findChild(
+    resolver: ContentResolver,
+    name: String
+): Uri? {
     resolver.query(
         DocumentsContract.buildChildDocumentsUriUsingTree(
             this, DocumentsContract.getDocumentId(this)
@@ -45,10 +38,11 @@ fun Uri.findChild(resolver: ContentResolver, name: String): Uri? {
     return null
 }
 
-inline fun Uri.forChild(resolver: ContentResolver, action: (Uri) -> Unit) {
+inline fun DocumentUri.forEachChild(resolver: ContentResolver, action: (DocumentUri) -> Unit) {
     resolver.query(
         DocumentsContract.buildChildDocumentsUriUsingTree(
-            this, DocumentsContract.getDocumentId(this)
+            this,
+            DocumentsContract.getDocumentId(this)
         ), arrayOf(
             COLUMN_DOCUMENT_ID
         ), null, null, null
@@ -59,34 +53,18 @@ inline fun Uri.forChild(resolver: ContentResolver, action: (Uri) -> Unit) {
     }
 }
 
-inline fun Uri.forSubFolder(resolver: ContentResolver, action: (Uri) -> Unit) {
+fun DocumentUri.getSize(resolver: ContentResolver): Long {
     resolver.query(
-        DocumentsContract.buildChildDocumentsUriUsingTree(
-            this, DocumentsContract.getDocumentId(this)
-        ), arrayOf(
-            COLUMN_MIME_TYPE,
-            COLUMN_DOCUMENT_ID
-        ), null, null, null
+        this,
+        arrayOf(COLUMN_MIME_TYPE, COLUMN_SIZE),
+        null,
+        null,
+        null
     )?.use {
-        while (it.moveToNext()) {
+        if (it.moveToFirst()) {
             if (!it.isNull(0) && MIME_TYPE_DIR == it.getString(0)) {
-                action(DocumentsContract.buildDocumentUriUsingTree(this, it.getString(1)))
-            }
-        }
-    }
-}
-
-fun Uri.getSize(resolver: ContentResolver): Long {
-    resolver.query(
-        this, arrayOf(
-            COLUMN_MIME_TYPE,
-            COLUMN_SIZE
-        ), null, null, null
-    )?.use {
-        if (it.moveToFirst() && !it.isNull(0)) {
-            if (MIME_TYPE_DIR == it.getString(0)) {
                 var size = 0L
-                this.forChild(resolver) { child ->
+                this.forEachChild(resolver) { child ->
                     size += child.getSize(resolver)
                 }
                 return size
@@ -98,16 +76,7 @@ fun Uri.getSize(resolver: ContentResolver): Long {
     return 0L
 }
 
-fun Uri.readFirstLine(resolver: ContentResolver): String {
-    return BufferedReader(
-        InputStreamReader(
-            resolver.openInputStream(this) ?: return "",
-            StandardCharsets.UTF_8
-        )
-    ).use { it.readLine() }
-}
-
-fun Uri.copyFileTo(resolver: ContentResolver, target: File) {
+fun DocumentUri.copyFileTo(resolver: ContentResolver, target: File) {
     FileOutputStream(target).use { output ->
         resolver.openInputStream(this)?.use { input ->
             input.copyTo(output)
@@ -116,7 +85,7 @@ fun Uri.copyFileTo(resolver: ContentResolver, target: File) {
     }
 }
 
-fun Uri.copyFolderTo(resolver: ContentResolver, folder: File) {
+fun DocumentUri.copyFolderTo(resolver: ContentResolver, folder: File) {
     if (folder.mkdirs()) {
         resolver.query(
             DocumentsContract.buildChildDocumentsUriUsingTree(
@@ -144,27 +113,30 @@ fun Uri.copyFolderTo(resolver: ContentResolver, folder: File) {
     }
 }
 
-val Uri.asFolder: Uri
+val TreeUri.toDocumentUri: DocumentUri
     get() {
-        val paths = this.pathSegments
-        when (paths.size) {
-            4 -> if (paths[0] == "tree" && paths[2] == "document") return this
-            2 -> if (paths[0] == "tree") {
-                val path = paths[1]
-                return Uri.Builder()
-                    .scheme(ContentResolver.SCHEME_CONTENT)
-                    .authority(this.authority)
-                    .appendPath("tree")
-                    .appendPath(path)
-                    .appendPath("document")
-                    .appendPath(path).build()
+        if (DocumentsContract.isTreeUri(this)) {
+            val paths = this.pathSegments
+            when (paths.size) {
+                4 -> if (paths[2] == "document") return this
+                2 -> return DocumentsContract.buildDocumentUriUsingTree(
+                    this,
+                    DocumentsContract.getTreeDocumentId(this)
+                )
             }
         }
         throw IllegalStateException()
     }
 
+fun Uri.getIdOfDocumentOrTreeDocument(context: Context? = null): String {
+    if (context !== null && DocumentsContract.isDocumentUri(context, this)) {
+        return DocumentsContract.getDocumentId(this)
+    }
+    return DocumentsContract.getTreeDocumentId(this)
+}
+
 fun Uri.queryString(resolver: ContentResolver, column: String): String? {
-    resolver.query(this, arrayOf(column), null, null, null)?.use {
+    resolver.query(this, arrayOf(column), null, null)?.use {
         if (it.moveToFirst() && !it.isNull(0)) return it.getString(0)
     }
     return null
@@ -173,45 +145,15 @@ fun Uri.queryString(resolver: ContentResolver, column: String): String? {
 fun Uri.queryName(context: Context) = this.queryString(context.contentResolver, COLUMN_DISPLAY_NAME)
 
 val File.size: Long
-    get() = if (this.isDirectory) {
+    get() {
         var size = 0L
-        this.listFiles()?.forEach { size += it.size }
-        size
-    } else this.length()
-
-/**
- * @see [ContentResolver.loadThumbnail]
- */
-@RequiresApi(Build.VERSION_CODES.Q)
-fun ParcelFileDescriptor.loadThumbnail(
-    size: Size,
-    signal: CancellationSignal? = null
-): Bitmap? {
-    var orientation = 0.0F
-    val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource {
-        AssetFileDescriptor(this, 0, AssetFileDescriptor.UNKNOWN_LENGTH).apply {
-            orientation = extras?.getInt(EXTRA_ORIENTATION, 0)?.toFloat() ?: 0.0F
+        this.walk().forEach {
+            if (it.isFile) {
+                size += it.length()
+            }
         }
-    }) { decoder, info, source ->
-        decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
-        // One last-ditch check to see if we've been canceled.
-        signal?.throwIfCanceled();
-        // We requested a rough thumbnail size, but the remote size may have
-        // returned something giant, so defensively scale down as needed.
-        val sample = info.size.let {
-            (it.width / size.width).coerceAtLeast(it.height / size.height)
-        }
-        if (sample > 1) {
-            decoder.setTargetSampleSize(sample)
-        }
+        return size
     }
-    if (orientation == 0.0F) return bitmap
-    val width = bitmap.width
-    val height = bitmap.height
-    return Bitmap.createBitmap(bitmap, 0, 0, width, height, Matrix().apply {
-        setRotate(orientation, width / 2.0F, height / 2.0F)
-    }, false)
-}
 
 const val FLAG_GRANT_ALL_URI_PERMISSION =
     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -234,22 +176,5 @@ fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>, default: T): T {
     return result
 }
 */
-
-fun formatSize(size: Long): String {
-    var temp: Double = size.toDouble()
-    var count = 0
-    while (temp > 1024 && count++ < 4) {
-        temp /= 1024
-    }
-    return "%.2f %s".format(
-        temp,
-        when (count) {
-            1 -> "KiB"
-            2 -> "MiB"
-            3 -> "GiB"
-            else -> "B"
-        }
-    )
-}
 
 fun String.toLDBKey() = this.toByteArray(Charsets.UTF_8)

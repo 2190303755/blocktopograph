@@ -23,7 +23,6 @@ import java.io.InputStream
 
 class WorldDetail(
     val location: Location,
-    val icon: Location?,
     val config: Location,
     val name: String,
     val mode: String,
@@ -50,7 +49,6 @@ fun InputStream.extractDetail(
     location: Location,
     config: Location,
     context: Context,
-    icon: Location? = null,
     tag: String = ""
 ): WorldDetail? {
     var name: String? = null
@@ -98,7 +96,6 @@ fun InputStream.extractDetail(
     val unknown by lazy { context.getString(R.string.generic_unknown) }
     return WorldDetail(
         location,
-        icon,
         config,
         name ?: location.queryName(context),
         mode ?: unknown,

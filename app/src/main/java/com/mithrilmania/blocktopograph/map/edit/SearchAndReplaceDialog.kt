@@ -1,6 +1,5 @@
 package com.mithrilmania.blocktopograph.map.edit
 
-import android.os.Bundle
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Column
@@ -34,12 +33,9 @@ import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
-import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
-
-const val SEARCH_AND_REPLACE_SPEC = "S&RSpec"
 
 enum class SearchMode(@JvmField @param:StringRes val text: Int) {
     BACKGROUND(R.string.map_edit_snr_bg),
@@ -63,7 +59,7 @@ class BlockStates(major: String, minor: String) {
     )
 }
 
-class SearchAndReplaceRequest(val handler: SelectionMenuFragment.EditFunctionEntry) {
+class SearchAndReplaceRequest(val handler: (SnrConfig) -> Unit) {
     var searchMode: SearchMode by mutableStateOf(SearchMode.FOREGROUND)
     var placeMode: PlaceMode by mutableStateOf(PlaceMode.FOREGROUND)
     val search: BlockStates = BlockStates("minecraft:grass", "minecraft:air")
@@ -135,11 +131,13 @@ fun BlockStatesPreview(
 @Composable
 fun SearchAndReplaceDialog(viewer: WorldViewerModel) {
     viewer.replacingRequest?.let { request ->
+        val onDismissRequest = { viewer.replacingRequest = null }
         AlertDialog(
-            onDismissRequest = { viewer.replacingRequest = null },
-            title = { Text(stringResource(R.string.map_edit_snr_find_in)) },
+            onDismissRequest = onDismissRequest,
+            title = { Text(stringResource(R.string.map_edit_func_snr)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(stringResource(R.string.map_edit_snr_find_in))
                     Grid(
                         config = {
                             column(1.fr)
@@ -214,12 +212,13 @@ fun SearchAndReplaceDialog(viewer: WorldViewerModel) {
                     BlockStatesPreview(request.place, request.placeMode !== PlaceMode.BOTH)
                 }
             },
+            dismissButton = {
+                TextButton(stringResource(android.R.string.cancel), onClick = onDismissRequest)
+            },
             confirmButton = {
                 TextButton(stringResource(android.R.string.ok)) {
                     viewer.replacingRequest?.let {
-                        val bundle = Bundle()
-                        bundle.putSerializable(SEARCH_AND_REPLACE_SPEC, it.buildConfig())
-                        it.handler.invokeEditFunction(EditFunction.SNR, bundle)
+                        it.handler(it.buildConfig())
                     }
                     viewer.replacingRequest = null
                 }

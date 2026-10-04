@@ -58,7 +58,7 @@ public final class VoidChunk extends Chunk {
     @NonNull
     @Override
     public Block getBlock(int x, int y, int z, int layer) {
-        throw new RuntimeException();
+        return this.getBlockTemplate(x, y, z, layer).getBlock();
     }
 
     @Override

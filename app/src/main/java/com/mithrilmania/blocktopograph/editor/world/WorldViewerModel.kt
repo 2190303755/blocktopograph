@@ -13,6 +13,7 @@ import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.mithrilmania.blocktopograph.map.Player
 import com.mithrilmania.blocktopograph.map.dummyJob
+import com.mithrilmania.blocktopograph.map.edit.EditResultCode
 import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceRequest
 import com.mithrilmania.blocktopograph.map.getMarkerManager
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
@@ -20,6 +21,7 @@ import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_AREA
 import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_LENGTH
 import com.mithrilmania.blocktopograph.map.picer.PicerState
 import com.mithrilmania.blocktopograph.map.renderer.MapType
+import com.mithrilmania.blocktopograph.map.selection.Selection
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
@@ -63,20 +65,59 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
     @JvmField
+    val selection = object : Selection() {
+        override var isSelecting: Boolean
+            get() = paneType == PaneType.SELECTOR
+            set(value) {
+                if (value) {
+                    paneType = PaneType.SELECTOR
+                } else if (paneType == PaneType.SELECTOR) {
+                    paneType = PaneType.NONE
+                }
+            }
+    }
+    @JvmField
     val showDrawer = Signal<Unit>()
-
     @JvmField
     val longPressCenter = Signal<Unit>()
+
+    @JvmField
+    val editResult = Signal<EditResultCode>()
+
+    @JvmField
     val snackbar = SnackbarHostState()
     var picerState by mutableStateOf<PicerState?>(null)
     var replacingRequest by mutableStateOf<SearchAndReplaceRequest?>(null)
     var paneType by mutableStateOf(PaneType.NONE)
+
+    @JvmField
     val selectorPaneState = SelectorPaneState()
+
+    @JvmField
     val locatorPaneState = LocatorPaneState()
     var players by mutableStateOf<List<Player>?>(null)
     private var playerLoader: Job = dummyJob()
     var markers by mutableStateOf<List<AbstractMarker>?>(null)
     private var markerLoader: Job = dummyJob()
+    private var blockingJob: Job = dummyJob()
+    var waitingJob by mutableStateOf(false)
+        private set
+
+    fun cancelBlockingJob() {
+        this.blockingJob.cancel()
+    }
+
+    fun waitForJob(job: Job) {
+        val current = this.blockingJob
+        this.blockingJob = job
+        this.waitingJob = true
+        current.cancel()
+        job.invokeOnCompletion {
+            if (blockingJob === job) {
+                this.waitingJob = false
+            }
+        }
+    }
 
     fun navigateTo(dimension: Dimension, type: MapType) {
         this.dimension = dimension

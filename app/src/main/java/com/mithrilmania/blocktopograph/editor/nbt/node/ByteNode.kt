@@ -1,10 +1,8 @@
 package com.mithrilmania.blocktopograph.editor.nbt.node
 
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.text.input.then
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -69,7 +67,7 @@ class ByteNode(
                 keyboardType = KeyboardType.NumberSigned,
                 imeAction = ImeAction.Done
             ),
-            inputTransformation = InputTransformation.then {
+            inputTransformation = {
                 if (!this.asCharSequence().isNumber()) {
                     this.revertAllChanges()
                 }

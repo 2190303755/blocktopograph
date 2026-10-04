@@ -16,13 +16,11 @@ import kotlinx.coroutines.launch
 /**
  * Adapter for HyperOS ScrollToTopListener
  */
-sealed class ScrollableStateBridge<T : ScrollableState>(
-    context: Context
-) : ViewGroup(context), ScrollingView {
-    private var scrollableState: T? = null
+class ScrollableStateBridge(context: Context) : ViewGroup(context), ScrollingView {
+    private var scrollableState: ScrollableState? = null
     private var coroutineScope: CoroutineScope? = null
 
-    fun bind(state: T, scope: CoroutineScope) {
+    fun bind(state: ScrollableState, scope: CoroutineScope) {
         this.scrollableState = state
         this.coroutineScope = scope
     }
@@ -50,53 +48,24 @@ sealed class ScrollableStateBridge<T : ScrollableState>(
 
     @Suppress("unused")
     fun smoothScrollToPosition(position: Int) {
-        scrollableState?.let { state ->
-            coroutineScope?.launch {
-                smoothScrollTo(state, position)
+        coroutineScope?.launch {
+            when (val state = scrollableState) {
+                is LazyListState -> state.animateScrollToItem(position)
+                is LazyGridState -> state.animateScrollToItem(position)
+                is ScrollState -> state.animateScrollTo(position)
             }
         }
     }
 
     @Suppress("unused")
     fun scrollToPosition(position: Int) {
-        scrollableState?.let { state ->
-            coroutineScope?.launch {
-                scrollTo(state, position)
+        coroutineScope?.launch {
+            when (val state = scrollableState) {
+                is LazyListState -> state.scrollToItem(position)
+                is LazyGridState -> state.scrollToItem(position)
+                is ScrollState -> state.scrollTo(position)
             }
         }
     }
-
-    protected abstract suspend fun smoothScrollTo(state: T, pos: Int)
-
-    protected abstract suspend fun scrollTo(state: T, pos: Int)
 }
 
-class ScrollStateBridge(context: Context) : ScrollableStateBridge<ScrollState>(context) {
-    override suspend fun smoothScrollTo(state: ScrollState, pos: Int) {
-        state.animateScrollTo(pos)
-    }
-
-    override suspend fun scrollTo(state: ScrollState, pos: Int) {
-        state.scrollTo(pos)
-    }
-}
-
-class LazyListStateBridge(context: Context) : ScrollableStateBridge<LazyListState>(context) {
-    override suspend fun smoothScrollTo(state: LazyListState, pos: Int) {
-        state.animateScrollToItem(pos)
-    }
-
-    override suspend fun scrollTo(state: LazyListState, pos: Int) {
-        state.scrollToItem(pos)
-    }
-}
-
-class LazyGridStateBridge(context: Context) : ScrollableStateBridge<LazyGridState>(context) {
-    override suspend fun smoothScrollTo(state: LazyGridState, pos: Int) {
-        state.animateScrollToItem(pos)
-    }
-
-    override suspend fun scrollTo(state: LazyGridState, pos: Int) {
-        state.scrollToItem(pos)
-    }
-}

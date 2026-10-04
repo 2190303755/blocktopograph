@@ -13,6 +13,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import androidx.annotation.IdRes
+import androidx.compose.ui.util.fastCoerceAtLeast
+import androidx.compose.ui.util.fastCoerceAtMost
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.map.MCTileProvider
 import com.mithrilmania.blocktopograph.map.MapTileView
@@ -87,7 +89,7 @@ class SelectionView : FrameLayout {
     /**
      * Selection range.
      */
-    private val mSelectionRect = Rect()
+    private var mSelectionRect: Selection? = null
 
     /**
      * The tileView we serves for.
@@ -98,11 +100,6 @@ class SelectionView : FrameLayout {
      * Range of selection in pixel.
      */
     private val mSelectionPixelRange = RectF()
-
-    /**
-     * Visible range of selection in pixel.
-     */
-    private val mVisiblePixelRange = RectF()
 
     /**
      * Minimal distance between drag button and bound.
@@ -129,16 +126,6 @@ class SelectionView : FrameLayout {
      * Runnable used to frequently alter selection while user dragging a adjust button.
      */
     private val mHoldingMover = runnable(this::onMove)
-
-    /**
-     * Indicates whether a selection exists.
-     */
-    private var mHasSelection = false
-
-    /**
-     * The selection could be changed outsides, so we need this.
-     */
-    private var mSelectionChangedListener: SelectionChangedListener? = null
 
     constructor(context: Context) : super(context) {
         init(context)
@@ -178,6 +165,10 @@ class SelectionView : FrameLayout {
         HALF_MIN_DIST_DRAGGERS = MIN_DIST_DRAGGERS / 2
 
         mDragger = null
+    }
+
+    fun bind(selection: Selection) {
+        this.mSelectionRect = selection
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -264,6 +255,7 @@ class SelectionView : FrameLayout {
     }
 
     private fun moveImpl(draggerId: Int, distOnScreen: Float) {
+        val rect = mSelectionRect ?: return
         // The tileView we serve for.
         val tileView = mTileView?.get() ?: return
 
@@ -308,36 +300,31 @@ class SelectionView : FrameLayout {
         // Alter selection.
         // Selection shall be at least 1x1.
         when (draggerId) {
-            R.id.left -> if (mSelectionRect.left + distanceInBlocks >= mSelectionRect.right) {
-                mSelectionRect.left = mSelectionRect.right - 1
+            R.id.left -> if (rect.left + distanceInBlocks >= rect.right) {
+                rect.left = rect.right - 1
                 distanceInBlocks = 0
-            } else mSelectionRect.left += distanceInBlocks
+            } else rect.left += distanceInBlocks
 
-            R.id.right -> if (mSelectionRect.right + distanceInBlocks <= mSelectionRect.left) {
-                mSelectionRect.right = mSelectionRect.left + 1
+            R.id.right -> if (rect.right + distanceInBlocks <= rect.left) {
+                rect.right = rect.left + 1
                 distanceInBlocks = 0
-            } else mSelectionRect.right += distanceInBlocks
+            } else rect.right += distanceInBlocks
 
-            R.id.top -> if (mSelectionRect.top + distanceInBlocks >= mSelectionRect.bottom) {
-                mSelectionRect.top = mSelectionRect.bottom - 1
+            R.id.top -> if (rect.top + distanceInBlocks >= rect.bottom) {
+                rect.top = rect.bottom - 1
                 distanceInBlocks = 0
-            } else mSelectionRect.top += distanceInBlocks
+            } else rect.top += distanceInBlocks
 
-            R.id.bottom -> if (mSelectionRect.bottom + distanceInBlocks <= mSelectionRect.top) {
-                mSelectionRect.bottom = mSelectionRect.top + 1
+            R.id.bottom -> if (rect.bottom + distanceInBlocks <= rect.top) {
+                rect.bottom = rect.top + 1
                 distanceInBlocks = 0
-            } else mSelectionRect.bottom += distanceInBlocks
+            } else rect.bottom += distanceInBlocks
         }
 
         // If no movement, return.
         // It would be caused by the "Selection must be at least 1x1" rule.
         // For instance in case it's already 200x1 we can't move vertically.
         if (distanceInBlocks == 0) return
-
-        // Notify outsides.
-        mSelectionChangedListener?.onSelectionChanged(
-            mSelectionRect
-        )
 
         // Should we move the underlying tileView as well?
         // If touched point is near the moving direction (not the dragger position)
@@ -394,8 +381,8 @@ class SelectionView : FrameLayout {
     }
 
     fun beginSelection(selection: Rect) {
-        mHasSelection = true
-        mSelectionRect.set(selection)
+        mSelectionRect?.isSelecting = true
+        mSelectionRect?.set(selection)
         visibility = VISIBLE
         requestLayout()
     }
@@ -407,29 +394,38 @@ class SelectionView : FrameLayout {
         // Self's not visible now and not sure whether has measured dimensions.
         // Use tileView's instead.
         val scale = tileView.scale
-        var w = tileView.measuredWidth
-        val h = tileView.measuredHeight
 
-        // Selection would be a square with length of half screen dimension.
-        if (w > h) w = h / 4
-        else w /= 4
+        /* Selection would be a square with length of half screen dimension.
+        val edge = minOf(tileView.measuredWidth, tileView.measuredHeight) / 4
 
         // Translate to blocks.
         val pxPerBlx = scale * MCTileProvider.TILESIZE / 16
-        val rad = Math.round(w / pxPerBlx)
-        mHasSelection = true
+        val rad = (edge / pxPerBlx).roundToInt()*/
+
+        val rad = (minOf(
+            tileView.measuredWidth,
+            tileView.measuredHeight
+        ) * 4 / (scale * MCTileProvider.TILESIZE)).roundToInt()
+        mSelectionRect?.isSelecting = true
 
         // Set it.
-        mSelectionRect.set(
-            centerX - rad, centerZ - rad,
-            centerX + rad, centerZ + rad
+        mSelectionRect?.set(
+            centerX - rad,
+            centerZ - rad,
+            centerX + rad,
+            centerZ + rad
         )
         visibility = VISIBLE
         requestLayout()
     }
 
-    fun onSelectionChangedOutsides(rect: Rect) {
-        mSelectionRect.set(rect)
+    fun onSelectionChangedOutsides(rect: Selection) {
+        (mSelectionRect ?: return).apply {
+            left = rect.left
+            top = rect.top
+            right = rect.right
+            bottom = rect.bottom
+        }
         // If the selection's far away from current viewport,
         // We want tho scroll the tileView to a nearest corner of the selection.
         mTileView?.get()?.let { tileView ->
@@ -477,24 +473,19 @@ class SelectionView : FrameLayout {
     }
 
     fun endSelection() {
-        mHasSelection = false
-        setVisibility(GONE)
-        requestLayout()
+        mSelectionRect?.isSelecting = false
     }
 
     fun hasSelection(): Boolean {
-        return mHasSelection
+        return mSelectionRect?.isSelecting ?: false
     }
 
-
-    val selection: Rect
-        get() = Rect(mSelectionRect)
-
     override fun onLayout(b: Boolean, i: Int, i1: Int, i2: Int, i3: Int) {
-        if (!mHasSelection) return
+        if (!this.hasSelection()) return
 
-        val sw = getMeasuredWidth().toFloat()
-        val sh = getMeasuredHeight().toFloat()
+        val selection = this.mSelectionRect ?: return
+        val sw = measuredWidth.toFloat()
+        val sh = measuredHeight.toFloat()
 
         val tileView = mTileView?.get() ?: return
 
@@ -512,10 +503,10 @@ class SelectionView : FrameLayout {
         val transToScrY = tileView.scrollY.toFloat() - halfWorld
 
         // Draw selected range
-        mSelectionPixelRange.left = pxPerBlx * mSelectionRect.left - transToScrX
-        mSelectionPixelRange.top = pxPerBlx * mSelectionRect.top - transToScrY
-        mSelectionPixelRange.right = pxPerBlx * mSelectionRect.right - transToScrX
-        mSelectionPixelRange.bottom = pxPerBlx * mSelectionRect.bottom - transToScrY
+        mSelectionPixelRange.left = pxPerBlx * selection.left - transToScrX
+        mSelectionPixelRange.top = pxPerBlx * selection.top - transToScrY
+        mSelectionPixelRange.right = pxPerBlx * selection.right - transToScrX
+        mSelectionPixelRange.bottom = pxPerBlx * selection.bottom - transToScrY
 
         // To the middle of lefter bound of on-screen selection area.
         var horix = ((if (mSelectionPixelRange.left < 0) 0.0f else mSelectionPixelRange.left)
@@ -593,27 +584,16 @@ class SelectionView : FrameLayout {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        if (!mHasSelection) return
+        if (!this.hasSelection()) return
 
-        // Screen dimensions.
-        val sw = measuredWidth.toFloat()
-        val sh = measuredHeight.toFloat()
-
-        if (!canvas.quickReject(mSelectionPixelRange, Canvas.EdgeType.BW)) {
-            mVisiblePixelRange.left =
-                if (mSelectionPixelRange.left < 0.0f) 0.0f else mSelectionPixelRange.left
-            mVisiblePixelRange.top =
-                if (mSelectionPixelRange.top < 0.0f) 0.0f else mSelectionPixelRange.top
-            mVisiblePixelRange.right =
-                if (mSelectionPixelRange.right > sw) sw else mSelectionPixelRange.right
-            mVisiblePixelRange.bottom =
-                if (mSelectionPixelRange.bottom > sh) sh else mSelectionPixelRange.bottom
-
-            canvas.drawRect(mVisiblePixelRange, mPaint)
-        }
-    }
-
-    fun setSelectionChangedListener(selectionChangedListener: SelectionChangedListener?) {
-        mSelectionChangedListener = selectionChangedListener
+        @Suppress("DEPRECATION")
+        if (canvas.quickReject(mSelectionPixelRange, Canvas.EdgeType.BW)) return
+        canvas.drawRect(
+            mSelectionPixelRange.left.fastCoerceAtLeast(0.0F),
+            mSelectionPixelRange.top.fastCoerceAtLeast(0.0F),
+            mSelectionPixelRange.right.fastCoerceAtMost(measuredWidth.toFloat()),
+            mSelectionPixelRange.bottom.fastCoerceAtMost(measuredHeight.toFloat()),
+            mPaint
+        )
     }
 }

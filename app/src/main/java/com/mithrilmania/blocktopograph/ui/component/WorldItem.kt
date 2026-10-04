@@ -61,16 +61,15 @@ fun WorldItem(detail: WorldDetail, modifier: Modifier = Modifier, onClick: () ->
         ) {
             Row(modifier = Modifier.height(IntrinsicSize.Max), horizontalArrangement = spacing) {
                 val shape = MaterialTheme.shapes.small
-                val shaped = Modifier
-                    .align(alignment = Alignment.CenterVertically)
-                    .size(140.dp, 80.dp)
-                    .border(CardDefaults.outlinedCardBorder(), shape)
-                    .clip(shape)
                 val placeholder = painterResource(R.drawable.world_icon_default)
                 AsyncImage(
-                    model = detail.icon?.location,
+                    model = detail,
                     contentDescription = null,
-                    modifier = shaped,
+                    modifier = Modifier
+                        .align(alignment = Alignment.CenterVertically)
+                        .size(140.dp, 80.dp)
+                        .border(CardDefaults.outlinedCardBorder(), shape)
+                        .clip(shape),
                     contentScale = ContentScale.Crop,
                     placeholder = placeholder,
                     fallback = placeholder,

@@ -1,6 +1,5 @@
 package com.mithrilmania.blocktopograph.editor.world
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
@@ -10,17 +9,24 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.ComposeView
@@ -31,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.view.GravityCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.material.snackbar.Snackbar
@@ -41,6 +48,7 @@ import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
 import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
 import com.mithrilmania.blocktopograph.map.MapFragment
 import com.mithrilmania.blocktopograph.map.TileEntity
+import com.mithrilmania.blocktopograph.map.edit.EditResultCode
 import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceDialog
 import com.mithrilmania.blocktopograph.map.picer.PicerDialog
 import com.mithrilmania.blocktopograph.map.renderer.MapType
@@ -62,6 +70,7 @@ import com.mithrilmania.blocktopograph.world.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.app.AlertDialog.Builder as AlertDialogBuilder
 
 class WorldEditorActivity : WorldActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -93,10 +102,21 @@ class WorldEditorActivity : WorldActivity() {
                 mapFragment.frameTo(camera.x, camera.y)
             }
         }
+        this.lifecycleScope.launch {
+            model.editResult.collect {
+                if (it === EditResultCode.SUCCESS) {
+                    toast(R.string.general_done)
+                    mapFragment.refreshAfterEdit()
+                } else {
+                    toast(R.string.general_failed)
+                }
+            }
+        }
         this.findViewById<ComposeView>(R.id.composer).setContent {
             BlocktopographCompatTheme {
                 val viewer = viewModel<WorldViewerModel>()
                 val handle = viewModel<WorldModel>()
+                observerSelection(viewer)
                 Box(Modifier.fillMaxSize()) {
                     Column(
                         Modifier
@@ -142,8 +162,45 @@ class WorldEditorActivity : WorldActivity() {
                     )
                     PicerDialog(viewer, handle)
                     SearchAndReplaceDialog(viewer)
+                    if (viewer.waitingJob) {
+                        BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
+                            Column(
+                                Modifier
+                                    .clip(AlertDialogDefaults.shape)
+                                    .background(AlertDialogDefaults.containerColor)
+                                    .padding(24.dp)
+                            ) {
+                                Text(
+                                    stringResource(R.string.general_please_wait),
+                                    color = AlertDialogDefaults.titleContentColor,
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                                CircularProgressIndicator(
+                                    Modifier
+                                        .padding(top = 16.dp)
+                                        .align(Alignment.CenterHorizontally)
+                                )
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    @Composable
+    fun observerSelection(viewer: WorldViewerModel) {
+        val selection = viewer.selection
+        SideEffect(
+            selection.left,
+            selection.top,
+            selection.right,
+            selection.bottom
+        ) {
+            mapFragment?.selectionBoard?.requestLayout()
+        }
+        SideEffect(viewer.paneType) {
+            mapFragment?.selectionBoard?.isVisible = viewer.paneType == PaneType.SELECTOR
         }
     }
 
@@ -318,12 +375,12 @@ class WorldEditorActivity : WorldActivity() {
             setMaxEms(32)
             setHint(R.string.leveldb_key_here)
         }
-        AlertDialog.Builder(this)
+        AlertDialogBuilder(this)
             .setTitle(R.string.open_nbt_from_db)
             .setView(keyInput)
             .setCancelable(true)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.open) click@{ dialog, _ ->
+            .setPositiveButton(R.string.open) click@{ _, _ ->
                 val activity = this
                 val key = keyInput.getText().toString()
                 if (key.isEmpty()) {
@@ -358,7 +415,7 @@ class WorldEditorActivity : WorldActivity() {
     }
 
     fun openMultiplayerEditor() {
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialogBuilder(this)
             .setCancelable(false)
             .setView(ProgressBar(this).apply {
                 isIndeterminate = true
@@ -402,11 +459,11 @@ class WorldEditorActivity : WorldActivity() {
                 val spinner = Spinner(activity)
                 spinner.adapter =
                     ArrayAdapter(activity, android.R.layout.simple_spinner_item, players)
-                AlertDialog.Builder(activity)
+                AlertDialogBuilder(activity)
                     .setTitle(R.string.select_player)
                     .setView(spinner)
                     .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(R.string.open_nbt) click@{ dialog, _ ->
+                    .setPositiveButton(R.string.open_nbt) click@{ _, _ ->
                         val player = players.getOrNull(spinner.selectedItemPosition) ?: return@click
                         activity.lifecycleScope.launch(Dispatchers.IO) {
                             val name = player.toString(Charsets.UTF_8)
@@ -440,10 +497,10 @@ class WorldEditorActivity : WorldActivity() {
             this.openNBTEditor(importer)
             return
         }
-        AlertDialog.Builder(this)
+        AlertDialogBuilder(this)
             .setMessage(this.confirmContentClose)
             .setCancelable(false)
-            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+            .setPositiveButton(android.R.string.ok) { _, _ ->
                 this.openNBTEditor(importer)
             }
             .setNegativeButton(android.R.string.cancel, null)

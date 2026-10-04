@@ -319,9 +319,12 @@ fun PicerDialog(
                         } else {
                             Column {
                                 Text(stringResource(R.string.picer_scale_title))
-                                Slider(sliderState, onValueChangeFinished = {
-                                    sliderState.value = round(sliderState.value)
-                                })
+                                Slider(
+                                    state = sliderState,
+                                    onValueChange = {
+                                        sliderState.value = round(it)
+                                    }
+                                )
                                 Text(
                                     sliderState.value.roundToInt().toString(),
                                     Modifier.fillMaxWidth(),

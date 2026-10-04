@@ -173,25 +173,24 @@ fun WorldDetailDialog(
             Grid(config = grid) {
                 val shape = MaterialTheme.shapes.medium
                 val center = Modifier.gridItem(alignment = Alignment.Center)
-                val shaped = center
-                    .clickable { // debug. TODO remove
-                        context.startActivity(
-                            detail.applyTo(
-                                Intent(
-                                    context,
-                                    OldWorldEditorActivity::class.java
-                                )
-                            )
-                        )
-                    }
-                    .size(210.dp, 120.dp)
-                    .border(CardDefaults.outlinedCardBorder(), shape)
-                    .clip(shape)
                 val placeholder = painterResource(R.drawable.world_icon_default)
                 AsyncImage(
-                    model = detail.icon?.location,
+                    model = detail,
                     contentDescription = null,
-                    modifier = shaped,
+                    modifier = center
+                        .size(210.dp, 120.dp)
+                        .border(CardDefaults.outlinedCardBorder(), shape)
+                        .clip(shape)
+                        .clickable { // debug. TODO remove
+                            context.startActivity(
+                                detail.applyTo(
+                                    Intent(
+                                        context,
+                                        OldWorldEditorActivity::class.java
+                                    )
+                                )
+                            )
+                        },
                     contentScale = ContentScale.Crop,
                     placeholder = placeholder,
                     fallback = placeholder,

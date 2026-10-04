@@ -5,7 +5,7 @@
 
         <variable
             name="selection"
-            type="android.graphics.Rect" />
+            type="com.mithrilmania.blocktopograph.map.selection.Selection" />
 
     </data>
 

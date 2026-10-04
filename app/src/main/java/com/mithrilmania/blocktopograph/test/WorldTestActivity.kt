@@ -24,10 +24,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.delete
-import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ContentCopy
@@ -42,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetValue
@@ -170,13 +169,12 @@ class WorldTestActivity : ComponentActivity() {
                                     lineLimits = TextFieldLineLimits.SingleLine,
                                     label = { Text("键") },
                                     modifier = Modifier.fillMaxWidth(),
-                                    inputTransformation = InputTransformation.then {
+                                    inputTransformation = {
                                         if (this.asCharSequence()
                                                 .startsWith("0x", ignoreCase = true)
                                         ) {
                                             delete(0, 2)
                                         }
-                                    }.then {
                                         if (this.asCharSequence().any {
                                                 Character.digit(it.code, 16) < 0
                                             }
@@ -350,7 +348,8 @@ class WorldTestActivity : ComponentActivity() {
                                     )
                                     DropdownMenu(
                                         expanded = expanded,
-                                        onDismissRequest = { expanded = false }
+                                        onDismissRequest = { expanded = false },
+                                        shape = MenuDefaults.standaloneGroupShape
                                     ) {
                                         DropdownMenuItem(
                                             text = { Text("Copy Key (Plain)") },

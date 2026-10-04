@@ -30,6 +30,7 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemShapes
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDropdownMenuItem
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -73,9 +75,11 @@ fun AppBarScope.cascadingMenu(
                         expanded.value = true
                     }
                 }
-                DropdownMenu(expanded = expanded.value, onDismissRequest = {
-                    expanded.value = false
-                }) {
+                DropdownMenu(
+                    expanded = expanded.value,
+                    onDismissRequest = { expanded.value = false },
+                    shape = MenuDefaults.standaloneGroupShape
+                ) {
                     menu(expanded)
                 }
             }
@@ -127,19 +131,21 @@ fun DropdownMenuItem(
     icon: ImageVector,
     label: String,
     enabled: Boolean = true,
+    shape: Shape = MenuDefaults.standaloneItemShape,
     onClick: () -> Unit
 ) {
     DropdownMenuItem(
-        text = { Text(label) },
-        enabled = enabled,
         onClick = onClick,
+        text = { Text(label) },
+        shape = shape,
         leadingIcon = {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(MenuDefaults.LeadingIconSize)
             )
-        }
+        },
+        enabled = enabled
     )
 }
 
@@ -147,12 +153,14 @@ fun DropdownMenuItem(
 fun DropdownMenuItem(
     label: String,
     enabled: Boolean = true,
+    shape: Shape = MenuDefaults.standaloneItemShape,
     onClick: () -> Unit
 ) {
     DropdownMenuItem(
         text = { Text(label) },
-        enabled = enabled,
-        onClick = onClick
+        onClick = onClick,
+        shape = shape,
+        enabled = enabled
     )
 }
 
@@ -163,7 +171,7 @@ val ItemContentPadding: PaddingValues =
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> DropdownMenuChip(
-    options: Collection<T>,
+    options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
@@ -190,7 +198,7 @@ fun <T> DropdownMenuChip(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> DropdownMenuField(
-    options: Collection<T>,
+    options: List<T>,
     label: String,
     selected: T,
     onSelect: (T) -> Unit,
@@ -220,7 +228,7 @@ fun <T> DropdownMenuField(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ExposedDropdownMenu(
-    options: Collection<T>,
+    options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,
     modifier: Modifier,
@@ -242,30 +250,44 @@ fun <T> ExposedDropdownMenu(
         ) {
             val size = options.size
             options.forEachIndexed { index, option ->
-                SelectableDropdownMenuItem(
-                    shapes = MenuDefaults.itemShape(index, size),
-                    text = {
-                        Text(
-                            text = namer(option),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.basicMarquee()
-                        )
-                    },
-                    selected = option == selected,
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                    selectedLeadingIcon = {
-                        Icon(
-                            Icons.Filled.Check,
-                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            contentDescription = null,
-                        )
-                    },
-                    contentPadding = ItemContentPadding,
-                )
+                ExposedDropdownMenuItem(
+                    namer(option),
+                    option == selected,
+                    MenuDefaults.itemShape(index, size)
+                ) {
+                    onSelect(option)
+                    expanded = false
+                }
             }
         }
     }
+}
+
+@Composable
+fun ExposedDropdownMenuItem(
+    name: String,
+    selected: Boolean,
+    shapes: MenuItemShapes,
+    onClick: () -> Unit
+) {
+    SelectableDropdownMenuItem(
+        selected = selected,
+        onClick = onClick,
+        text = {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.basicMarquee()
+            )
+        },
+        shapes = shapes,
+        selectedLeadingIcon = {
+            Icon(
+                Icons.Filled.Check,
+                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                contentDescription = null,
+            )
+        },
+        contentPadding = ItemContentPadding,
+    )
 }

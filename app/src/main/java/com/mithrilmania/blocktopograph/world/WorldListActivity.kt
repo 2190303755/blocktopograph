@@ -79,7 +79,7 @@ import com.mithrilmania.blocktopograph.ShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
 import com.mithrilmania.blocktopograph.storage.awaitFileService
-import com.mithrilmania.blocktopograph.ui.LazyGridStateBridge
+import com.mithrilmania.blocktopograph.ui.ScrollableStateBridge
 import com.mithrilmania.blocktopograph.ui.WorldDetailDialog
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
@@ -90,7 +90,6 @@ import com.mithrilmania.blocktopograph.ui.component.TooltipBox
 import com.mithrilmania.blocktopograph.ui.component.WorldItem
 import com.mithrilmania.blocktopograph.ui.component.clickableItem
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
-import com.mithrilmania.blocktopograph.util.asFolder
 import com.mithrilmania.blocktopograph.util.collectText
 import com.mithrilmania.blocktopograph.util.rpc
 import com.mithrilmania.blocktopograph.util.toast
@@ -103,8 +102,8 @@ import rikka.shizuku.Shizuku
 class WorldListActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         this.setThemedContent {
             val viewModel = viewModel<WorldListModel>()
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -228,7 +227,7 @@ class WorldListActivity : ComponentActivity() {
                         ) { folder ->
                             if (folder == null) return@rememberLauncherForActivityResult
                             viewModel.viewModelScope.launch(Dispatchers.IO) {
-                                viewModel.unscanned.send("" to folder.asFolder)
+                                viewModel.unscanned.send("" to folder)
                             }
                         }
                         FloatingActionButton(
@@ -242,7 +241,7 @@ class WorldListActivity : ComponentActivity() {
             ) { padding ->
                 Box(Modifier.padding(PaddingValues(top = padding.calculateTopPadding()))) {
                     val gridState = rememberLazyGridState()
-                    AndroidView(::LazyGridStateBridge) {
+                    AndroidView(::ScrollableStateBridge) {
                         it.bind(gridState, coroutineScope)
                     }
                     AnimatedVisibility(

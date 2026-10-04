@@ -7,7 +7,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
@@ -27,18 +26,15 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
-import androidx.compose.ui.unit.IntRect;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewTreeLifecycleOwner;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.mithrilmania.blocktopograph.LogUtil;
@@ -48,14 +44,10 @@ import com.mithrilmania.blocktopograph.chunk.Chunk;
 import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.MapFragmentBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
-import com.mithrilmania.blocktopograph.map.edit.EditFunction;
-import com.mithrilmania.blocktopograph.map.edit.EditFunctionCompatKt;
-import com.mithrilmania.blocktopograph.map.edit.RectEditTarget;
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker;
 import com.mithrilmania.blocktopograph.map.marker.CustomNamedBitmapProvider;
-import com.mithrilmania.blocktopograph.map.picer.PicerState;
 import com.mithrilmania.blocktopograph.map.renderer.MapType;
-import com.mithrilmania.blocktopograph.map.selection.SelectionMenuFragment;
+import com.mithrilmania.blocktopograph.map.selection.SelectionView;
 import com.mithrilmania.blocktopograph.util.AsyncKt;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
@@ -67,11 +59,10 @@ import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
 import com.mithrilmania.blocktopograph.world.WorldStorage;
-import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +77,6 @@ import kotlinx.coroutines.Job;
 public class MapFragment extends Fragment {
 
     private final static int MARKER_INTERVAL_CHECK = 50;
-    private static final String TAG_PICER = "picer";
     private static final int MARKERS_ON_SCREEN_TOO_MANY = 100;
     private static final String PREF_KEY_HAS_NOTIFIED_MARKERS_TOO_MANY = "has_notified_markers_too_many";
     private static final String PREF_KEY_HAS_USED_SELECTION = "hasUsedSelection";
@@ -124,12 +114,6 @@ public class MapFragment extends Fragment {
     private volatile @NonNull Job shrinkProceduralMarkersJob = MapFragmentCompatKt.dummyJob();
     private WorldViewerModel model;
     private WorldModel worldModel;
-
-    /**
-     * Only one floating fragment is allowed at the same time.
-     * We use one to display locator.
-     */
-    private Fragment mFloatingFragment;
 
     /**
      * Data binding of this fragment view.
@@ -204,93 +188,9 @@ public class MapFragment extends Fragment {
         ).show();
     }
 
-    /**
-     * Callback to close the ongoing floating pane.
-     */
-    @UiThread
-    private void closeFloatPane() {
-        if (mFloatingFragment != null) {
-            WorldStorage storage = this.worldModel.getWorld().getStorage();
-            if (storage == null) return;
-            FragmentManager fm = getChildFragmentManager();
-            FragmentTransaction trans = fm.beginTransaction();
-            trans.remove(mFloatingFragment);
-
-            // If in selection mode, recover selection menu.
-            if (mBinding.selectionBoard.hasSelection()) {
-                SelectionMenuFragment fragment = SelectionMenuFragment
-                        .newInstance(mBinding.selectionBoard.getSelection(),
-                                this::doSelectionBasedEdit);
-                trans.add(R.id.float_window_container, fragment);
-                mFloatingFragment = fragment;
-                setUpSelectionMenu();
-            } else mFloatingFragment = null;
-
-            trans.commit();
-        }
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (mFloatingFragment != null) {
-            FloatPaneFragment fragment;
-            if (mFloatingFragment instanceof SelectionMenuFragment) {
-                WorldStorage storage = this.worldModel.getWorld().getStorage();
-                if (storage == null) return;
-                fragment = SelectionMenuFragment
-                        .newInstance(mBinding.selectionBoard.getSelection(),
-                                this::doSelectionBasedEdit);
-            } else return;
-            closeFloatPane();
-            openFloatPane(fragment);
-            setUpSelectionMenu();
-        }
-    }
-
-    /**
-     * Set up selection menu and connect it with selection board.
-     *
-     * <p>
-     * Called when selection mode begins, or when another float pane that used to be opened and
-     * replaced selection menu, we have to recover selection menu when the pane was dead.
-     * </p>
-     */
-    private void setUpSelectionMenu() {
-        if (mFloatingFragment instanceof SelectionMenuFragment) {
-            SelectionMenuFragment fragment = (SelectionMenuFragment) mFloatingFragment;
-            mBinding.selectionBoard.setSelectionChangedListener(fragment::onSelectionChangedOutsides);
-            fragment.setSelectionChangedListener(mBinding.selectionBoard::onSelectionChangedOutsides);
-        }
-    }
-
-    /**
-     * When another float pane was opened and replaced selection menu, we disconnect selection
-     * menu and selection board.
-     */
-    private void unsetSelectionMenu() {
-        if (mFloatingFragment instanceof SelectionMenuFragment) {
-            SelectionMenuFragment fragment = (SelectionMenuFragment) mFloatingFragment;
-            fragment.setSelectionChangedListener(null);
-        }
-        mBinding.selectionBoard.setSelectionChangedListener(null);
-    }
-
-    /**
-     * Show a floating pane fragment. Will remove already existing one.
-     *
-     * @param fragment pane fragment to be attached.
-     */
-    @UiThread
-    private void openFloatPane(@NonNull FloatPaneFragment fragment) {
-        FragmentManager fm = getChildFragmentManager();
-        fragment.setOnCloseButtonClickListener(this::closeFloatPane);
-        FragmentTransaction trans = fm.beginTransaction();
-        // Remove existing float pane.
-        if (mFloatingFragment instanceof SelectionMenuFragment) unsetSelectionMenu();
-        if (mFloatingFragment != null) trans.remove(mFloatingFragment);
-        trans.add(R.id.float_window_container, fragment).commit();
-        mFloatingFragment = fragment;
+    public SelectionView getSelectionBoard() {
+        var binding = this.mBinding;
+        return binding == null ? null : binding.selectionBoard;
     }
 
     @Nullable
@@ -305,6 +205,8 @@ public class MapFragment extends Fragment {
                 inflater, R.layout.map_fragment, container, false);
         mBinding.tileView.setSelectionView(mBinding.selectionBoard);
         mBinding.selectionBoard.setTileView(mBinding.tileView);
+        ViewTreeLifecycleOwner.set(mBinding.selectionBoard, this.getViewLifecycleOwner());
+        mBinding.selectionBoard.bind(model.selection);
         mBinding.tileView.setOuterDoubleTapListener(new GestureDetector.OnDoubleTapListener() {
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -607,32 +509,6 @@ public class MapFragment extends Fragment {
         return newMarker;
     }
 
-    private void doSelectionBasedEdit(@NonNull EditFunction func, @Nullable Bundle args) {
-        switch (func) {
-            case SNR:
-            case LAMPSHADE:
-            case CHBIOME:
-            case DCHUNK:
-                WorldStorage storage = this.worldModel.getWorld().getStorage();
-                if (storage == null) return;
-                EditFunctionCompatKt.performSelectionBasedEdit(this, new RectEditTarget(
-                        storage,
-                        mBinding.selectionBoard.getSelection(),
-                        this.model.getDimension()
-                ), func, args);
-                break;
-            case PICER: {
-                var activity = getActivity();
-                if (activity == null) return;
-                var rect = mBinding.selectionBoard.getSelection();
-                this.model.commitAnalyzedState(
-                        new IntRect(rect.left, rect.top, rect.right, rect.bottom),
-                        PicerState.SelectionOutOfSize.INSTANCE
-                );
-            }
-        }
-    }
-
     /**
      * Calculates viewport of tileview, expressed in blocks.
      *
@@ -762,16 +638,16 @@ public class MapFragment extends Fragment {
     }
 
     private String[] getLongClickOptions() {
-        String[] values = new String[]{
+        return new String[]{
                 getString(R.string.teleport_local_player),
                 getString(R.string.create_custom_marker),
                 getString(R.string.open_chunk_entity_nbt),
                 getString(R.string.open_chunk_tile_entity_nbt),
-                null
+                getString(mBinding.selectionBoard.hasSelection()
+                        ? R.string.func_cancel_selection
+                        : R.string.func_begin_selection
+                )
         };
-        values[4] = getString(mBinding.selectionBoard.hasSelection() ?
-                R.string.func_cancel_selection : R.string.func_begin_selection);
-        return values;
     }
 
     public void triggerLongPressAtCenter() {
@@ -861,16 +737,11 @@ public class MapFragment extends Fragment {
     private void beginOrEndSelection(int worldX, int worldZ) {
         if (mBinding.selectionBoard.hasSelection()) {
             mBinding.selectionBoard.endSelection();
-            // If it's already replaced don't kill the wrong pig.
-            if (mFloatingFragment instanceof SelectionMenuFragment) closeFloatPane();
         } else {
-            mBinding.selectionBoard.beginSelection(worldX, worldZ);
             WorldStorage storage = this.worldModel.getWorld().getStorage();
             if (storage == null) return;
-            SelectionMenuFragment fragment = SelectionMenuFragment
-                    .newInstance(mBinding.selectionBoard.getSelection(), this::doSelectionBasedEdit);
-            openFloatPane(fragment);
-            setUpSelectionMenu();
+            model.selectorPaneState.reset();
+            mBinding.selectionBoard.beginSelection(worldX, worldZ);
             Activity activity = getActivity();
             if (activity != null) {
                 activity.getPreferences(Context.MODE_PRIVATE).edit()
@@ -985,7 +856,6 @@ public class MapFragment extends Fragment {
                 .show();
 
 
-        return;
     }
 
     private void onChooseTeleportPlayer(float worldX, float worldZ, Dimension dim, View container) {
@@ -1119,7 +989,7 @@ public class MapFragment extends Fragment {
         final List<BitmapChoiceListAdapter.NamedBitmapChoice> choices = new ArrayList<>(markerFilter.values());
 
         //sort on names, nice for the user.
-        Collections.sort(choices, (a, b) -> a.namedBitmap.getNamedBitmapProvider().getBitmapDisplayName().compareTo(b.namedBitmap.getNamedBitmapProvider().getBitmapDisplayName()));
+        choices.sort(Comparator.comparing(it -> it.namedBitmap.getNamedBitmapProvider().getBitmapDisplayName()));
 
 
         new AlertDialog.Builder(activity)
@@ -1203,25 +1073,6 @@ public class MapFragment extends Fragment {
 
         MarkerTapOption(int id) {
             this.stringId = id;
-        }
-
-    }
-
-    public enum LongClickOption {
-
-        TELEPORT_LOCAL_PLAYER(R.string.teleport_local_player, null),
-        CREATE_MARKER(R.string.create_custom_marker, null),
-        //TODO TELEPORT_MULTI_PLAYER("Teleport other player", null),
-        ENTITY(R.string.open_chunk_entity_nbt, ChunkTag.ENTITY),
-        TILE_ENTITY(R.string.open_chunk_tile_entity_nbt, ChunkTag.BLOCK_ENTITY),
-        BEGIN_SELECTION(R.string.func_begin_selection, null);
-
-        public final int stringId;
-        public final ChunkTag dataType;
-
-        LongClickOption(int id, ChunkTag dataType) {
-            this.stringId = id;
-            this.dataType = dataType;
         }
 
     }

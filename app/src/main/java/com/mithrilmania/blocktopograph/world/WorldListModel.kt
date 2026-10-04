@@ -21,6 +21,7 @@ import com.mithrilmania.blocktopograph.IWorldCallback
 import com.mithrilmania.blocktopograph.storage.Location
 import com.mithrilmania.blocktopograph.storage.ShizukuLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
+import com.mithrilmania.blocktopograph.util.getIdOfDocumentOrTreeDocument
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -49,8 +50,7 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
                     FileInputStream(config.fileDescriptor).extractDetail(
                         ShizukuLocation(path),
                         ShizukuLocation("$path/$FILE_LEVEL_DAT"),
-                        application,
-                        ShizukuLocation("$path/$FILE_WORLD_ICON")
+                        application
                     )
                 }
                 if (world === null) {
@@ -88,7 +88,7 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
                     resolver.query(
                         DocumentsContract.buildChildDocumentsUriUsingTree(
                             folder,
-                            DocumentsContract.getDocumentId(folder)
+                            folder.getIdOfDocumentOrTreeDocument(context)
                         ),
                         projection,
                         null,
@@ -98,15 +98,14 @@ class WorldListModel(app: Application) : AndroidViewModel(app) {
                         if (!cursor.moveToLast()) return@use // IDK why ` DESC` doesn't work, so reverse iteration
                         do {
                             if (cursor.isNull(0) || MIME_TYPE_DIR != cursor.getString(0)) continue
+                            val documentId = cursor.getString(2)
                             loadSAFWorld(
-                                DocumentsContract.buildDocumentUriUsingTree(
-                                    folder,
-                                    cursor.getString(2)
-                                ),
+                                folder,
                                 this,
                                 tag,
                                 context,
-                                resolver
+                                resolver,
+                                documentId
                             )
                         } while (cursor.moveToPrevious())
                     }

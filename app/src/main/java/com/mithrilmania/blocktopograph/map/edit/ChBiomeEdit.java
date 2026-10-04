@@ -15,7 +15,7 @@ public class ChBiomeEdit implements EditTarget.RandomAccessEdit {
     @NonNull
     private Biome mTo;
 
-    ChBiomeEdit(@Nullable Biome fromBiome, @NonNull Biome toBiome) {
+    public ChBiomeEdit(@Nullable Biome fromBiome, @NonNull Biome toBiome) {
         mFrom = fromBiome;
         mTo = toBiome;
     }

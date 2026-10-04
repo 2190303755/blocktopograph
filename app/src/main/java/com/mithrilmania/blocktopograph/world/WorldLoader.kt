@@ -3,10 +3,12 @@ package com.mithrilmania.blocktopograph.world
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.lifecycle.application
 import com.mithrilmania.blocktopograph.storage.SAFLocation
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.findChild
+import com.mithrilmania.blocktopograph.util.getIdOfDocumentOrTreeDocument
 import com.mithrilmania.blocktopograph.util.getSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,22 +20,23 @@ import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
 suspend fun WorldListModel.loadSAFWorld(
-    root: Uri,
+    rootTree: Uri,
     coroutineScope: CoroutineScope,
     tag: String = "",
     context: Context = this.application,
-    resolver: ContentResolver = context.contentResolver
+    resolver: ContentResolver = context.contentResolver,
+    rootId: String = rootTree.getIdOfDocumentOrTreeDocument(context)
 ) {
-    val config = root.findChild(resolver, FILE_LEVEL_DAT) ?: return
+    val rootDocument = DocumentsContract.buildDocumentUriUsingTree(rootTree, rootId)
+    val config = rootDocument.findChild(resolver, FILE_LEVEL_DAT) ?: return
     val world = resolver.openInputStream(config)?.extractDetail(
-        SAFLocation(root),
+        SAFLocation(rootDocument),
         SAFLocation(config),
         context,
-        root.findChild(resolver, FILE_WORLD_ICON)?.let { SAFLocation(it) },
         tag
     ) ?: return
     coroutineScope.launch {
-        val behavior = root.findChild(
+        val behavior = rootDocument.findChild(
             resolver,
             FILE_BEHAVIOR_PACKS
         )?.let { packs ->
@@ -48,7 +51,7 @@ suspend fun WorldListModel.loadSAFWorld(
         }
     }
     coroutineScope.launch {
-        val resource = root.findChild(
+        val resource = rootDocument.findChild(
             resolver,
             FILE_RESOURCE_PACKS
         )?.let { packs ->
@@ -63,7 +66,7 @@ suspend fun WorldListModel.loadSAFWorld(
         }
     }
     coroutineScope.launch {
-        val size = ConvertUtil.formatSize(root.getSize(resolver))
+        val size = ConvertUtil.formatSize(rootDocument.getSize(resolver))
         withContext(Dispatchers.Main) {
             world.size = size
         }

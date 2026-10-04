@@ -2,6 +2,12 @@ package com.mithrilmania.blocktopograph.editor.nbt.node
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -21,6 +27,7 @@ import com.mithrilmania.blocktopograph.nbt.LongArrayTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.TAG_LONG_ARRAY
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
+import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.util.upcoming
 
 class LongArrayNode(
@@ -72,7 +79,14 @@ class LongArrayNode(
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Editor(editor: NBTEditorModel, sheetState: SheetState) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.windowInsetsPadding(
+                safeLayoutInsets()
+                    .only(WindowInsetsSides.Bottom)
+                    .union(WindowInsets.ime)
+            ),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             val context = LocalContext.current
             BottomSheetActionButton(
                 icon = Icons.Filled.Search,

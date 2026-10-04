@@ -11,6 +11,7 @@ import coil3.request.crossfade
 import com.google.android.material.color.DynamicColors
 import com.mithrilmania.blocktopograph.storage.FileService
 import com.mithrilmania.blocktopograph.storage.ShizukuFileSystem
+import com.mithrilmania.blocktopograph.storage.WorldDetailMapper
 import com.mithrilmania.blocktopograph.util.ShizukuConnector
 import com.mithrilmania.blocktopograph.util.error
 import rikka.shizuku.Shizuku
@@ -72,6 +73,9 @@ class Blocktopograph : Application(),
         return ImageLoader.Builder(context)
             .crossfade(true)
             .fileSystem(ShizukuFileSystem)
+            .components {
+                add(WorldDetailMapper())
+            }
             .build()
     }
 

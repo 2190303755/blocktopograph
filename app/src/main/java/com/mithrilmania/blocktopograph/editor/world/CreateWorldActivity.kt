@@ -2,6 +2,7 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,10 +30,8 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Help
@@ -83,7 +82,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.isDigitsOnly
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
@@ -96,8 +94,8 @@ import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readBinaryTag
 import com.mithrilmania.blocktopograph.nbt.io.writeNBTWithHeader
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
-import com.mithrilmania.blocktopograph.ui.LazyListStateBridge
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
+import com.mithrilmania.blocktopograph.ui.ScrollableStateBridge
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
@@ -124,8 +122,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 class CreateWorldActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         this.setThemedContent {
             val viewModel = viewModel<CreateWorldModel>()
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -159,7 +157,6 @@ class CreateWorldActivity : ComponentActivity() {
                                     scope.launch { tooltipState.show(MutatePriority.UserInput) }
                                 }
                             }
-
                         }
                     )
                 },
@@ -168,14 +165,20 @@ class CreateWorldActivity : ComponentActivity() {
                     TooltipBox(stringResource(R.string.create)) { tooltip ->
                         val picker = rememberLauncherForActivityResult(
                             ActivityResultContracts.OpenDocumentTree()
-                        ) { folder ->
-                            if (folder == null) return@rememberLauncherForActivityResult
+                        ) { folderTree ->
+                            if (folderTree === null) return@rememberLauncherForActivityResult
                             val activity = this
                             viewModel.viewModelScope.launch(Dispatchers.IO) {
-                                val folder = DocumentFile.fromTreeUri(activity, folder)
-                                    ?: return@launch
-                                val config = folder.createFile(MIME_TYPE_DEFAULT, FILE_LEVEL_DAT)
-                                    ?: return@launch
+                                val folderDocument = DocumentsContract.buildDocumentUriUsingTree(
+                                    folderTree,
+                                    DocumentsContract.getTreeDocumentId(folderTree)
+                                ) ?: return@launch
+                                val config = DocumentsContract.createDocument(
+                                    activity.contentResolver,
+                                    folderDocument,
+                                    MIME_TYPE_DEFAULT,
+                                    FILE_LEVEL_DAT
+                                ) ?: return@launch
                                 val data = tryOrNull {
                                     BedrockNBTInput(
                                         activity.assets.open("dats/1_2_13.dat").buffered()
@@ -202,12 +205,12 @@ class CreateWorldActivity : ComponentActivity() {
                                 layers.toJson(viewModel.biome)?.let {
                                     data[KEY_FLAT_WORLD_LAYERS] = StringTag(it)
                                 }
-                                (activity.contentResolver.openOutputStream(config.uri)
+                                (activity.contentResolver.openOutputStream(config)
                                     ?: return@launch)
                                     .writeNBTWithHeader(4U, "Blocktopograph", data)
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(activity, "Done!", Toast.LENGTH_SHORT).show()
-                                    activity.setResult(RESULT_OK, Intent().setData(folder.uri))
+                                    activity.setResult(RESULT_OK, Intent().setData(folderTree))
                                     activity.finish()
                                 }
                             }
@@ -223,7 +226,7 @@ class CreateWorldActivity : ComponentActivity() {
             ) { padding ->
                 val listState = rememberLazyListState()
                 val scope = rememberCoroutineScope()
-                AndroidView(::LazyListStateBridge) {
+                AndroidView(::ScrollableStateBridge) {
                     it.bind(listState, scope)
                 }
                 val inset = HorizontalPadding(padding)
@@ -465,7 +468,7 @@ class CreateWorldActivity : ComponentActivity() {
                                 placeholder = { Text(selected.height.toString()) },
                                 modifier = Modifier.fillMaxWidth(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                inputTransformation = InputTransformation.then {
+                                inputTransformation = {
                                     if (!this.asCharSequence().isDigitsOnly()) {
                                         revertAllChanges()
                                     }

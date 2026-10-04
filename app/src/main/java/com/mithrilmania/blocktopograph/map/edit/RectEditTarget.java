@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.map.edit;
 
 import android.annotation.SuppressLint;
-import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,10 +24,6 @@ public class RectEditTarget extends EditTarget {
 
     @NonNull
     private final Dimension dimension;
-
-    public RectEditTarget(@NonNull WorldStorage storage, @NonNull Rect area, @NonNull Dimension dimension) {
-        this(storage, new IntRect(area.left, area.top, area.right, area.bottom), dimension);
-    }
 
     public RectEditTarget(@NonNull WorldStorage storage, @NonNull IntRect area, @NonNull Dimension dimension) {
         super(true, storage);

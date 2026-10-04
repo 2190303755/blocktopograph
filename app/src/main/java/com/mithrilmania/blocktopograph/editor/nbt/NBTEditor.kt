@@ -44,6 +44,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -60,6 +61,7 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AppBarRow
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -127,7 +129,7 @@ import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.storage.SAFFile
-import com.mithrilmania.blocktopograph.ui.LazyListStateBridge
+import com.mithrilmania.blocktopograph.ui.ScrollableStateBridge
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AllSheetValues
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
@@ -186,31 +188,38 @@ fun TagEditor(
     inputTransformation: InputTransformation? = null,
     onAction: KeyboardActionHandler
 ) {
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(sheetState.currentValue === SheetValue.Expanded) {
-        focusRequester.requestFocus()
-    }
-    OutlinedTextField(
-        state = textFieldState,
-        modifier = modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
-            .focusProperties {
-                canFocus = sheetState.currentValue === SheetValue.Expanded
-            },
-        shape = OutlinedTextFieldDefaults.roundedShape,
-        lineLimits = lineLimits,
-        isError = isError,
-        supportingText = supportingText,
-        keyboardOptions = keyboardOptions,
-        inputTransformation = inputTransformation,
-        onKeyboardAction = onAction,
-        trailingIcon = {
-            IconButton(Icons.Filled.Check) {
-                onAction.onKeyboardAction {}
-            }
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+        val focusRequester = remember { FocusRequester() }
+        LaunchedEffect(sheetState.currentValue === SheetValue.Expanded) {
+            focusRequester.requestFocus()
         }
-    )
+        OutlinedTextField(
+            state = textFieldState,
+            modifier = modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .focusProperties {
+                    canFocus = sheetState.currentValue === SheetValue.Expanded
+                }
+                .windowInsetsPadding(
+                    safeLayoutInsets()
+                        .only(WindowInsetsSides.Bottom)
+                        .union(WindowInsets.ime)
+                ),
+            shape = OutlinedTextFieldDefaults.roundedShape,
+            lineLimits = lineLimits,
+            isError = isError,
+            supportingText = supportingText,
+            keyboardOptions = keyboardOptions,
+            inputTransformation = inputTransformation,
+            onKeyboardAction = onAction,
+            trailingIcon = {
+                IconButton(Icons.Filled.Check) {
+                    onAction.onKeyboardAction {}
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -328,6 +337,7 @@ fun NBTEditor(
         editor.confirmation = ConfirmationRequest.EXIT
     }
     if (editor.confirmation !== null) {
+        // TODO i18n
         AlertDialog(
             onDismissRequest = {
                 editor.confirmation = null
@@ -397,14 +407,17 @@ fun NBTEditor(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .windowInsetsPadding(
-                                safeLayoutInsets()
-                                    .only(WindowInsetsSides.Bottom)
-                                    .union(WindowInsets.ime)
-                            ),
+                            .padding(horizontal = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Box(
+                            Modifier
+                                .padding(top = 6.dp)
+                                .size(width = 32.dp, height = 4.dp)
+                                .clip(MaterialTheme.shapes.extraLarge)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant)
+                                .align(Alignment.CenterHorizontally)
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -416,7 +429,8 @@ fun NBTEditor(
                             val root = editor.nodes.firstOrNull()
                             if (focused === root) {
                                 Text(
-                                    text = StringBuilder().appendSafeLiteral(focused.key.toString())
+                                    text = StringBuilder()
+                                        .appendSafeLiteral(focused.key.toString())
                                         .toString(),
                                     textDecoration = TextDecoration.Underline,
                                     modifier = Modifier
@@ -478,12 +492,14 @@ fun NBTEditor(
                                 )
                                 DropdownMenu(
                                     expanded = showActions,
-                                    onDismissRequest = { showActions = false }
+                                    onDismissRequest = { showActions = false },
+                                    shape = MenuDefaults.standaloneGroupShape
                                 ) {
                                     if (focused.parent is CollectionNode<*, *>) {
                                         DropdownMenuItem(
                                             icon = Icons.Filled.MoveUp,
                                             label = stringResource(R.string.action_move_up),
+                                            shape = MenuDefaults.leadingItemShape,
                                             enabled = focused !== focused.parent.children.firstOrNull()
                                         ) {
                                             val children = focused.parent.children
@@ -522,7 +538,8 @@ fun NBTEditor(
                                     } else {
                                         DropdownMenuItem(
                                             icon = Icons.Filled.Edit,
-                                            label = stringResource(R.string.rename)
+                                            label = stringResource(R.string.rename),
+                                            shape = MenuDefaults.leadingItemShape
                                         ) {
                                             editor.renaming = RenamingRequest(focused)
                                             showActions = false
@@ -568,13 +585,8 @@ fun NBTEditor(
                                         LocalContentColor provides warn
                                     ) {
                                         val label = stringResource(R.string.action_delete)
-                                        androidx.compose.material3.DropdownMenuItem(
+                                        DropdownMenuItem(
                                             text = { Text(text = label) },
-                                            enabled = focused.parent is RootNode,
-                                            colors = MenuDefaults.itemColors(
-                                                textColor = warn,
-                                                leadingIconColor = warn
-                                            ),
                                             onClick = {
                                                 if (focused.parent is RootNode) {
                                                     editor.performOperation(
@@ -583,13 +595,19 @@ fun NBTEditor(
                                                 }
                                                 showActions = false
                                             },
+                                            shape = MenuDefaults.trailingItemShape,
                                             leadingIcon = {
                                                 Icon(
                                                     imageVector = Icons.Filled.Delete,
                                                     contentDescription = label,
                                                     modifier = Modifier.size(MenuDefaults.LeadingIconSize)
                                                 )
-                                            }
+                                            },
+                                            enabled = focused.parent is RootNode,
+                                            colors = MenuDefaults.itemColors(
+                                                textColor = warn,
+                                                leadingIconColor = warn
+                                            )
                                         )
                                     }
                                 }
@@ -605,6 +623,7 @@ fun NBTEditor(
         sheetPeekHeight = with(LocalDensity.current) {
             cutout.getBottom(this).toDp()
         } + DragHandleConsumedHeight,
+        sheetDragHandle = null,
         topBar = {
             TopAppBar(
                 scrollBehavior = scrollBehavior,
@@ -643,7 +662,10 @@ fun NBTEditor(
                             Icons.Filled.Inventory2,
                             resources.getString(R.string.action_file)
                         ) { showMenu ->
-                            DropdownMenuItem(resources.getString(R.string.action_file_create)) {
+                            DropdownMenuItem(
+                                resources.getString(R.string.action_file_create),
+                                shape = MenuDefaults.leadingItemShape
+                            ) {
                                 editor.requestOrExecute(ConfirmationRequest.NEW, onConfirm)
                                 showMenu.value = false
                             }
@@ -667,7 +689,8 @@ fun NBTEditor(
                             }
                             DropdownMenuItem(
                                 resources.getString(R.string.action_file_reload),
-                                editor.source !== null
+                                editor.source !== null,
+                                shape = MenuDefaults.trailingItemShape
                             ) {
                                 editor.requestOrExecute(ConfirmationRequest.RELOAD, onConfirm)
                                 showMenu.value = false
@@ -844,7 +867,7 @@ fun NBTTree(
         val itemShape = MaterialTheme.shapes.small
         val coroutineScope = rememberCoroutineScope()
         val listState = rememberLazyListState()
-        AndroidView(::LazyListStateBridge) {
+        AndroidView(::ScrollableStateBridge) {
             it.bind(listState, coroutineScope)
         }
         LazyColumn(
