@@ -61,10 +61,14 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     var dimension: Dimension = VanillaDimension.OVERWORLD
         private set
 
+    @JvmField
     val mapType: MutableLiveData<MapType> =
         MutableLiveData<MapType>(dimension.defaultMapTypeCompat())
 
+    @JvmField
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
+
+    @JvmField
     val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
     @JvmField
@@ -120,7 +124,7 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
         this.waitingJob = true
         current.cancel()
         job.invokeOnCompletion {
-            if (blockingJob === job) {
+            if (this.blockingJob === job) {
                 this.waitingJob = false
             }
         }

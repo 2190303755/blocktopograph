@@ -76,6 +76,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mithrilmania.blocktopograph.Blocktopograph
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ShizukuStatus
+import com.mithrilmania.blocktopograph.currentShizukuStatus
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
 import com.mithrilmania.blocktopograph.editor.world.CreateWorldActivity
 import com.mithrilmania.blocktopograph.storage.awaitFileService
@@ -142,7 +143,7 @@ class WorldListActivity : ComponentActivity() {
                                     Icons.Filled.DriveFolderUpload,
                                     resources.getString(R.string.open)
                                 ) {
-                                    when (Blocktopograph.getShizukuStatus()) {
+                                    when (currentShizukuStatus()) {
                                         ShizukuStatus.UNAUTHORIZED -> {
                                             if (!Shizuku.shouldShowRequestPermissionRationale()) {
                                                 Shizuku.requestPermission(1)

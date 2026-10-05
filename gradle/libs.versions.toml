@@ -19,7 +19,6 @@ drawerlayout = "1.2.0"
 window = "1.5.1"
 shizuku = "13.1.5"
 reorderable = "3.1.0"
-composeunstyled = "2.10.0"
 fastutil = "8.5.19"
 snappy = "0.5"
 robolectric = "4.17"
@@ -76,7 +75,6 @@ shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
-composeunstyled-bottomsheet = { module = "com.composables:composeunstyled-bottom-sheet", version.ref = "composeunstyled" }
 fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
 
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

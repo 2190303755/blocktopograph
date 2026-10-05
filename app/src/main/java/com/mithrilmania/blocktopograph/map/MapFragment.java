@@ -130,9 +130,9 @@ public class MapFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        FragmentActivity activity = getActivity();
+        var activity = getActivity();
         if (activity == null) return;
-        activity.setTitle(worldModel.getWorld().getPlainName());
+        activity.setTitle(WorldKt.resolvePlainName(worldModel.getWorld(), activity));
     }
 
     @Override
@@ -244,7 +244,7 @@ public class MapFragment extends Fragment {
 
         //set the map-type
         MapTileView tileView = mBinding.tileView;
-        tileView.getDetailLevelManager().setLevelType(model.getMapType().getValue());
+        tileView.getDetailLevelManager().setLevelType(model.mapType.getValue());
 
         tileView.setOnLongPressListener(this::onLongPressed);
 
@@ -417,9 +417,9 @@ public class MapFragment extends Fragment {
         tileView.setSaveEnabled(true);
         LifecycleOwner owner = this.getViewLifecycleOwner();
         Observer<Object> refresh = visible -> resetTileView();
-        model.getShowGrid().observe(owner, refresh);
-        model.getMapType().observe(owner, refresh);
-        model.getShowMarkers().observe(owner, visible -> {
+        model.showGrid.observe(owner, refresh);
+        model.mapType.observe(owner, refresh);
+        model.showMarkers.observe(owner, visible -> {
             if (visible) {
                 resetTileView();
             } else {
@@ -620,7 +620,7 @@ public class MapFragment extends Fragment {
     }
 
     public void toggleMarkers() {
-        if (Boolean.TRUE.equals(this.model.getShowMarkers().getValue())) {
+        if (Boolean.TRUE.equals(this.model.showMarkers.getValue())) {
             resetTileView();
         } else {
             for (AbstractMarker marker : proceduralMarkers) {
@@ -996,13 +996,13 @@ public class MapFragment extends Fragment {
 
     public void resetTileView() {
         updateMarkerFilter();
-        mBinding.tileView.getDetailLevelManager().setLevelType(this.model.getMapType().getValue());
+        mBinding.tileView.getDetailLevelManager().setLevelType(this.model.mapType.getValue());
         invalidateTileView();
     }
 
     public void invalidateTileView() {
         var manager = mBinding.tileView.getDetailLevelManager();
-        var type = this.model.getMapType().getValue();
+        var type = this.model.mapType.getValue();
         //just swap mapType twice; it is not rendered, but it invalidates all tiles.
         manager.setLevelType(MapType.CHESS);
         manager.setLevelType(type);

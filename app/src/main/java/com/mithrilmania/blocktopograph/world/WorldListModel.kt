@@ -30,14 +30,27 @@ import java.io.FileInputStream
 import java.util.concurrent.ConcurrentHashMap
 
 class WorldListModel(app: Application) : AndroidViewModel(app) {
+    @JvmField
     val unscanned = Channel<Pair<String, Uri>>(capacity = Channel.UNLIMITED)
+
+    @JvmField
     val insertions = Channel<WorldDetail>(capacity = Channel.UNLIMITED)
+
+    @JvmField
     val snackbar: SnackbarHostState = SnackbarHostState()
+
+    @JvmField
     val registry: MutableMap<Location, WorldDetail> = ConcurrentHashMap()
+
+    @JvmField
     val statistics: MutableMap<Location, WorldStatistics> = ConcurrentHashMap()
+
+    @JvmField
     val worlds: SnapshotStateList<WorldDetail> = mutableStateListOf()
     var selected: WorldDetail? by mutableStateOf(null)
     var loading: Boolean by mutableStateOf(false)
+
+    @JvmField
     val callback: IWorldCallback = object : IWorldCallback.Stub() {
         override fun onWorldSubmit(
             path: String,

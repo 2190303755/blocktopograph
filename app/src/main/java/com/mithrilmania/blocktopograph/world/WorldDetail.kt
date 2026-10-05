@@ -22,14 +22,14 @@ import com.mithrilmania.blocktopograph.storage.Location
 import java.io.InputStream
 
 class WorldDetail(
-    val location: Location,
-    val config: Location,
-    val name: String,
-    val mode: String,
-    val time: Long,
-    val seed: String,
-    val version: String,
-    val tag: String
+    @JvmField val location: Location,
+    @JvmField val config: Location,
+    @JvmField val name: String,
+    @JvmField val mode: String,
+    @JvmField val time: Long,
+    @JvmField val seed: String,
+    @JvmField val version: String,
+    @JvmField val tag: String
 ) {
     var behaviors: Int by mutableIntStateOf(0)
     var resources: Int by mutableIntStateOf(0)
@@ -40,9 +40,9 @@ class WorldDetail(
 }
 
 class WorldStatistics(
-    val behaviors: Int,
-    val resources: Int,
-    val size: Long
+    @JvmField val behaviors: Int,
+    @JvmField val resources: Int,
+    @JvmField val size: Long
 )
 
 fun InputStream.extractDetail(

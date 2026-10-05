@@ -46,6 +46,7 @@ import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.WorldModel
 import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
+import com.mithrilmania.blocktopograph.world.resolvePlainName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -214,7 +215,9 @@ sealed interface PicerState {
                 val spec = ContentValues()
                 spec.put(
                     MediaStore.Images.Media.DISPLAY_NAME,
-                    ConvertUtil.getLegalFileName(handle.world.plainName) + "_map"
+                    ConvertUtil.getLegalFileName(
+                        handle.world.resolvePlainName(viewer.application)
+                    ) + "_map"
                 )
                 spec.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
                 spec.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)

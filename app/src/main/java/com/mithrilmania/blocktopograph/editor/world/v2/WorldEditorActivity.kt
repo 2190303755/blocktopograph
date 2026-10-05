@@ -9,20 +9,17 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
@@ -46,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -55,8 +51,6 @@ import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.composeunstyled.SheetDetent
-import com.composeunstyled.rememberBottomSheetState
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.editor.nbt.NBTEditingHost
 import com.mithrilmania.blocktopograph.editor.world.v2.layer.BACKGROUND_SHADER
@@ -69,9 +63,10 @@ import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
 import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
 import com.mithrilmania.blocktopograph.nbt.io.readNamedTag
-import com.mithrilmania.blocktopograph.ui.component.BottomSheet
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
+import com.mithrilmania.blocktopograph.ui.component.FloatingPanelScaffold
 import com.mithrilmania.blocktopograph.ui.component.Marker
+import com.mithrilmania.blocktopograph.ui.component.rememberFloatingPanelScaffoldState
 import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
 import com.mithrilmania.blocktopograph.ui.theme.setThemedContent
 import com.mithrilmania.blocktopograph.util.APP_TAG
@@ -109,8 +104,8 @@ import android.graphics.Paint as AndroidPaint
 class WorldEditorActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         val viewModel = ViewModelProvider(this)[WorldEditorModel::class.java]
         if (viewModel.initialization === InitState.Uninitialized) {
             val world = this.intent.resolveWorld(this)
@@ -292,27 +287,62 @@ class WorldEditorActivity : ComponentActivity() {
                     }
                 }
                 val cutout = safeLayoutInsets()
-                val density = LocalDensity.current
-                val collapse = SheetDetent("collapse") { _, _ ->
-                    with(density) {
-                        cutout.getBottom(this).toDp()
-                    } + DragHandleConsumedHeight
-                }
-                val sheetState = rememberBottomSheetState(
-                    collapse,
-                    listOf(
-                        collapse,
-                        SheetDetent(
-                            "partial-expanded-0.4"
-                        ) { containerHeight, _ -> containerHeight * 0.4F },
-                        SheetDetent(
-                            "partial-expanded-0.6"
-                        ) { containerHeight, _ -> containerHeight * 0.6F },
-                        SheetDetent.FullyExpanded
-                    )
-                )
                 NBTEditingHost(viewModel.editing) {
-                    Box(contentAlignment = Alignment.Center) {
+                    val scaffoldState = rememberFloatingPanelScaffoldState(
+                        allowHiddenState = false
+                    ) { density, height, floating ->
+                        with(density) {
+                            height - DragHandleConsumedHeight.toPx() - if (floating) {
+                                0
+                            } else {
+                                cutout.getBottom(this)
+                            }
+                        }
+                    }
+                    FloatingPanelScaffold(
+                        scaffoldState = scaffoldState,
+                        panelContent = {
+                            Column {
+                                BottomSheetDefaults.DragHandle(Modifier.align(Alignment.CenterHorizontally))
+                                PrimaryTabRow(selectedTabIndex = viewModel.tabPager.currentPage) {
+                                    val coroutineScope = rememberCoroutineScope()
+                                    arrayOf(
+                                        "视图",
+                                        "标记",
+                                        "数据"
+                                    ).forEachIndexed { index, title ->
+                                        Tab(
+                                            selected = viewModel.tabPager.currentPage == index,
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    viewModel.tabPager.animateScrollToPage(index)
+                                                }
+                                            },
+                                            text = {
+                                                Text(
+                                                    text = title,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                                HorizontalPager(viewModel.tabPager) {
+                                    when (it) {
+                                        1 -> MarkerTab(viewModel, info)
+                                        2 -> StorageTab(viewModel, info)
+                                        else -> ViewModeTab(viewModel, info)
+                                    }
+                                }
+                            }
+                        },
+                        action = {
+                            FloatingActionButton(onClick = { upcoming() }) {
+                                Icon(Icons.Filled.Save, "")
+                            }
+                        }
+                    ) {
                         MapUI(
                             state = viewModel.map,
                             modifier = Modifier.background(Color(0xFFD6BE96))
@@ -402,52 +432,6 @@ class WorldEditorActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        BottomSheet(
-                            sheetState = sheetState,
-                            sheetContainerColor = MaterialTheme.colorScheme.background,
-                            floatingContent = {
-                                FloatingActionButton(
-                                    onClick = { upcoming() },
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = (-16).dp, y = (-72).dp)
-                                ) {
-                                    Icon(Icons.Filled.Save, "")
-                                }
-                            }
-                        ) {
-                            PrimaryTabRow(selectedTabIndex = viewModel.tabPager.currentPage) {
-                                val coroutineScope = rememberCoroutineScope()
-                                arrayOf(
-                                    "视图",
-                                    "标记",
-                                    "数据"
-                                ).forEachIndexed { index, title ->
-                                    Tab(
-                                        selected = viewModel.tabPager.currentPage == index,
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                viewModel.tabPager.animateScrollToPage(index)
-                                            }
-                                        },
-                                        text = {
-                                            Text(
-                                                text = title,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                            HorizontalPager(viewModel.tabPager) {
-                                when (it) {
-                                    1 -> MarkerTab(viewModel, info)
-                                    2 -> StorageTab(viewModel, info)
-                                    else -> ViewModeTab(viewModel, info)
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -461,15 +445,11 @@ fun WorldEditorScaffold(
     viewModel: WorldEditorModel,
     content: @Composable (InitState.Succeed) -> Unit
 ) {
-    AnimatedContent(
+    Crossfade(
         targetState = viewModel.initialization,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
-            .fillMaxSize(),
-        transitionSpec = {
-            fadeIn(animationSpec = tween(220, delayMillis = 90))
-                .togetherWith(fadeOut(animationSpec = tween(90)))
-        }
+            .fillMaxSize()
     ) { init ->
         when (init) {
             is InitState.Succeed -> content(init)

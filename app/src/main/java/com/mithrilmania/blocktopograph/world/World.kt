@@ -26,8 +26,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 import java.io.Closeable
 
-abstract class World(name: String?, config: File) : Closeable {
-    val plainName = name?.replace(FORMATTER, "") ?: "My World"
+abstract class World(@JvmField val name: String?, config: File) : Closeable {
+    @JvmField
     val config: WorldConfig = WorldConfig(config)
     var storage: WorldStorage? = null
         private set
@@ -52,12 +52,11 @@ abstract class World(name: String?, config: File) : Closeable {
     override fun close() {
         this.storage?.close()
     }
-
-    companion object {
-        @JvmField
-        val FORMATTER: Regex = Regex("§.")
-    }
 }
+
+private val FORMATTER: Regex = Regex("§.")
+fun World.resolvePlainName(context: Context): String = this.name?.replace(FORMATTER, "")
+    ?: context.getString(R.string.world_default_name)
 
 fun Intent.resolveWorld(context: Context): World? {
     val uri = this.data

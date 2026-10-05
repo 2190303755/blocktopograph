@@ -12,7 +12,7 @@ import org.iq80.leveldb.Options
 import java.io.IOException
 
 class ShizukuWorld(
-    val root: String,
+    @JvmField val root: String,
     name: String?
 ) : World(name, ShizukuFile("$root/$FILE_LEVEL_DAT")) {
     override suspend fun open(context: Context): WorldStorage? = try {

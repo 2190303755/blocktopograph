@@ -15,7 +15,7 @@ import com.mithrilmania.blocktopograph.util.error
 import java.io.IOException
 
 class WorldConfig(
-    val source: File
+    @JvmField val source: File
 ) : NBTSource {
     private var cache: CompoundTag? = null
 

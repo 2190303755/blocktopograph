@@ -14,7 +14,7 @@ import java.io.IOException
 import java.util.UUID
 
 class SAFWorld(
-    val root: Uri,
+    @JvmField val root: Uri,
     config: Uri,
     name: String?
 ) : World(

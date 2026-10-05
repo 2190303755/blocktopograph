@@ -13,7 +13,6 @@ import com.mithrilmania.blocktopograph.storage.FileService
 import com.mithrilmania.blocktopograph.storage.ShizukuFileSystem
 import com.mithrilmania.blocktopograph.storage.WorldDetailMapper
 import com.mithrilmania.blocktopograph.util.ShizukuConnector
-import com.mithrilmania.blocktopograph.util.error
 import rikka.shizuku.Shizuku
 import java.io.File
 
@@ -22,21 +21,8 @@ class Blocktopograph : Application(),
     Thread.UncaughtExceptionHandler,
     SingletonImageLoader.Factory {
     companion object {
-        lateinit var instance: Blocktopograph
-            private set
-
         lateinit var fileService: ShizukuConnector<IFileService>
             private set
-
-        fun getShizukuStatus(): ShizukuStatus {
-            if (Shizuku.isPreV11()) return ShizukuStatus.UNSUPPORTED
-            try {
-                return if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) ShizukuStatus.AVAILABLE else ShizukuStatus.UNAUTHORIZED
-            } catch (e: Throwable) {
-                e.error("Failed to query Shizuku status")
-            }
-            return ShizukuStatus.UNKNOWN
-        }
     }
 
     var exceptionHandler: Thread.UncaughtExceptionHandler? = null
@@ -53,7 +39,6 @@ class Blocktopograph : Application(),
     }
 
     init {
-        instance = this
         fileService = ShizukuConnector(
             Shizuku.UserServiceArgs(
                 ComponentName(

@@ -142,13 +142,13 @@ public class MCTileProvider implements BitmapProvider {
 
             //load all those markers with an async task, this task publishes its progress,
             // the UI thread picks it up and renders the markers
-            if (this.mapModel.getShowMarkers().getValue()) {
+            if (Boolean.TRUE.equals(this.mapModel.showMarkers.getValue())) {
                 MCTileProviderCompatKt.loadMarkers(this.worldModel, this.mapModel, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension);
             }
 
 
             //draw the grid
-            if (this.mapModel.getShowGrid().getValue()) {
+            if (Boolean.TRUE.equals(this.mapModel.showGrid.getValue())) {
 
                 //draw tile-edges white
                 for (int i = 0; i < TILESIZE; i++) {

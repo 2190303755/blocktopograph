@@ -76,7 +76,6 @@ dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
     implementation(libs.reorderable)
-    implementation(libs.composeunstyled.bottomsheet)
     implementation(libs.fastutil)
     implementation(libs.paging.common)
     implementation(libs.paging.compose)

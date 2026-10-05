@@ -59,7 +59,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
         WorldViewerModel model = new ViewModelProvider(this).get(WorldViewerModel.class);
         this.model = model;
-        model.getShowMarkers().setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
+        model.showMarkers.setValue(getPreferences(MODE_PRIVATE).getBoolean(PREF_KEY_SHOW_MARKERS, true));
 
         /*
                 Layout
@@ -90,7 +90,7 @@ public abstract class WorldActivity extends AppCompatActivity
         // Title = world-name
         TextView title = headerView.findViewById(R.id.world_drawer_title);
         assert title != null;
-        title.setText(handler.getPlainName());
+        title.setText(WorldKt.resolvePlainName(handler, this));
 
         // Subtitle = world-seed (Tap worldseed to choose to copy it)
         TextView subtitle = headerView.findViewById(R.id.world_drawer_subtitle);

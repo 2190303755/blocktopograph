@@ -33,7 +33,7 @@ import java.util.UUID
 import kotlin.system.exitProcess
 
 class FileService() : IFileService.Stub() {
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     /**
      * Constructor with Context. This is only available from Shizuku API v13.
