@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.map;
 
 import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
-import static com.mithrilmania.blocktopograph.world.DimensionKt.defaultMapTypeCompat;
 
 import android.app.Activity;
 import android.content.Context;
@@ -27,7 +26,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.compose.material3.SnackbarDuration;
-import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LifecycleOwner;
@@ -165,8 +163,7 @@ public class MapFragment extends Fragment {
         var dimension = DimensionKt.toVanillaDimension(pos.dimensionId);
         if (dimension == null) return;
         if (dimension != this.model.getDimension()) {
-            this.model.setDimension(dimension);
-            this.model.getMapType().setValue(defaultMapTypeCompat(dimension));
+            this.model.navigateTo(dimension, null);
         }
         this.frameTo(pos.x, pos.z);
         Snackbar.make(
@@ -178,8 +175,7 @@ public class MapFragment extends Fragment {
 
     public void moveCameraToSpawn(Dimension dimension, int x, int y, int z) {
         if (dimension != this.model.getDimension()) {
-            this.model.setDimension(dimension);
-            this.model.getMapType().setValue(defaultMapTypeCompat(dimension));
+            this.model.navigateTo(dimension, null);
         }
         this.frameTo(x, z);
         Snackbar.make(
@@ -202,8 +198,7 @@ public class MapFragment extends Fragment {
         this.worldModel = worldModel;
         WorldViewerModel model = new ViewModelProvider(activity).get(WorldViewerModel.class);
 
-        mBinding = DataBindingUtil.inflate(
-                inflater, R.layout.map_fragment, container, false);
+        mBinding = MapFragmentBinding.inflate(inflater);
         mBinding.tileView.setSelectionView(mBinding.selectionBoard);
         mBinding.selectionBoard.setTileView(mBinding.tileView);
         ViewTreeLifecycleOwner.set(mBinding.selectionBoard, this.getViewLifecycleOwner());
@@ -447,8 +442,7 @@ public class MapFragment extends Fragment {
                     this.staticMarkers.add(localPlayerMarker);
                     addMarker(localPlayerMarker);
                     if (localPlayerMarker.dimension != model.getDimension()) {
-                        model.setDimension(localPlayerMarker.dimension);
-                        model.getMapType().setValue(defaultMapTypeCompat(localPlayerMarker.dimension));
+                        model.navigateTo(localPlayerMarker.dimension, null);
                     }
                     frameTo(x, z);
                     framedToPlayer = true;
@@ -467,8 +461,7 @@ public class MapFragment extends Fragment {
 
                 if (!framedToPlayer) {
                     if (spawnMarker.dimension != model.getDimension()) {
-                        model.setDimension(spawnMarker.dimension);
-                        model.getMapType().postValue(defaultMapTypeCompat(spawnMarker.dimension));
+                        model.navigateTo(spawnMarker.dimension, null);
                     }
                     frameTo((double) spawnPos.x, (double) spawnPos.z);
                 }

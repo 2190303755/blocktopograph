@@ -312,7 +312,7 @@ class WorldEditorActivity : ComponentActivity() {
                     )
                 )
                 NBTEditingHost(viewModel.editing) {
-                    Box(Modifier.animateEnterExit(), contentAlignment = Alignment.Center) {
+                    Box(contentAlignment = Alignment.Center) {
                         MapUI(
                             state = viewModel.map,
                             modifier = Modifier.background(Color(0xFFD6BE96))

@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.editor.world
 import android.app.Application
 import android.content.Intent
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +12,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import com.mithrilmania.blocktopograph.editor.nbt.ConfiguredNBTSource
 import com.mithrilmania.blocktopograph.map.Player
 import com.mithrilmania.blocktopograph.map.dummyJob
 import com.mithrilmania.blocktopograph.map.edit.EditResultCode
@@ -57,6 +59,7 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     val pendingMarkers: Channel<List<AbstractMarker>> = Channel(capacity = 4)
 
     var dimension: Dimension = VanillaDimension.OVERWORLD
+        private set
 
     val mapType: MutableLiveData<MapType> =
         MutableLiveData<MapType>(dimension.defaultMapTypeCompat())
@@ -104,6 +107,9 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
         private set
     var longPressPos by mutableStateOf<LongPressPos?>(null)
 
+    @JvmField
+    var editing: MutableState<ConfiguredNBTSource?> = mutableStateOf(null)
+
     fun cancelBlockingJob() {
         this.blockingJob.cancel()
     }
@@ -120,9 +126,9 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun navigateTo(dimension: Dimension, type: MapType) {
+    fun navigateTo(dimension: Dimension, type: MapType? = null) {
         this.dimension = dimension
-        this.mapType.value = type
+        this.mapType.value = type ?: dimension.defaultMapTypeCompat()
     }
 
     fun commitAnalyzedState(rect: IntRect, fallback: PicerState) {

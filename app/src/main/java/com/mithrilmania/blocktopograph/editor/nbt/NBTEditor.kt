@@ -6,10 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -164,15 +163,37 @@ fun NBTEditorModel.saveAsync() {
     }
 }
 
-inline fun NBTEditorModel.requestOrExecute(
-    request: ConfirmationRequest,
-    action: (ConfirmationRequest?) -> Unit
+fun NBTEditorModel.confirmAction() {
+    (this.confirmation ?: return).invoke()
+    this.confirmation = null
+}
+
+fun NBTEditorModel.requestOrExecute(
+    request: ConfirmationRequest
 ) {
     if (this.modified) {
         this.confirmation = request
     } else {
-        action(request)
+        request.invoke()
     }
+}
+
+fun NBTEditorModel.reload() {
+    importer = NBTImportModel(
+        source = source ?: return,
+        header = if (storageVersion !== null || littleEndian) {
+            HeaderPresence.UNCERTAIN
+        } else {
+            HeaderPresence.ABSENT
+        },
+        format = if (stringify) {
+            NBTFormat.STRINGIFIED
+        } else if (littleEndian) {
+            NBTFormat.LITTLE_ENDIAN
+        } else {
+            NBTFormat.BIG_ENDIAN
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -258,26 +279,23 @@ fun NBTSummary(
 @Composable
 fun NBTEditingHost(
     source: MutableState<ConfiguredNBTSource?>,
-    content: @Composable AnimatedVisibilityScope.() -> Unit
+    editor: NBTEditorModel = viewModel<NBTEditorModel>(),
+    content: @Composable () -> Unit
 ) {
-    AnimatedContent(
+    Crossfade(
         targetState = source.value,
-        modifier = Modifier.fillMaxSize(),
-        transitionSpec = {
-            fadeIn(animationSpec = tween(220, delayMillis = 90))
-                .togetherWith(fadeOut(animationSpec = tween(90)))
-        }
+        modifier = Modifier.fillMaxSize()
     ) {
         if (it === null) {
-            this.content()
+            content()
         } else {
-            val editor = viewModel<NBTEditorModel>()
             val onBack: () -> Unit = {
                 source.value = null
                 editor.navigation = null
+                editor.reset(false)
             }
             BackHandler(true, onBack)
-            NBTEditor(Modifier.animateEnterExit(), editor, onBack)
+            NBTEditor(Modifier, editor, onBack)
             LaunchedEffect(it) {
                 editor.navigation = it
             }
@@ -291,50 +309,23 @@ fun NBTEditingHost(
 fun NBTEditor(
     modifier: Modifier = Modifier,
     editor: NBTEditorModel = viewModel(),
-    onExit: () -> Unit
+    onExit: ConfirmationRequest
 ) {
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) callback@{
         editor.importer = NBTImportModel(SAFFile(it ?: return@callback))
     }
-    val onConfirm: (ConfirmationRequest?) -> Unit = onConfirm@{
-        editor.confirmation = null
-        when (it) {
-            ConfirmationRequest.EXIT -> onExit()
-            ConfirmationRequest.NEW -> editor.reset()
-            ConfirmationRequest.RELOAD -> {
-                editor.importer = NBTImportModel(
-                    source = editor.source ?: return@onConfirm,
-                    header = if (editor.storageVersion !== null || editor.littleEndian) {
-                        HeaderPresence.UNCERTAIN
-                    } else {
-                        HeaderPresence.ABSENT
-                    },
-                    format = if (editor.stringify) {
-                        NBTFormat.STRINGIFIED
-                    } else if (editor.littleEndian) {
-                        NBTFormat.LITTLE_ENDIAN
-                    } else {
-                        NBTFormat.BIG_ENDIAN
-                    }
-                )
-            }
-
-            ConfirmationRequest.OPEN -> picker.launch("*/*")
-            else -> {}
-        }
-    }
     val context = LocalContext.current
     val creator = rememberLauncherForActivityResult(FileCreator) callback@{
         val file = SAFFile(it ?: return@callback)
         editor.viewModelScope.launch {
             editor.saveToFile(file)
-            onConfirm(editor.confirmation)
+            editor.confirmAction()
         }
     }
     BackHandler(editor.modified) {
-        editor.confirmation = ConfirmationRequest.EXIT
+        editor.confirmation = onExit
     }
     if (editor.confirmation !== null) {
         // TODO i18n
@@ -356,14 +347,14 @@ fun NBTEditor(
                     } else {
                         editor.viewModelScope.launch {
                             editor.saveToFile(source)
-                            onConfirm(editor.confirmation)
+                            editor.confirmAction()
                         }
                     }
                 }
             },
             negativeButton = {
                 TextButton("不保存") {
-                    onConfirm(editor.confirmation)
+                    editor.confirmAction()
                 }
             }
         ) {
@@ -618,7 +609,7 @@ fun NBTEditor(
                 }
             }
         },
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = with(LocalDensity.current) {
             cutout.getBottom(this).toDp()
@@ -630,7 +621,8 @@ fun NBTEditor(
                 title = {
                     Text(
                         editor.source?.resolveName(context)
-                            ?: stringResource(R.string.nbt_editor)
+                            ?: stringResource(R.string.nbt_editor),
+                        Modifier.horizontalScroll(rememberScrollState())
                     )
                 },
                 subtitle = editor.storageVersion?.let { version ->
@@ -666,11 +658,15 @@ fun NBTEditor(
                                 resources.getString(R.string.action_file_create),
                                 shape = MenuDefaults.leadingItemShape
                             ) {
-                                editor.requestOrExecute(ConfirmationRequest.NEW, onConfirm)
+                                editor.requestOrExecute {
+                                    editor.reset(true)
+                                }
                                 showMenu.value = false
                             }
                             DropdownMenuItem(resources.getString(R.string.action_file_open)) {
-                                editor.requestOrExecute(ConfirmationRequest.OPEN, onConfirm)
+                                editor.requestOrExecute {
+                                    picker.launch("*/*")
+                                }
                                 showMenu.value = false
                             }
                             DropdownMenuItem(
@@ -692,7 +688,9 @@ fun NBTEditor(
                                 editor.source !== null,
                                 shape = MenuDefaults.trailingItemShape
                             ) {
-                                editor.requestOrExecute(ConfirmationRequest.RELOAD, onConfirm)
+                                editor.requestOrExecute {
+                                    editor.reload()
+                                }
                                 showMenu.value = false
                             }
                         }
@@ -707,7 +705,7 @@ fun NBTEditor(
                             Icons.AutoMirrored.Filled.ExitToApp,
                             resources.getString(R.string.action_quit)
                         ) {
-                            editor.requestOrExecute(ConfirmationRequest.EXIT, onConfirm)
+                            editor.requestOrExecute(onExit)
                         }
                     }
                 }

@@ -34,7 +34,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
-        dataBinding = true
         buildConfig = true
         viewBinding = true
         aidl = true
@@ -64,7 +63,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.coil)
     androidTestImplementation(libs.compose.ui.test.junit4)
-    implementation(libs.expansionpanel)
+    androidTestImplementation(platform(libs.compose.bom))
     implementation(libs.guava)
     implementation(libs.leveldb.api)
     implementation(libs.lifecycle.viewmodel.ktx)
@@ -73,6 +72,7 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation(libs.drawerlayout)
     implementation(libs.window)
+    implementation(libs.concurrent)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
     implementation(libs.reorderable)

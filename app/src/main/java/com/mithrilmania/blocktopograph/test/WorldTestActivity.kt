@@ -132,8 +132,6 @@ class WorldTestActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 BottomSheetScaffold(
                     modifier = Modifier
-                        .animateEnterExit()
-                        .fillMaxSize()
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     topBar = {
                         TopAppBar(

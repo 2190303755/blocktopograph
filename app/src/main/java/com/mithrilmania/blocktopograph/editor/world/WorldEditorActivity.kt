@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,8 +45,9 @@ import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.LogUtil
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorFragment
-import com.mithrilmania.blocktopograph.editor.nbt.NBTImportModel
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditingHost
+import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.editor.nbt.requestOrExecute
 import com.mithrilmania.blocktopograph.map.MapFragment
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.edit.EditResultCode
@@ -55,13 +57,13 @@ import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.LocalPlayerSource
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.storage.VirtualFile
 import com.mithrilmania.blocktopograph.storage.file
 import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
-import com.mithrilmania.blocktopograph.util.popAndTransit
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.WorldModel
@@ -73,6 +75,7 @@ import kotlinx.coroutines.withContext
 import android.app.AlertDialog.Builder as AlertDialogBuilder
 
 class WorldEditorActivity : WorldActivity() {
+    val editor by viewModels<NBTEditorModel>()
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         this.enableEdgeToEdge()
@@ -114,73 +117,79 @@ class WorldEditorActivity : WorldActivity() {
         }
         this.findViewById<ComposeView>(R.id.composer).setContent {
             BlocktopographCompatTheme {
-                val viewer = viewModel<WorldViewerModel>()
-                val handle = viewModel<WorldModel>()
-                observerSelection(viewer)
-                Box(Modifier.fillMaxSize()) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomStart),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        SnackbarHost(viewer.snackbar)
-                        WorldEditorMenu(
-                            viewer,
-                            handle,
-                            Modifier.padding(end = 16.dp, bottom = 16.dp),
-                            { mapFragment }
+                SelectionObserver(model)
+                NBTEditingHost(model.editing, editor) {
+                    Box(Modifier.fillMaxSize()) {
+                        val viewer = model
+                        val handle = viewModel<WorldModel>()
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomStart),
+                            horizontalAlignment = Alignment.End
                         ) {
-                            val preferences = getPreferences(MODE_PRIVATE)
-                            if (!preferences.getBoolean(MapFragment.KEY_HAS_DOUBLE_TAP, false)) {
-                                preferences.edit {
-                                    putBoolean(
+                            SnackbarHost(viewer.snackbar)
+                            WorldEditorMenu(
+                                viewer,
+                                handle,
+                                Modifier.padding(end = 16.dp, bottom = 16.dp),
+                                mapFragment
+                            ) {
+                                val preferences = getPreferences(MODE_PRIVATE)
+                                if (!preferences.getBoolean(
                                         MapFragment.KEY_HAS_DOUBLE_TAP,
-                                        true
+                                        false
                                     )
+                                ) {
+                                    preferences.edit {
+                                        putBoolean(
+                                            MapFragment.KEY_HAS_DOUBLE_TAP,
+                                            true
+                                        )
+                                    }
+                                    toast(R.string.map_dblclick_notice)
                                 }
-                                toast(R.string.map_dblclick_notice)
                             }
                         }
-                    }
-                    FloatingPanes(viewer, handle)
-                    LongPressDialog(viewer, mapFragment)
-                    Text(
-                        stringResource(R.string.map_water_mark),
-                        Modifier
-                            .padding(4.dp)
-                            .align(Alignment.BottomStart),
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Light,
-                        color = colorResource(R.color.waterMark),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            shadow = Shadow(
-                                color = colorResource(R.color.waterMarkShadow),
-                                offset = Offset(2.0F, 2.0F),
-                                blurRadius = 2.0F
+                        FloatingPanes(viewer, handle)
+                        LongPressDialog(viewer, mapFragment)
+                        Text(
+                            stringResource(R.string.map_water_mark),
+                            Modifier
+                                .padding(4.dp)
+                                .align(Alignment.BottomStart),
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Light,
+                            color = colorResource(R.color.waterMark),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                shadow = Shadow(
+                                    color = colorResource(R.color.waterMarkShadow),
+                                    offset = Offset(2.0F, 2.0F),
+                                    blurRadius = 2.0F
+                                )
                             )
                         )
-                    )
-                    PicerDialog(viewer, handle)
-                    SearchAndReplaceDialog(viewer)
-                    if (viewer.waitingJob) {
-                        BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
-                            Column(
-                                Modifier
-                                    .clip(AlertDialogDefaults.shape)
-                                    .background(AlertDialogDefaults.containerColor)
-                                    .padding(24.dp)
-                            ) {
-                                Text(
-                                    stringResource(R.string.general_please_wait),
-                                    color = AlertDialogDefaults.titleContentColor,
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                                CircularProgressIndicator(
+                        PicerDialog(viewer, handle)
+                        SearchAndReplaceDialog(viewer)
+                        if (viewer.waitingJob) {
+                            BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
+                                Column(
                                     Modifier
-                                        .padding(top = 16.dp)
-                                        .align(Alignment.CenterHorizontally)
-                                )
+                                        .clip(AlertDialogDefaults.shape)
+                                        .background(AlertDialogDefaults.containerColor)
+                                        .padding(24.dp)
+                                ) {
+                                    Text(
+                                        stringResource(R.string.general_please_wait),
+                                        color = AlertDialogDefaults.titleContentColor,
+                                        style = MaterialTheme.typography.headlineSmall
+                                    )
+                                    CircularProgressIndicator(
+                                        Modifier
+                                            .padding(top = 16.dp)
+                                            .align(Alignment.CenterHorizontally)
+                                    )
+                                }
                             }
                         }
                     }
@@ -190,7 +199,7 @@ class WorldEditorActivity : WorldActivity() {
     }
 
     @Composable
-    fun observerSelection(viewer: WorldViewerModel) {
+    fun SelectionObserver(viewer: WorldViewerModel) {
         val selection = viewer.selection
         SideEffect(
             selection.left,
@@ -210,10 +219,13 @@ class WorldEditorActivity : WorldActivity() {
         val id = item.itemId
 
         LogUtil.d(this, "World activity nav-drawer menu item selected: $id")
-        val drawer = mBinding.drawerLayout
 
         when (id) {
-            R.id.nav_world_show_map -> changeContentFragment(this::openWorldMap)
+            R.id.nav_world_show_map -> editor.requestOrExecute {
+                model.editing.value = null
+                editor.navigation = null
+                editor.reset(false)
+            }
             R.id.nav_world_select -> closeWorldActivity()
             R.id.nav_singleplayer_nbt -> openLocalPlayer()
             R.id.nav_multiplayer_nbt -> openMultiplayerEditor()
@@ -305,44 +317,28 @@ class WorldEditorActivity : WorldActivity() {
                 }
             }
 
-            R.id.nav_biomedata_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA)
-            }
+            R.id.nav_biomedata_nbt -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA)
 
-            R.id.nav_overworld_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.OVERWORLD)
-            }
+            R.id.nav_overworld_nbt -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD)
 
-            R.id.nav_villages_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES)
-            }
+            R.id.nav_villages_nbt -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES)
 
-            R.id.nav_portals_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.PORTALS)
-            }
+            R.id.nav_portals_nbt -> openSpecialDBEntry(SpecialDBEntryType.PORTALS)
 
-            R.id.nav_dimension0_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0)
-            }
+            R.id.nav_dimension0_nbt -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0)
 
-            R.id.nav_dimension1_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1)
-            }
+            R.id.nav_dimension1_nbt -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_1)
 
-            R.id.nav_dimension2_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2)
-            }
+            R.id.nav_dimension2_nbt -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2)
 
-            R.id.nav_autonomous_entities_nbt -> changeContentFragment {
-                openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES)
-            }
+            R.id.nav_autonomous_entities_nbt -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES)
 
             R.id.nav_open_nbt_by_name -> this.openCustomEntry()
             else ->  //Warning, we might have messed with the menu XML!
                 LogUtil.d(this, "pressed unknown navigation-item in world-activity-drawer")
         }
 
-        drawer.closeDrawer(GravityCompat.START)
+        mBinding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
 
@@ -458,8 +454,11 @@ class WorldEditorActivity : WorldActivity() {
             withContext(Dispatchers.Main) {
                 dialog.dismiss()
                 val spinner = Spinner(activity)
-                spinner.adapter =
-                    ArrayAdapter(activity, android.R.layout.simple_spinner_item, players)
+                spinner.adapter = ArrayAdapter(
+                    activity,
+                    android.R.layout.simple_spinner_item,
+                    players.map { it.toString(Charsets.UTF_8) }
+                )
                 AlertDialogBuilder(activity)
                     .setTitle(R.string.select_player)
                     .setView(spinner)
@@ -491,27 +490,9 @@ class WorldEditorActivity : WorldActivity() {
         source: NBTSource,
         header: HeaderPresence = HeaderPresence.UNCERTAIN
     ) {
-        val importer = NBTImportModel(source, NBTFormat.LITTLE_ENDIAN, header)
-        // confirmContentClose shouldn't be both used as boolean and as close-message,
-        //  this is a bad pattern
-        if (this.confirmContentClose === null) {
-            this.openNBTEditor(importer)
-            return
-        }
-        AlertDialogBuilder(this)
-            .setMessage(this.confirmContentClose)
-            .setCancelable(false)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                this.openNBTEditor(importer)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    fun openNBTEditor(importer: NBTImportModel) {
-        this.supportFragmentManager.popAndTransit {
-            replace(R.id.world_content, NBTEditorFragment(importer))
-            addToBackStack(null)
+        val spec = source to NBTImportConfigImpl(NBTFormat.LITTLE_ENDIAN, header)
+        editor.requestOrExecute {
+            model.editing.value = spec
         }
     }
 

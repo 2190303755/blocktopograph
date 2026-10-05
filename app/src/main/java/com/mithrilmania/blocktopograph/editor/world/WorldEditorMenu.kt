@@ -99,7 +99,7 @@ fun WorldEditorMenu(
     viewer: WorldViewerModel,
     handle: WorldModel,
     modifier: Modifier,
-    fragment: () -> MapFragment,
+    fragment: MapFragment,
     onShow: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -192,7 +192,7 @@ fun WorldEditorMenu(
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    fragment().moveCameraToSpawn(VanillaDimension.OVERWORLD, x, y, z)
+                    fragment.moveCameraToSpawn(VanillaDimension.OVERWORLD, x, y, z)
                 }
             }
             menuExpanded = false
@@ -215,7 +215,7 @@ fun WorldEditorMenu(
                     return@launch
                 }
                 withContext(Dispatchers.Main) {
-                    fragment().moveCameraToPlayer(pos)
+                    fragment.moveCameraToPlayer(pos)
                 }
             }
             menuExpanded = false

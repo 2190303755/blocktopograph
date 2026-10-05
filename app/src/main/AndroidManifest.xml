@@ -34,7 +34,8 @@
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_world"
             android:parentActivityName=".world.WorldListActivity"
-            android:theme="@style/World" />
+            android:theme="@style/World"
+            android:windowSoftInputMode="adjustNothing" />
         <activity
             android:name=".editor.world.v2.WorldEditorActivity"
             android:configChanges="orientation|screenSize"

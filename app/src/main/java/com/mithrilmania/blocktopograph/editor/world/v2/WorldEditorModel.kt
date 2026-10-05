@@ -74,10 +74,17 @@ sealed interface InitState {
 }
 
 class WorldEditorModel(app: Application) : AndroidViewModel(app) {
+    @JvmField
     val entityIcons: MutableState<ImageBitmap?> = mutableStateOf(null)
+
+    @JvmField
     val customIcons: MutableState<ImageBitmap?> = mutableStateOf(null)
     var initialization: InitState by mutableStateOf(InitState.Uninitialized)
+
+    @JvmField
     val tabPager: PagerState = PagerState(0, 0F) { 3 }
+
+    @JvmField
     var editing: MutableState<ConfiguredNBTSource?> = mutableStateOf(null)
     var enabledLayer: MapLayer by mutableStateOf(MapLayer.SATELLITE)
     var dimension: Dimension by mutableStateOf(VanillaDimension.OVERWORLD)

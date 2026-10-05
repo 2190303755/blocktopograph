@@ -11,10 +11,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
-import androidx.databinding.DataBindingUtil;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.navigation.NavigationView;
@@ -67,7 +64,9 @@ public abstract class WorldActivity extends AppCompatActivity
         /*
                 Layout
          */
-        mBinding = DataBindingUtil.setContentView(this, R.layout.activity_world);
+        mBinding = ActivityWorldBinding.inflate(this.getLayoutInflater());
+        this.setContentView(mBinding.getRoot());
+
         //Toolbar toolbar = mBinding.bar.toolbar;
         //assert toolbar != null;
         //setSupportActionBar(toolbar);
@@ -119,7 +118,8 @@ public abstract class WorldActivity extends AppCompatActivity
         subtitle.setText(String.valueOf(WorldKt.resolveSeed(handler, this)));
 
         // Open the world-map as default content
-        openWorldMap();
+        this.mapFragment = mBinding.content.worldContent.getFragment();
+
         this.getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -129,37 +129,12 @@ public abstract class WorldActivity extends AppCompatActivity
                     return;
                 }
 
-                final FragmentManager manager = getSupportFragmentManager();
-                int count = manager.getBackStackEntryCount();
-
-                // No opened fragments, so it is using the default fragment
-                // Ask the user if he/she wants to close the world.
-                if (count == 0) {
-
-                    new AlertDialog.Builder(WorldActivity.this)
-                            .setMessage(R.string.ask_close_world)
-                            .setCancelable(false)
-                            .setPositiveButton(android.R.string.ok, (dialog, id) -> WorldActivity.this.finish())
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show();
-
-                } else if (confirmContentClose != null) {
-                    //An important fragment is opened,
-                    // something that couldn't be reopened in its current state easily,
-                    // ask the user if he/she intended to close it.
-                    new AlertDialog.Builder(WorldActivity.this)
-                            .setMessage(confirmContentClose)
-                            .setCancelable(false)
-                            .setPositiveButton(android.R.string.ok, (dialog, id) -> {
-                                manager.popBackStack();
-                                confirmContentClose = null;
-                            })
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show();
-                } else {
-                    //fragment is open, but it may be closed without warning
-                    manager.popBackStack();
-                }
+                new AlertDialog.Builder(WorldActivity.this)
+                        .setMessage(R.string.ask_close_world)
+                        .setCancelable(false)
+                        .setPositiveButton(android.R.string.ok, (dialog, id) -> WorldActivity.this.finish())
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
             }
         });
         LogUtil.d(this, "World activity created");
@@ -170,9 +145,6 @@ public abstract class WorldActivity extends AppCompatActivity
     //  which is not an easy task.
 
     public void closeWorldActivity() {
-
-        //TODO not translation-friendly
-
         new AlertDialog.Builder(this)
                 .setMessage(R.string.confirm_close_world)
                 .setCancelable(false)
@@ -185,48 +157,6 @@ public abstract class WorldActivity extends AppCompatActivity
                         })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
-    }
-
-    public String confirmContentClose = null;
-
-    public void changeContentFragment(final Runnable callback) {
-
-        final FragmentManager manager = getSupportFragmentManager();
-
-        // confirmContentClose shouldn't be both used as boolean and as close-message,
-        //  this is a bad pattern
-        if (confirmContentClose != null) {
-            new AlertDialog.Builder(this)
-                    .setMessage(confirmContentClose)
-                    .setCancelable(false)
-                    .setPositiveButton(android.R.string.ok,
-                            (dialog, id) -> {
-                                manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-                                callback.run();
-                            })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
-        } else {
-            manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-            callback.run();
-        }
-
-    }
-
-    /**
-     * Replace current content fragment with a fresh MapFragment
-     */
-    public void openWorldMap() {
-
-        //TODO should this use cached world-position etc.?
-
-        this.confirmContentClose = null;
-        this.mapFragment = new MapFragment();
-
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.world_content, this.mapFragment);
-        transaction.commit();
-
     }
 
 

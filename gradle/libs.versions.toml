@@ -2,19 +2,19 @@
 kotlin = "2.4.20"
 agp = "9.4.1"
 compose-bom = "2026.09.00"
-paging = "3.5.0"
+paging = "3.5.1"
 activity = "1.13.0"
 material3 = "1.5.0-alpha29"
 lifecycle = "2.11.0"
 junit = "4.13.2"
-annotation = "1.10.0"
-appcompat = "1.7.1"
+annotation = "1.11.0"
+appcompat = "1.8.0"
 material = "1.14.0"
-expansionpanel = "1.2.4"
 guava = "33.7.2-android"
 leveldb-api = "1.1.0"
-core-ktx = "1.19.0"
-fragment-ktx = "1.8.9"
+core-ktx = "1.19.1"
+fragment-ktx = "1.9.1"
+concurrent = "1.3.0"
 drawerlayout = "1.2.0"
 window = "1.5.1"
 shizuku = "13.1.5"
@@ -63,9 +63,9 @@ core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
 fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragment-ktx" }
 drawerlayout = { module = "androidx.drawerlayout:drawerlayout", version.ref = "drawerlayout" }
 window = { module = "androidx.window:window", version.ref = "window" }
+concurrent = { module = "androidx.concurrent:concurrent-futures", version.ref = "concurrent" }
 
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-expansionpanel = { module = "com.github.florent37:expansionpanel", version.ref = "expansionpanel" }
 
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 

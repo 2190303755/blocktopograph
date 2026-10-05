@@ -26,12 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-enum class ConfirmationRequest {
-    EXIT,
-    NEW,
-    OPEN,
-    RELOAD
-}
+typealias ConfirmationRequest = () -> Unit
 
 @JvmInline
 value class InsertionRequest(val parent: RootNode)
@@ -113,7 +108,7 @@ class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig,
         modified = true
     }
 
-    fun reset() {
+    fun reset(create: Boolean) {
         undo.clear()
         redo.clear()
         focused = null
@@ -121,8 +116,12 @@ class NBTEditorModel(app: Application) : AndroidViewModel(app), NBTExportConfig,
         confirmation = null
         source = null
         storageVersion = null
-        modified = true // remind to save
-        nodes.add(MapNode(this, ""))
+        if (create) {
+            modified = true // remind to save
+            nodes.add(MapNode(this, ""))
+        } else {
+            modified = false
+        }
     }
 
     @MainThread
