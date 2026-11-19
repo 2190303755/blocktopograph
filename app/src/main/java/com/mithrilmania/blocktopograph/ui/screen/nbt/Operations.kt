@@ -1,10 +1,10 @@
-package com.mithrilmania.blocktopograph.editor.nbt
+package com.mithrilmania.blocktopograph.ui.screen.nbt
 
-import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.visit
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.CollectionNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.MapNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.NBTNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.RootNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.visit
 
 interface Operation {
     fun redo(editor: NBTEditorModel)

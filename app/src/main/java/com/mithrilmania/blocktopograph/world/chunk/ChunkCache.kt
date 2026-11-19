@@ -6,17 +6,17 @@ import com.google.common.cache.CacheBuilder
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.registry.Registry
 import com.mithrilmania.blocktopograph.util.APP_TAG
-import com.mithrilmania.blocktopograph.world.WorldStorage
 import it.unimi.dsi.fastutil.longs.Long2IntMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import org.iq80.leveldb.DB
 
 class ChunkCache(
     parent: CoroutineScope,
-    @JvmField val storage: WorldStorage,
+    @JvmField val storage: DB,
     @JvmField val bounds: Long2IntMap,
     @JvmField val blocks: Registry<BlockTemplate>
 ) {
@@ -32,14 +32,18 @@ class ChunkCache(
             return cache.get(pos) {
                 pos.resolveChunk(storage, bounds, blocks)
             }
-        } catch (e: Exception) {
+        } catch (_: NoSuchChunkException) {
             // Only log the chunks that exist but cannot be loaded
-            if (e.cause !is NoSuchChunkException) {
-                Log.w(APP_TAG, "Failed to load chunk at $pos")
-            }
+        } catch (e: Exception) {
+            Log.w(APP_TAG, "Failed to load chunk at $pos", e)
         }
         return null
     }
 
     fun getAsync(pos: ChunkPos): Deferred<Chunk?> = scope.async { this@ChunkCache[pos] }
+
+    /** Drops a chunk after it was modified or deleted so it is reloaded from disk. */
+    fun invalidate(pos: ChunkPos) {
+        this.cache.invalidate(pos)
+    }
 }

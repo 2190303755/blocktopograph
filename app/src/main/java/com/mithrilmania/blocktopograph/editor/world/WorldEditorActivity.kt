@@ -1,30 +1,51 @@
 package com.mithrilmania.blocktopograph.editor.world
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,43 +61,57 @@ import androidx.core.content.edit
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.metadata
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import com.google.android.material.snackbar.Snackbar
 import com.mithrilmania.blocktopograph.LogUtil
+import com.mithrilmania.blocktopograph.MIME_TYPE_ZIP
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.WorldActivity
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditingHost
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.editor.nbt.requestOrExecute
 import com.mithrilmania.blocktopograph.map.MapFragment
 import com.mithrilmania.blocktopograph.map.TileEntity
 import com.mithrilmania.blocktopograph.map.edit.EditResultCode
 import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceDialog
 import com.mithrilmania.blocktopograph.map.picer.PicerDialog
 import com.mithrilmania.blocktopograph.map.renderer.MapType
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.LocalPlayerSource
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.storage.VirtualFile
-import com.mithrilmania.blocktopograph.storage.file
+import com.mithrilmania.blocktopograph.storage.wrapAsFile
+import com.mithrilmania.blocktopograph.ui.AppNavKey.NBTEditor
+import com.mithrilmania.blocktopograph.ui.BlankNBTEditor
+import com.mithrilmania.blocktopograph.ui.component.AlertDialog
+import com.mithrilmania.blocktopograph.ui.component.IconButton
+import com.mithrilmania.blocktopograph.ui.component.SwipeableSnackbar
+import com.mithrilmania.blocktopograph.ui.component.TextButton
+import com.mithrilmania.blocktopograph.ui.navigateBack
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorScreen
+import com.mithrilmania.blocktopograph.ui.screen.world.LevelDBKey
+import com.mithrilmania.blocktopograph.ui.screen.world.wrapAsFile
 import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
+import com.mithrilmania.blocktopograph.util.VIEW_DOCUMENT_FLAG
 import com.mithrilmania.blocktopograph.util.toast
+import com.mithrilmania.blocktopograph.util.todoI18n
+import com.mithrilmania.blocktopograph.util.tryOrNull
+import com.mithrilmania.blocktopograph.world.StandaloneKey
 import com.mithrilmania.blocktopograph.world.VanillaDimension
-import com.mithrilmania.blocktopograph.world.WorldModel
 import com.mithrilmania.blocktopograph.world.WorldStorage
-import com.mithrilmania.blocktopograph.world.await
+import com.mithrilmania.blocktopograph.world.wrapAsFile
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.app.AlertDialog.Builder as AlertDialogBuilder
 
 class WorldEditorActivity : WorldActivity() {
-    val editor by viewModels<NBTEditorModel>()
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         this.enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -118,78 +153,189 @@ class WorldEditorActivity : WorldActivity() {
         this.findViewById<ComposeView>(R.id.composer).setContent {
             BlocktopographCompatTheme {
                 SelectionObserver(model)
-                NBTEditingHost(model.editing, editor) {
-                    Box(Modifier.fillMaxSize()) {
-                        val viewer = model
-                        val handle = viewModel<WorldModel>()
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomStart),
-                            horizontalAlignment = Alignment.End
-                        ) {
-                            SnackbarHost(viewer.snackbar)
-                            WorldEditorMenu(
-                                viewer,
-                                handle,
-                                Modifier.padding(end = 16.dp, bottom = 16.dp),
-                                mapFragment
-                            ) {
-                                val preferences = getPreferences(MODE_PRIVATE)
-                                if (!preferences.getBoolean(
-                                        MapFragment.KEY_HAS_DOUBLE_TAP,
-                                        false
-                                    )
-                                ) {
-                                    preferences.edit {
-                                        putBoolean(
-                                            MapFragment.KEY_HAS_DOUBLE_TAP,
-                                            true
-                                        )
-                                    }
-                                    toast(R.string.map_dblclick_notice)
+                val backStack = model.backStack
+                NavDisplay(
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator()
+                    ),
+                    backStack = backStack,
+                    transitionSpec = {
+                        slideIntoContainer(
+                            AnimatedContentTransitionScope.SlideDirection.Start
+                        ) togetherWith ExitTransition.KeepUntilTransitionsFinished
+                    },
+                    popTransitionSpec = {
+                        EnterTransition.None togetherWith slideOutOfContainer(
+                            AnimatedContentTransitionScope.SlideDirection.End
+                        )
+                    },
+                    predictivePopTransitionSpec = {
+                        EnterTransition.None togetherWith slideOutOfContainer(
+                            AnimatedContentTransitionScope.SlideDirection.End
+                        )
+                    }
+                ) { key ->
+                    if (key is NBTEditor && key !== BlankNBTEditor) NavEntry(
+                        key = key,
+                        metadata = metadata {
+                            if (key.crossfade) {
+                                put(NavDisplay.TransitionKey) {
+                                    fadeIn() togetherWith fadeOut()
                                 }
                             }
                         }
-                        FloatingPanes(viewer, handle)
-                        LongPressDialog(viewer, mapFragment)
-                        Text(
-                            stringResource(R.string.map_water_mark),
-                            Modifier
-                                .padding(4.dp)
-                                .align(Alignment.BottomStart),
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.Light,
-                            color = colorResource(R.color.waterMark),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                shadow = Shadow(
-                                    color = colorResource(R.color.waterMarkShadow),
-                                    offset = Offset(2.0F, 2.0F),
-                                    blurRadius = 2.0F
+                    ) {
+                        NBTEditorScreen(
+                            spec = key,
+                            onNew = {
+                                backStack[
+                                    backStack.lastIndex
+                                ] = NBTEditor(null, crossfade = true)
+                            },
+                            onExit = {
+                                backStack.navigateBack()
+                            }
+                        ) {
+                            NBTEditorModel(it, key, model.modified, model.confirmation).apply {
+                                modified = false
+                                confirmation = null
+                            }
+                        }
+                    } else NavEntry(key) {
+                        Box(Modifier.fillMaxSize()) {
+                            val viewer = model
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.BottomStart),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                SnackbarHost(viewer.snackbar) {
+                                    SwipeableSnackbar(it)
+                                }
+                                WorldEditorMenu(
+                                    viewer,
+                                    worldModel,
+                                    Modifier,
+                                    mapFragment
+                                ) {
+                                    val preferences = getPreferences(MODE_PRIVATE)
+                                    if (!preferences.getBoolean(
+                                            MapFragment.KEY_HAS_DOUBLE_TAP,
+                                            false
+                                        )
+                                    ) {
+                                        preferences.edit {
+                                            putBoolean(
+                                                MapFragment.KEY_HAS_DOUBLE_TAP,
+                                                true
+                                            )
+                                        }
+                                        toast(R.string.map_dblclick_notice)
+                                    }
+                                }
+                            }
+                            FloatingPanes(viewer, worldModel)
+                            LongPressDialog(viewer, mapFragment)
+                            MapFragmentDialogs(viewer, mapFragment)
+                            Text(
+                                stringResource(R.string.map_water_mark),
+                                Modifier
+                                    .padding(4.dp)
+                                    .align(Alignment.BottomStart),
+                                fontFamily = FontFamily.SansSerif,
+                                fontWeight = FontWeight.Light,
+                                color = colorResource(R.color.waterMark),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    shadow = Shadow(
+                                        color = colorResource(R.color.waterMarkShadow),
+                                        offset = Offset(2.0F, 2.0F),
+                                        blurRadius = 2.0F
+                                    )
                                 )
                             )
-                        )
-                        PicerDialog(viewer, handle)
-                        SearchAndReplaceDialog(viewer)
-                        if (viewer.waitingJob) {
-                            BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
-                                Column(
-                                    Modifier
-                                        .clip(AlertDialogDefaults.shape)
-                                        .background(AlertDialogDefaults.containerColor)
-                                        .padding(24.dp)
-                                ) {
-                                    Text(
-                                        stringResource(R.string.general_please_wait),
-                                        color = AlertDialogDefaults.titleContentColor,
-                                        style = MaterialTheme.typography.headlineSmall
-                                    )
-                                    CircularProgressIndicator(
+                            PicerDialog(viewer, worldModel)
+                            SearchAndReplaceDialog(viewer)
+                            if (viewer.waitingJob) {
+                                BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
+                                    Column(
                                         Modifier
-                                            .padding(top = 16.dp)
-                                            .align(Alignment.CenterHorizontally)
-                                    )
+                                            .clip(AlertDialogDefaults.shape)
+                                            .background(AlertDialogDefaults.containerColor)
+                                            .padding(24.dp)
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.general_please_wait),
+                                            color = AlertDialogDefaults.titleContentColor,
+                                            style = MaterialTheme.typography.headlineSmall
+                                        )
+                                        CircularProgressIndicator(
+                                            Modifier
+                                                .padding(top = 16.dp)
+                                                .align(Alignment.CenterHorizontally)
+                                        )
+                                    }
                                 }
+                            }
+                            if (viewer.confirmCloseWorld) {
+                                val onDismissRequest = {
+                                    viewer.confirmCloseWorld = false
+                                }
+                                AlertDialog(
+                                    onDismissRequest = onDismissRequest,
+                                    title = {
+                                        Text(stringResource(R.string.confirm_close_world))
+                                    },
+                                    neutralButton = {
+                                        TextButton(
+                                            stringResource(android.R.string.cancel),
+                                            onClick = onDismissRequest
+                                        )
+                                    },
+                                    negativeButton = {
+                                        TextButton("暂离".todoI18n()) {
+                                            viewer.confirmCloseWorld = false
+                                            viewer.waitForJob(lifecycleScope.launch {
+                                                mapFragment.closeChunks()
+                                                finish()
+                                            })
+                                        }
+                                    },
+                                    positiveButton = {
+                                        TextButton(stringResource(android.R.string.ok)) {
+                                            viewer.confirmCloseWorld = false
+                                            viewer.waitForJob(lifecycleScope.launch {
+                                                mapFragment.closeChunks()
+                                                withContext(Dispatchers.IO) {
+                                                    worldModel.awaitStorage()?.path?.let {
+                                                        worldModel.world.merge(it)
+                                                    }
+                                                }?.let {
+                                                    startActivity(
+                                                        Intent()
+                                                            .setAction(Intent.ACTION_VIEW)
+                                                            .setFlags(VIEW_DOCUMENT_FLAG)
+                                                            .setDataAndType(it, MIME_TYPE_ZIP)
+                                                    )
+                                                }
+                                                finish()
+                                            })
+                                        }
+                                    }
+                                ) {}
+                            }
+                            if (model.showOpenByNameDialog) {
+                                OpenNBTByNameDialog(
+                                    storage = worldModel.storage,
+                                    onDismiss = {
+                                        model.showOpenByNameDialog = false
+                                    },
+                                    onSelect = { file ->
+                                        model.showOpenByNameDialog = false
+                                        checkAndOpenNBTEditor(file)
+                                    }
+                                )
                             }
                         }
                     }
@@ -221,12 +367,10 @@ class WorldEditorActivity : WorldActivity() {
         LogUtil.d(this, "World activity nav-drawer menu item selected: $id")
 
         when (id) {
-            R.id.nav_world_show_map -> editor.requestOrExecute {
-                model.editing.value = null
-                editor.navigation = null
-                editor.reset(false)
+            R.id.nav_world_show_map -> model.requestOrExecute {
+                model.backStack.navigateBack()
             }
-            R.id.nav_world_select -> closeWorldActivity()
+            R.id.nav_world_select -> model.confirmCloseWorld = true
             R.id.nav_singleplayer_nbt -> openLocalPlayer()
             R.id.nav_multiplayer_nbt -> openMultiplayerEditor()
             R.id.nav_world_nbt -> openLevelEditor()
@@ -317,13 +461,13 @@ class WorldEditorActivity : WorldActivity() {
                 }
             }
 
-            R.id.nav_biomedata_nbt -> openSpecialDBEntry(SpecialDBEntryType.BIOME_DATA)
+            R.id.nav_biomedata_nbt -> openStandaloneEntry(StandaloneKey.BIOME_DATA)
 
             R.id.nav_overworld_nbt -> openSpecialDBEntry(SpecialDBEntryType.OVERWORLD)
 
-            R.id.nav_villages_nbt -> openSpecialDBEntry(SpecialDBEntryType.M_VILLAGES)
+            R.id.nav_villages_nbt -> openStandaloneEntry(StandaloneKey.LEGACY_VILLAGE)
 
-            R.id.nav_portals_nbt -> openSpecialDBEntry(SpecialDBEntryType.PORTALS)
+            R.id.nav_portals_nbt -> openStandaloneEntry(StandaloneKey.PORTALS)
 
             R.id.nav_dimension0_nbt -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_0)
 
@@ -331,7 +475,7 @@ class WorldEditorActivity : WorldActivity() {
 
             R.id.nav_dimension2_nbt -> openSpecialDBEntry(SpecialDBEntryType.DIMENSION_2)
 
-            R.id.nav_autonomous_entities_nbt -> openSpecialDBEntry(SpecialDBEntryType.AUTONOMOUS_ENTITIES)
+            R.id.nav_autonomous_entities_nbt -> openStandaloneEntry(StandaloneKey.AUTONOMOUS_ENTITIES)
 
             R.id.nav_open_nbt_by_name -> this.openCustomEntry()
             else ->  //Warning, we might have messed with the menu XML!
@@ -348,12 +492,12 @@ class WorldEditorActivity : WorldActivity() {
     fun openLocalPlayer() {
         val model = this.worldModel ?: return
         this.lifecycleScope.launch(Dispatchers.IO) {
-            val db = model.storage.await(WorldStorage::db) ?: return@launch
-            if (openIfPresent(db.file(SpecialDBEntryType.LOCAL_PLAYER))) return@launch
+            val db = model.awaitStorage()?.db ?: return@launch
+            if (openIfPresent(db.wrapAsFile(StandaloneKey.LOCAL_PLAYER))) return@launch
             withContext(Dispatchers.Main) {
                 checkAndOpenNBTEditor(
                     LocalPlayerSource(model.world.config),
-                    HeaderPresence.PRESENT
+                    true
                 )
             }
         }
@@ -362,39 +506,12 @@ class WorldEditorActivity : WorldActivity() {
     fun openLevelEditor() {
         this.checkAndOpenNBTEditor(
             this.worldModel?.world?.config ?: return,
-            HeaderPresence.PRESENT
+            true
         )
     }
 
     fun openCustomEntry() {
-        val keyInput = EditText(this).apply {
-            setEms(16)
-            setMaxEms(32)
-            setHint(R.string.leveldb_key_here)
-        }
-        AlertDialogBuilder(this)
-            .setTitle(R.string.open_nbt_from_db)
-            .setView(keyInput)
-            .setCancelable(true)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.open) click@{ _, _ ->
-                val activity = this
-                val key = keyInput.getText().toString()
-                if (key.isEmpty()) {
-                    Snackbar.make(
-                        this.mBinding?.drawerLayout ?: return@click,
-                        R.string.invalid_keyname,
-                        Snackbar.LENGTH_LONG
-                    ).show();
-                } else {
-                    this.lifecycleScope.launch(Dispatchers.IO) {
-                        val db = activity.worldModel?.storage?.await(WorldStorage::db)
-                            ?: return@launch
-                        if (activity.openIfPresent(db.file(key))) return@launch
-                        activity.notifyMissingKey(key)
-                    }
-                }
-            }.show()
+        model.showOpenByNameDialog = true
     }
 
     /**
@@ -404,12 +521,24 @@ class WorldEditorActivity : WorldActivity() {
         if (entry === null) return
         val activity = this
         this.lifecycleScope.launch(Dispatchers.IO) {
-            val db = activity.worldModel?.storage?.await(WorldStorage::db)
-                ?: return@launch
-            if (activity.openIfPresent(db.file(entry))) return@launch
+            val db = activity.worldModel?.awaitStorage()?.db ?: return@launch
+            if (activity.openIfPresent(db.wrapAsFile(entry))) return@launch
             activity.notifyMissingKey(entry.keyName)
         }
     }
+
+    /**
+     * Open NBT editor screen for special database entry
+     */
+    fun openStandaloneEntry(key: StandaloneKey) {
+        val activity = this
+        this.lifecycleScope.launch(Dispatchers.IO) {
+            val db = activity.worldModel?.awaitStorage()?.db ?: return@launch
+            if (activity.openIfPresent(db.wrapAsFile(key))) return@launch
+            activity.notifyMissingKey(key.literal)
+        }
+    }
+
 
     fun openMultiplayerEditor() {
         val dialog = AlertDialogBuilder(this)
@@ -467,7 +596,13 @@ class WorldEditorActivity : WorldActivity() {
                         val player = players.getOrNull(spinner.selectedItemPosition) ?: return@click
                         activity.lifecycleScope.launch(Dispatchers.IO) {
                             val name = player.toString(Charsets.UTF_8)
-                            if (!activity.openIfPresent(storage.db.file(name, key = player))) {
+                            if (!activity.openIfPresent(
+                                    storage.db.wrapAsFile(
+                                        name,
+                                        key = player
+                                    )
+                                )
+                            ) {
                                 activity.notifyMissingKey(name)
                             }
                         }
@@ -488,12 +623,12 @@ class WorldEditorActivity : WorldActivity() {
 
     fun checkAndOpenNBTEditor(
         source: NBTSource,
-        header: HeaderPresence = HeaderPresence.UNCERTAIN
+        header: Boolean? = null
     ) {
-        val spec = source to NBTImportConfigImpl(NBTFormat.LITTLE_ENDIAN, header)
-        editor.requestOrExecute {
-            model.editing.value = spec
-        }
+        model.checkAndOpenNBTEditor(
+            source,
+            NBTImportConfigImpl(NBTFormat.LITTLE_ENDIAN, header)
+        )
     }
 
     fun notifyDBFailure(key: String) {
@@ -507,8 +642,108 @@ class WorldEditorActivity : WorldActivity() {
     fun notifyMissingKey(key: String) {
         Snackbar.make(
             this.mBinding?.root ?: return,
-            "Missing key: '$key'", // TODO i18n
+            "Missing key: '$key'".todoI18n(),
             Snackbar.LENGTH_LONG
         ).show()
     }
+}
+
+@Composable
+private fun OpenNBTByNameDialog(
+    storage: Deferred<WorldStorage?>,
+    onDismiss: () -> Unit,
+    onSelect: (VirtualFile) -> Unit
+) {
+    val input = rememberTextFieldState()
+    val scope = rememberCoroutineScope()
+    var searching by remember { mutableStateOf(false) }
+    var searched by remember { mutableStateOf(false) }
+    val matches = remember { mutableStateListOf<LevelDBKey>() }
+
+    fun search() {
+        if (searching) return
+        val pattern = input.text.toString().toByteArray(Charsets.UTF_8)
+        if (pattern.isEmpty()) return
+        searching = true
+        searched = false
+        matches.clear()
+        scope.launch {
+            storage.collectMatches(pattern, matches)
+            searching = false
+            searched = true
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.open_nbt_from_db)) },
+        text = {
+            Column(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    state = input,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = OutlinedTextFieldDefaults.roundedShape,
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    label = { Text(stringResource(R.string.leveldb_key_here)) },
+                    trailingIcon = {
+                        IconButton(Icons.Filled.Search) { search() }
+                    }
+                )
+                when {
+                    searching -> CircularProgressIndicator(
+                        Modifier
+                            .padding(top = 16.dp)
+                            .align(Alignment.CenterHorizontally)
+                    )
+
+                    searched && matches.isEmpty() -> Text(
+                        text = stringResource(R.string.cannot_find_db_entry_with_name),
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+
+                    matches.isNotEmpty() -> LazyColumn(
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .heightIn(max = 320.dp)
+                    ) {
+                        items(matches, key = { it.hexed }) { entry ->
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        scope.launch {
+                                            onSelect((tryOrNull {
+                                                storage.await()
+                                            } ?: return@launch).db.wrapAsFile(entry))
+                                        }
+                                    }
+                                    .padding(vertical = 10.dp)
+                            ) {
+                                Text(entry.plain, maxLines = 1)
+                                Text(
+                                    text = entry.plain,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                text = stringResource(android.R.string.search_go),
+                enabled = !searching && input.text.isNotEmpty()
+            ) {
+                search()
+            }
+        },
+        dismissButton = {
+            TextButton(
+                text = stringResource(android.R.string.cancel),
+                onClick = onDismiss
+            )
+        }
+    )
 }

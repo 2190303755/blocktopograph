@@ -562,5 +562,70 @@
         <item>Int Array Tag</item>
         <item>Long Array Tag</item>
     </string-array>
-    <string name="title_activity_neo_nbteditor">NeoNBTEditorActivity</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_shizuku_status_unknown">Shizuku status unknown</string>
+    <string name="settings_shizuku_status_unsupported">Shizuku version too low</string>
+    <string name="settings_shizuku_status_unauthorized">Shizuku not authorized</string>
+    <string name="settings_shizuku_status_available">Shizuku ready</string>
+    <string name="settings_shizuku_unknown">Make sure the Shizuku service is running</string>
+    <string name="settings_shizuku_unsupported">Try upgrading Shizuku</string>
+    <string name="settings_shizuku_unauthorized">Tap to request Shizuku permission</string>
+    <string name="settings_shizuku_available_allowed">Blocktopograph may use ADB privileges when needed</string>
+    <string name="settings_shizuku_available_disallowed">Blocktopograph will not use ADB privileges</string>
+    <string name="settings_workspace_manager_title">Workspace manager</string>
+    <string name="settings_workspace_manager_description">Manage cached copies of worlds and free up the space they occupy</string>
+    <string name="settings_saf_manager_title">Storage access framework</string>
+    <string name="settings_saf_manager_description">Manage the folders and files this app was granted access to</string>
+    <string name="settings_scanning_manager_title">Scan locations</string>
+    <string name="settings_scanning_manager_description">Manage the paths and URIs scanned for worlds</string>
+
+    <!-- Workspace manager -->
+    <string name="workspace_size_title">Workspace usage</string>
+    <string name="workspace_count">Workspaces</string>
+    <string name="workspace_total_size">Total size</string>
+    <string name="workspace_item_size">Occupies %s</string>
+    <string name="workspace_item_remove">Remove workspace</string>
+    <string name="workspace_enabled_description">LevelDB works on a copy in the app cache</string>
+    <string name="workspace_disabled_description">Works directly on the LevelDB of the world</string>
+    <string name="workspace_enable">Enable workspaces</string>
+    <string name="workspace_forced">Workspaces are force-enabled</string>
+    <string name="workspace_empty">No workspaces</string>
+    <string name="workspace_remove_message">Remove this workspace? It will be copied again the next time the world is opened.\n%s</string>
+
+    <!-- Storage access framework manager -->
+    <string name="saf_filter">Filter</string>
+    <string name="saf_filter_type">Type</string>
+    <string name="saf_filter_type_any">Any</string>
+    <string name="saf_filter_type_tree">Folder</string>
+    <string name="saf_filter_type_document">File</string>
+    <string name="saf_filter_permission">Permission</string>
+    <string name="saf_filter_access_any">Any</string>
+    <string name="saf_filter_access_read_write">Read/write</string>
+    <string name="saf_filter_access_read_only">Read-only</string>
+    <string name="saf_filter_access_write_only">Write-only</string>
+    <string name="saf_empty">No persisted URI permissions</string>
+    <string name="saf_empty_filtered">No URIs match the filter</string>
+    <string name="saf_revoke">Revoke permission</string>
+    <string name="saf_revoke_title">Revoke URI permission</string>
+    <string name="saf_revoke_message">Blocktopograph will no longer be able to access this URI. This will not delete any of your files.</string>
+
+    <!-- Scanning manager -->
+    <string name="action_copy_uri">Copy URI</string>
+    <string name="action_copy_path">Copy path</string>
+    <string name="action_remove_uri">Remove URI</string>
+    <string name="action_remove_path">Remove path</string>
+    <string name="scanning_remove_path_message">Blocktopograph will no longer scan for worlds in this path. This will not delete any of your files.</string>
+    <string name="scanning_empty_uris">No URI scan locations</string>
+    <string name="scanning_uri_removed_retained">Scan location removed; the URI permission is still kept</string>
+    <string name="scanning_release_permission">Release permission</string>
+    <string name="scanning_add_path">Add path</string>
+    <string name="scanning_add_uri">Add URI</string>
+    <string name="scanning_tab_uri" translatable="false">URI</string>
+    <string name="scanning_tab_path">Path</string>
+    <string name="scanning_path_empty">Path cannot be empty</string>
+    <string name="scanning_path_resolving">Resolving path</string>
+    <string name="scanning_path_unresolvable">Failed to resolve path</string>
+    <string name="scanning_add_from_saf">Add from SAF</string>
 </resources>

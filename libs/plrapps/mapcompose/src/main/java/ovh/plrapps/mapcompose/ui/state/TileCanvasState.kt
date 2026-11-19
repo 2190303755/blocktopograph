@@ -262,7 +262,6 @@ internal class TileCanvasState(
                 if (tileWithSameSpace == null || tileWithSameSpace.layerId == layerId) {
                     tile.prepare()
                 } else {
-                    tile.overlaps = tileWithSameSpace
                     /* A tile already occupies the same space, so we don't need any fade-in */
                     tile.alpha = 1f
                 }
@@ -344,10 +343,7 @@ internal class TileCanvasState(
                 continue
             }
 
-            if (
-                tile.zoom == currentLevel
-                && (!visibleTiles.contains(tile) || tile.markedForSweep)
-            ) {
+            if (tile.zoom == currentLevel && !visibleTiles.contains(tile)) {
                 iterator.remove()
                 tile.recycle()
             }

@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.world.v2.layer
+package com.mithrilmania.blocktopograph.ui.screen.world.layer
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -6,11 +6,14 @@ import android.graphics.Shader
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 
+@JvmField
 val BACKGROUND_SHADER = BitmapShader(
     makeCheckerboard(0xFF2B2B2B.toInt(), 0xFF585858.toInt()),
     Shader.TileMode.REPEAT,
     Shader.TileMode.REPEAT
 )
+
+@JvmField
 val ERROR_SHADER = BitmapShader(
     makeCheckerboard(0xFF2B0000.toInt(), 0xFF580000.toInt()),
     Shader.TileMode.REPEAT,

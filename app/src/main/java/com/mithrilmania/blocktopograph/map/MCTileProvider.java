@@ -1,7 +1,7 @@
 package com.mithrilmania.blocktopograph.map;
 
-import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
 import static com.mithrilmania.blocktopograph.util.LoggerKt.APP_TAG;
+import static com.mithrilmania.blocktopograph.world.WorldContractKt.CHUNK_DIMENSION;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -61,7 +61,7 @@ public class MCTileProvider implements BitmapProvider {
     @Override
     public Bitmap getBitmap(Tile tile, Context context) {
 
-        WorldStorage storage = this.worldModel.getWorld().getStorage();
+        WorldStorage storage = this.worldModel.getCurrentStorage();
         if (storage == null) return null;
         Dimension dimension = this.mapModel.getDimension();
         MapType mapType = (MapType) tile.getDetailLevel().getLevelType();
@@ -142,7 +142,7 @@ public class MCTileProvider implements BitmapProvider {
 
             //load all those markers with an async task, this task publishes its progress,
             // the UI thread picks it up and renders the markers
-            if (Boolean.TRUE.equals(this.mapModel.showMarkers.getValue())) {
+            if (!Boolean.FALSE.equals(this.mapModel.showMarkers.getValue())) {
                 MCTileProviderCompatKt.loadMarkers(this.worldModel, this.mapModel, minChunkX, minChunkZ, maxChunkX, maxChunkZ, dimension);
             }
 

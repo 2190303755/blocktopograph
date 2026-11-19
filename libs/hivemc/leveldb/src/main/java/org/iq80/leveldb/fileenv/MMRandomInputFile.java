@@ -72,7 +72,7 @@ class MMRandomInputFile implements RandomInputFile
     {
         int newPosition = (int) (data.position() + offset);
         /// ANDROID COMPAT START: ignore covariant return type
-        ByteBuffer buffer = ((ByteBuffer) data).duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = data.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         buffer.clear().limit(newPosition + length).position(newPosition);
         return buffer;
         /// ANDROID COMPAT END

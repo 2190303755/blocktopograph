@@ -13,9 +13,10 @@ import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
+import com.mithrilmania.blocktopograph.nbt.forEachByte
 
 class NBTStringifier(
-    val indentation: Indentation = Indentation("    "),
+    val indentation: Indentation = Indentation(true),
     val heterogeneous: Boolean = false,
     val builder: StringBuilder = StringBuilder()
 ) : TagVisitor {
@@ -49,7 +50,11 @@ class NBTStringifier(
 
     override fun visit(tag: ByteArrayTag) {
         val builder = this.builder.append('[').append('B').append(';')
-        tag.elements.forEach {
+        if (tag.isEmpty()) {
+            builder.append(']')
+            return
+        }
+        tag.elements.forEachByte {
             builder.append(' ').append(it).append('B').append(',')
         }
         builder.setCharAt(builder.length - 1, ']')
@@ -57,6 +62,10 @@ class NBTStringifier(
 
     override fun visit(tag: IntArrayTag) {
         val builder = this.builder.append('[').append('I').append(';')
+        if (tag.isEmpty()) {
+            builder.append(']')
+            return
+        }
         tag.elements.forEach {
             builder.append(' ').append(it).append(',')
         }
@@ -65,6 +74,10 @@ class NBTStringifier(
 
     override fun visit(tag: LongArrayTag) {
         val builder = this.builder.append('[').append('L').append(';')
+        if (tag.isEmpty()) {
+            builder.append(']')
+            return
+        }
         tag.elements.forEach {
             builder.append(' ').append(it).append('L').append(',')
         }
@@ -83,7 +96,7 @@ class NBTStringifier(
             }
         } else {
             builder.append(tag, this.indentation) {
-                it.boxed().accept(this)
+                it.ensureCompound().accept(this)
             }
         }
         builder.append(']')
@@ -99,7 +112,11 @@ class NBTStringifier(
             builder.appendSafeLiteral(it)
                 .append(':')
                 .append(' ')
-            tag[it]!!.accept(this)
+            val child = tag[it]
+            requireNotNull(child) {
+                "Null literal cannot be represented in SNBT"
+            }
+            child.accept(this)
         }
         builder.append('}')
     }

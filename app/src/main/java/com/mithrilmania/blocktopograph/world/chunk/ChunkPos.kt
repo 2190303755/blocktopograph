@@ -20,17 +20,17 @@ data class ChunkPos(
         return key
     }
 
-    fun buildKey(subchunk: Byte): ByteArray {
+    fun buildKey(subChunk: Byte): ByteArray {
         val key: ByteArray
         if (this.dimension == 0) {
             key = ByteArray(10)
             key[8] = ChunkTag.SUB_CHUNK_PREFIX.dataID
-            key[9] = subchunk
+            key[9] = subChunk
         } else {
             key = ByteArray(14)
             key.writeIntLE(this.dimension, 8)
             key[12] = ChunkTag.SUB_CHUNK_PREFIX.dataID
-            key[13] = subchunk
+            key[13] = subChunk
         }
         key.writeIntLE(this.chunkX, 0)
         key.writeIntLE(this.chunkZ, 4)

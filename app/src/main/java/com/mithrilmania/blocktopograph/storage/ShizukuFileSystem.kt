@@ -14,10 +14,10 @@ import okio.Source
 import java.io.InterruptedIOException
 
 /**
- * @see FileService
+ * @see ShizukuFileService
  * @see okio.NioSystemFileSystem
  */
-object ShizukuFileSystem : FileSystem() {
+class ShizukuFileSystem : FileSystem() {
     override fun canonicalize(path: Path): Path = runBlocking { awaitFileService() }?.rpc {
         it.canonicalize(path.toString())
     }?.toPath(false) ?: throw FileNotFoundException("No such file")

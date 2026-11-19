@@ -13,49 +13,22 @@
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
         <activity
-            android:name=".world.WorldListActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/ComposeTheme">
+            android:theme="@style/SplashTheme"
+            android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <!-- World -->
-        <activity
-            android:name=".editor.world.WorldEditorActivity"
-            android:configChanges="orientation|screenSize"
-            android:label="@string/title_activity_world"
-            android:parentActivityName=".world.WorldListActivity"
-            android:theme="@style/World"
-            android:windowSoftInputMode="adjustNothing" />
-        <activity
-            android:name=".editor.world.v2.WorldEditorActivity"
-            android:configChanges="orientation|screenSize"
-            android:label="@string/title_activity_world"
-            android:parentActivityName=".world.WorldListActivity"
-            android:theme="@style/ComposeTheme" />
-        <activity
-            android:name=".editor.world.CreateWorldActivity"
-            android:label="@string/create_world_title"
-            android:theme="@style/ComposeTheme" />
-        <activity
-            android:name=".test.WorldTestActivity"
-            android:label="@string/title_test_page"
-            android:theme="@style/ComposeTheme" />
-        <activity
-            android:name=".editor.nbt.NBTEditorActivity"
-            android:exported="true"
-            android:label="@string/activity_nbt_editor"
-            android:theme="@style/ComposeTheme"
-            android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -65,7 +38,18 @@
                 <data android:mimeType="text/*" />
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+            </intent-filter>
         </activity>
+        <!-- World -->
+        <activity
+            android:name=".editor.world.WorldEditorActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/title_activity_world"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/World"
+            android:windowSoftInputMode="adjustNothing" />
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
@@ -74,6 +58,16 @@
             android:exported="true"
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

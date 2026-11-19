@@ -5,9 +5,9 @@ import androidx.annotation.RequiresApi
 import com.mithrilmania.blocktopograph.nbt.io.increaseDepthOrThrow
 import com.mithrilmania.blocktopograph.nbt.util.NBTFormatException
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
-import com.mithrilmania.blocktopograph.nbt.util.boxed
+import com.mithrilmania.blocktopograph.nbt.util.ensureCompound
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
-import com.mithrilmania.blocktopograph.nbt.util.unboxOrSelf
+import com.mithrilmania.blocktopograph.nbt.util.unwrapOrSelf
 import java.io.DataInput
 import java.io.DataOutput
 import java.util.function.IntFunction
@@ -17,10 +17,9 @@ value class ListTag(
     @JvmField val tags: MutableList<BinaryTag> = mutableListOf(),
 ) : CollectionTag<BinaryTag>, MutableList<BinaryTag> by tags {
     override val type: Type get() = Type
-    override fun getAsTag(index: Int): BinaryTag = this.tags[index]
     override val elementTypeId: Byte
         get() = this.getHomogenousTypeId { it.type.typeId }
-
+    override fun getAsTag(index: Int): BinaryTag = this.tags[index]
     override fun setTag(index: Int, tag: BinaryTag): Boolean {
         this.tags[index] = tag
         return true
@@ -47,7 +46,7 @@ value class ListTag(
         output.writeInt(this.size)
         if (typeId == TAG_COMPOUND) {
             this.forEach {
-                it.boxed().write(output)
+                it.ensureCompound().write(output)
             }
         } else {
             this.forEach {
@@ -73,19 +72,39 @@ value class ListTag(
             val type = id.toTagType()
             val tags = ArrayList<BinaryTag>(length)
             repeat(length) {
-                tags.add(type.read(input, child).unboxOrSelf())
+                tags.add(type.read(input, child).unwrapOrSelf())
             }
             return ListTag(tags)
         }
 
         override fun transform(tag: BinaryTag) = when (tag) {
             EndTag -> ListTag()
-            is ByteArrayTag -> ListTag(tag.elements.mapTo(mutableListOf(), ::ByteTag))
-            is IntArrayTag -> ListTag(tag.elements.mapTo(mutableListOf(), ::IntTag))
-            is LongArrayTag -> ListTag(tag.elements.mapTo(mutableListOf(), ::LongTag))
             is ListTag -> tag
+            is ByteArrayTag -> {
+                val tags = ArrayList<BinaryTag>(tag.size)
+                tag.elements.forEachByte {
+                    tags.add(ByteTag(it))
+                }
+                ListTag(tags)
+            }
+
+            is IntArrayTag -> {
+                val tags = ArrayList<BinaryTag>(tag.size)
+                tag.elements.forEach {
+                    tags.add(IntTag(it))
+                }
+                ListTag(tags)
+            }
+
+            is LongArrayTag -> {
+                val tags = ArrayList<BinaryTag>(tag.size)
+                tag.elements.forEach {
+                    tags.add(LongTag(it))
+                }
+                ListTag(tags)
+            }
             is CompoundTag -> {
-                val tags = mutableListOf<BinaryTag>()
+                val tags = ArrayList<BinaryTag>(tag.size)
                 tag.forEachSorted(tags::add)
                 ListTag(tags)
             }

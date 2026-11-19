@@ -2,21 +2,21 @@ package com.mithrilmania.blocktopograph.storage
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
-import com.mithrilmania.blocktopograph.nbt.io.TagWithMeta
 import com.mithrilmania.blocktopograph.nbt.io.readNBT
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
+import com.mithrilmania.blocktopograph.nbt.util.TagWithMeta
 import com.mithrilmania.blocktopograph.util.SpecialDBEntryType
 import com.mithrilmania.blocktopograph.util.queryName
 import com.mithrilmania.blocktopograph.util.rpc
-import com.mithrilmania.blocktopograph.util.toLDBKey
+import kotlinx.coroutines.runBlocking
 import org.iq80.leveldb.DB
 import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
@@ -24,7 +24,10 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.io.File as JvmFile
+
+typealias JvmFile = java.io.File
+
+fun isLegacyExternalStorageAvailable(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
 
 fun JvmFile.open(mode: Int): ParcelFileDescriptor? = try {
     ParcelFileDescriptor.open(this, mode)
@@ -77,6 +80,8 @@ class SAFFile(val uri: Uri) : File {
 
     override fun resolveName(context: Context) = this.uri.queryName(context) ?: ""
 
+    override fun describeSource(): String = this.uri.toString()
+
     override fun toString() = "SAFFile[$uri]"
 
     override fun equals(other: Any?): Boolean {
@@ -108,7 +113,9 @@ class ShizukuFile(val path: String) : File {
         }
     }
 
-    override fun resolveName(context: Context) = java.io.File(this.path).name ?: ""
+    override fun resolveName(context: Context) = JvmFile(this.path).name ?: ""
+
+    override fun describeSource(): String = this.path
 
     override fun toString() = "ShizukuFile[$path]"
 
@@ -122,12 +129,12 @@ class ShizukuFile(val path: String) : File {
 }
 
 class VirtualFile(
-    val db: DB,
-    val name: String,
+    @JvmField val db: DB,
+    @JvmField val name: String,
     private val key: ByteArray,
 ) : File, NBTImportConfig {
     override val format: NBTFormat get() = NBTFormat.LITTLE_ENDIAN
-    override val header: HeaderPresence get() = HeaderPresence.UNCERTAIN
+    override val header: Boolean? get() = null
     override suspend fun isPresent(context: Context?): Boolean = this.db[this.key] !== null
 
     override suspend fun <T> read(context: Context, action: (InputStream) -> T?): T? =
@@ -140,6 +147,8 @@ class VirtualFile(
     }
 
     override fun resolveName(context: Context) = this.name
+
+    override fun describeSource(): String = this.name
 
     override fun toString() = "VirtualFile[$db <${key.toHexString()}>]"
 
@@ -158,11 +167,15 @@ class VirtualFile(
     }
 }
 
-fun DB.file(
+fun DB.wrapAsFile(
     entry: SpecialDBEntryType
 ): VirtualFile = VirtualFile(this, entry.keyName, entry.keyBytes)
 
-fun DB.file(
+fun DB.wrapAsFile(
     name: String,
-    key: ByteArray = name.toLDBKey()
+    key: ByteArray = name.toByteArray(Charsets.UTF_8)
 ): VirtualFile = VirtualFile(this, name, key)
+
+fun VirtualFile.isPresentCompat() = runBlocking {
+    isPresent(null)
+}

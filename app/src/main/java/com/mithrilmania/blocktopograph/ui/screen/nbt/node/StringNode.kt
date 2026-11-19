@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -17,12 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.editor.nbt.Operation
-import com.mithrilmania.blocktopograph.editor.nbt.TagEditor
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_STRING
 import com.mithrilmania.blocktopograph.nbt.util.appendQuoted
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.ui.screen.nbt.Operation
+import com.mithrilmania.blocktopograph.ui.screen.nbt.TagEditor
 
 class StringNode(
     parent: RootLike,
@@ -51,7 +51,7 @@ class StringNode(
             textFieldState = textFieldState,
             lineLimits = TextFieldLineLimits.Default,
             supportingText = {
-                Spacer(Modifier.height(with(LocalDensity.current) {
+                Spacer(Modifier.height(LocalDensity.current.run {
                     LocalTextStyle.current.lineHeight.toDp()
                 }))
             }

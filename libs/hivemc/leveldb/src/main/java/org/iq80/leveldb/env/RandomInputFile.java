@@ -38,7 +38,7 @@ public interface RandomInputFile extends Closeable
      * @param offset position for read start
      * @param length length of the bytes to read
      * @return read only view of the data.
-     * @throws IOException on any exception will accessing source media
+     * @throws IOException on any exception when accessing source media
      */
     ByteBuffer read(long offset, int length) throws IOException;
 }

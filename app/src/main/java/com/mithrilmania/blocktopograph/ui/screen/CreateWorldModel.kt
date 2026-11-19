@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.world
+package com.mithrilmania.blocktopograph.ui.screen
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.SnackbarHostState
@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
+import com.mithrilmania.blocktopograph.editor.world.FlatLayer
 import com.mithrilmania.blocktopograph.map.Biome
 
 class CreateWorldModel : ViewModel() {

@@ -1,9 +1,9 @@
 package com.mithrilmania.blocktopograph.world
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent.EXTRA_TITLE
 import android.net.Uri
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.ViewModel
@@ -14,18 +14,18 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.R
+import com.mithrilmania.blocktopograph.storage.SAFFile
+import com.mithrilmania.blocktopograph.util.LEVEL_DB_TAG
 import com.mithrilmania.blocktopograph.util.findChild
-import com.mithrilmania.blocktopograph.world.impl.SAFWorld
-import com.mithrilmania.blocktopograph.world.impl.ShizukuWorld
-import kotlinx.coroutines.CompletableDeferred
+import com.mithrilmania.blocktopograph.world.access.SAFWorldAccess
+import com.mithrilmania.blocktopograph.world.access.ShizukuWorldAccess
+import com.mithrilmania.blocktopograph.world.access.WorldAccess
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 
 
 object UriKey : CreationExtras.Key<Uri>
-class WorldModelFactory<W : WorldModel>(val factory: (World) -> W) : ViewModelProvider.Factory {
+class WorldModelFactory(val factory: (WorldAccess) -> WorldModel) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         require(modelClass.isAssignableFrom(WorldModel::class.java)) {
@@ -33,28 +33,30 @@ class WorldModelFactory<W : WorldModel>(val factory: (World) -> W) : ViewModelPr
         }
         val bundle = extras[DEFAULT_ARGS_KEY]
         val uri = extras[UriKey]
+        val context = requireNotNull(extras[APPLICATION_KEY]) {
+            "Missing context"
+        }
         if (uri === null) {
             val path = requireNotNull(bundle?.getString(EXTRA_PATH)) {
                 "Missing path"
             }
             return this.factory(
-                ShizukuWorld(
+                ShizukuWorldAccess(
                     path,
+                    context,
                     bundle.getString(EXTRA_TITLE)
                         ?: extras[APPLICATION_KEY]?.getString(R.string.world_default_name)
                 )
             ) as T
         }
-        val context = requireNotNull(extras[APPLICATION_KEY]) {
-            "Missing context"
-        }
         val config = requireNotNull(uri.findChild(context.contentResolver, FILE_LEVEL_DAT)) {
             "Invalid world"
         }
         return this.factory(
-            SAFWorld(
+            SAFWorldAccess(
                 uri,
-                config,
+                SAFFile(config),
+                context,
                 bundle?.getString(EXTRA_TITLE)
                     ?: context.getString(R.string.world_default_name)
             )
@@ -83,18 +85,26 @@ fun Activity.collectWorldCreationExtras(): CreationExtras {
     return extras
 }
 
-open class WorldModel(val world: World) : ViewModel(world) {
-    var storage: Deferred<WorldStorage?> = CompletableDeferred(value = null)
-        private set
-
-    fun open(context: Context) {
-        val app = context.applicationContext
-        this.viewModelScope.launch(Dispatchers.IO) {
-            if (this@WorldModel.storage.await() == null) {
-                this@WorldModel.storage = async {
-                    this@WorldModel.world.openWithCache(app)
-                }
-            }
+class WorldModel(val world: WorldAccess) : ViewModel() {
+    private var current: WorldStorage? = null
+    val storage: Deferred<WorldStorage?> = viewModelScope.async {
+        world.open().also {
+            current = it
         }
+    }
+
+    fun getCurrentStorage(): WorldStorage? {
+        return this.current
+    }
+
+    suspend fun awaitStorage(): WorldStorage? = try {
+        this.storage.await()
+    } catch (e: Exception) {
+        Log.w(LEVEL_DB_TAG, "Unable to open world", e)
+        null
+    }
+
+    override fun onCleared() {
+        this.current?.close()
     }
 }

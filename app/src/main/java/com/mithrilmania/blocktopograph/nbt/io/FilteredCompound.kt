@@ -8,7 +8,7 @@ import java.io.DataInput
 typealias TagFilters = MutableMap<String, TagReader<*>>
 
 class FilteredCompound(
-    val filters: Array<MutableMap<String, TagReader<*>>?>
+    @JvmField val filters: Array<MutableMap<String, TagReader<*>>?>
 ) : TagReader<CompoundTag> {
     override fun read(input: DataInput, depth: Int): CompoundTag {
         val compound = CompoundTag()

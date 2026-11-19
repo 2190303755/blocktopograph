@@ -2,6 +2,8 @@ package com.mithrilmania.blocktopograph.editor.world
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -62,7 +64,7 @@ import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.VanillaDimension
 import com.mithrilmania.blocktopograph.world.WorldModel
-import com.mithrilmania.blocktopograph.world.resolveLocalPlayerPos
+import com.mithrilmania.blocktopograph.world.access.resolveLocalPlayerPos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -109,7 +111,9 @@ fun WorldEditorMenu(
     BackHandler(menuExpanded) { menuExpanded = false }
 
     FloatingActionButtonMenu(
-        modifier = modifier.windowInsetsPadding(safeLayoutInsets()),
+        modifier = modifier.windowInsetsPadding(
+            safeLayoutInsets().only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
+        ),
         expanded = menuExpanded,
         button = {
             TooltipBox(
@@ -171,7 +175,7 @@ fun WorldEditorMenu(
             }
         ) {
             coroutineScope.launch(Dispatchers.IO) {
-                val tags = handle.world.config.getCached(context)
+                val tags = handle.world.config.getCached()
                 val spawnX = tags.getTyped<NumericTag>("SpawnX")
                 val spawnY = tags.getTyped<NumericTag>("SpawnY")
                 val spawnZ = tags.getTyped<NumericTag>("SpawnZ")
@@ -185,7 +189,7 @@ fun WorldEditorMenu(
                 var y = spawnY.toInt()
                 val z = spawnZ.toInt()
                 if (y >= 256) runSuppressing {
-                    val chunk = handle.world.storage
+                    val chunk = handle.awaitStorage()
                         ?.getChunk(x shr 4, z shr 4, VanillaDimension.OVERWORLD)
                     if (chunk !== null && !chunk.isError) {
                         y = chunk.getHeightMapValue(x and 0xF, z and 0xF) + 1
@@ -203,7 +207,7 @@ fun WorldEditorMenu(
         ) {
             coroutineScope.launch(Dispatchers.IO) {
                 val pos = try {
-                    handle.world.resolveLocalPlayerPos(context)
+                    handle.world.resolveLocalPlayerPos(handle.awaitStorage())
                 } catch (e: Exception) {
                     Log.d(APP_TAG, "Failed to locate local player", e)
                     null
@@ -243,7 +247,7 @@ fun WorldEditorMenu(
             viewer.picerState = PicerState.Analyzing(
                 viewer.viewModelScope.launch(Dispatchers.IO) {
                     val area = try {
-                        handle.world.analyzeChunksImpl(viewer.dimension)
+                        handle.analyzeChunksImpl(viewer.dimension)
                     } catch (e: InterruptedException) {
                         throw e
                     } catch (_: IllegalStateException) {

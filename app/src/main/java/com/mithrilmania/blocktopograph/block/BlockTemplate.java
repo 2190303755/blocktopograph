@@ -1,27 +1,27 @@
 package com.mithrilmania.blocktopograph.block;
 
+import static com.mithrilmania.blocktopograph.ContractKt.ASSETS_URL_PREFIX;
+
 import androidx.annotation.Nullable;
 
-import com.mithrilmania.blocktopograph.block.icon.BlockIcon;
 
 import java.io.Serializable;
 
 public class BlockTemplate implements Serializable {
 
-    private final String subName;
+    public final String subName;
 
-    private final Block block;
+    public final Block block;
 
-    private final BlockIcon icon;
+    public final @Nullable String icon;
 
-    private final int color;
+    public final int color;
+    public final boolean hasBiomeShading;
 
-    private final boolean hasBiomeShading;
-
-    public BlockTemplate(String subName, Block block, BlockIcon icon, int color, boolean hasBiomeShading) {
+    public BlockTemplate(String subName, Block block, @Nullable String icon, int color, boolean hasBiomeShading) {
         this.subName = subName;
         this.block = block;
-        this.icon = icon;
+        this.icon = icon == null ? null : ASSETS_URL_PREFIX + icon;
         this.color = color;
         this.hasBiomeShading = hasBiomeShading;
     }
@@ -33,10 +33,6 @@ public class BlockTemplate implements Serializable {
 
     public Block getBlock() {
         return block;
-    }
-
-    public BlockIcon getIcon() {
-        return icon;
     }
 
     public int getColor() {

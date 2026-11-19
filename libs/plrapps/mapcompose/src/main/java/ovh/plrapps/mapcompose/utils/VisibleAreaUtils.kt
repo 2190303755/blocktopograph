@@ -1,6 +1,14 @@
 package ovh.plrapps.mapcompose.utils
 
 import ovh.plrapps.mapcompose.api.VisibleArea
+import ovh.plrapps.mapcompose.api.p1x
+import ovh.plrapps.mapcompose.api.p1y
+import ovh.plrapps.mapcompose.api.p2x
+import ovh.plrapps.mapcompose.api.p2y
+import ovh.plrapps.mapcompose.api.p3x
+import ovh.plrapps.mapcompose.api.p3y
+import ovh.plrapps.mapcompose.api.p4x
+import ovh.plrapps.mapcompose.api.p4y
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min

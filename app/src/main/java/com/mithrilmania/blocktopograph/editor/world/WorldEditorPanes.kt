@@ -1,6 +1,7 @@
 package com.mithrilmania.blocktopograph.editor.world
 
 import androidx.annotation.StringRes
+import androidx.collection.IntIntPair
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -188,13 +189,27 @@ fun SelectorPane(
                     true
                 } else false
             }
-            LaunchedEffect(selection.left, selection.right) {
-                state.startX.setTextAndPlaceCursorAtEnd(selection.left.toString())
-                state.spanX.setTextAndPlaceCursorAtEnd((selection.right - selection.left).toString())
+            LaunchedEffect(Unit) {
+                snapshotFlow {
+                    IntIntPair(
+                        selection.left,
+                        selection.right
+                    )
+                }.collect { (left, right) ->
+                    state.startX.setTextAndPlaceCursorAtEnd(left.toString())
+                    state.spanX.setTextAndPlaceCursorAtEnd((right - left).toString())
+                }
             }
-            LaunchedEffect(selection.top, selection.bottom) {
-                state.startZ.setTextAndPlaceCursorAtEnd(selection.top.toString())
-                state.spanZ.setTextAndPlaceCursorAtEnd((selection.bottom - selection.top).toString())
+            LaunchedEffect(Unit) {
+                snapshotFlow {
+                    IntIntPair(
+                        selection.top,
+                        selection.bottom
+                    )
+                }.collect { (top, bottom) ->
+                    state.startZ.setTextAndPlaceCursorAtEnd(top.toString())
+                    state.spanZ.setTextAndPlaceCursorAtEnd((bottom - top).toString())
+                }
             }
         }
         var edit by rememberSaveable { mutableStateOf<EditFunction?>(null) }
@@ -235,7 +250,7 @@ fun SelectorPane(
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val code = config.perform(
                                         RectEditTarget(
-                                            handle.world.storage ?: return@launch,
+                                            handle.awaitStorage() ?: return@launch,
                                             viewer.selection.toIntRect(),
                                             viewer.dimension
                                         )
@@ -326,7 +341,7 @@ fun SelectorPane(
                                         viewer.editResult.emit(
                                             cfg.perform(
                                                 RectEditTarget(
-                                                    handle.world.storage ?: return@launch,
+                                                    handle.awaitStorage() ?: return@launch,
                                                     viewer.selection.toIntRect(),
                                                     viewer.dimension
                                                 )
@@ -351,7 +366,7 @@ fun SelectorPane(
                                 if (!viewer.selection.isChunkAligned) {
                                     Text(
                                         stringResource(R.string.map_edit_dchunk_warn_not_aligned),
-                                        Modifier.padding(top = with(LocalDensity.current) {
+                                        Modifier.padding(top = LocalDensity.current.run {
                                             LocalTextStyle.current.lineHeight.toDp()
                                         })
                                     )
@@ -375,7 +390,7 @@ fun SelectorPane(
                                 viewer.waitForJob(
                                     coroutineScope.launch(Dispatchers.IO) {
                                         val area = RectEditTarget(
-                                            handle.world.storage ?: return@launch,
+                                            handle.awaitStorage() ?: return@launch,
                                             viewer.selection.toIntRect(),
                                             viewer.dimension
                                         )
@@ -437,16 +452,16 @@ fun SelectorPane(
                         confirmButton = {
                             TextButton(stringResource(android.R.string.ok)) {
                                 edit = null
-                                val area = RectEditTarget(
-                                    handle.world.storage ?: return@TextButton,
-                                    viewer.selection.toIntRect(),
-                                    viewer.dimension
-                                )
+                                val selection = viewer.selection.toIntRect()
+                                val dimension = viewer.dimension
                                 viewer.waitForJob(
                                     coroutineScope.launch(Dispatchers.IO) {
-                                        area.setMaxError(Int.MAX_VALUE)
-                                        area.forEachXz(ChBiomeEdit(toBeReplaced, toReplaceWith))
-                                        viewer.editResult.emit(EditResultCode.SUCCESS)
+                                        handle.awaitStorage()?.let {
+                                            val area = RectEditTarget(it, selection, dimension)
+                                            area.setMaxError(Int.MAX_VALUE)
+                                            area.forEachXz(ChBiomeEdit(toBeReplaced, toReplaceWith))
+                                            viewer.editResult.emit(EditResultCode.SUCCESS)
+                                        }
                                     }
                                 )
                             }
@@ -520,7 +535,9 @@ fun PlayerLocatorPane(viewer: WorldViewerModel, handle: WorldModel) {
     LaunchedEffect(Unit) {
         if (viewer.players === null) {
             isRefreshing = true
-            viewer.loadPlayers(handle.world).join()
+            handle.awaitStorage()?.let {
+                viewer.loadPlayers(handle.world, it).join()
+            }
             isRefreshing = false
         }
     }
@@ -530,7 +547,9 @@ fun PlayerLocatorPane(viewer: WorldViewerModel, handle: WorldModel) {
         onRefresh = {
             isRefreshing = true
             coroutineScope.launch {
-                viewer.loadPlayers(handle.world).join()
+                handle.awaitStorage()?.let {
+                    viewer.loadPlayers(handle.world, it).join()
+                }
                 context.toast(R.string.general_done)
                 isRefreshing = false
             }

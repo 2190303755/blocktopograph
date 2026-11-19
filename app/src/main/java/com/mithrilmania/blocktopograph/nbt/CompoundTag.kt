@@ -1,9 +1,10 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import androidx.compose.ui.util.fastForEach
 import com.mithrilmania.blocktopograph.nbt.io.readAsCompound
 import com.mithrilmania.blocktopograph.nbt.io.writeNBT
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
-import com.mithrilmania.blocktopograph.nbt.util.boxed
+import com.mithrilmania.blocktopograph.nbt.util.ensureCompound
 import java.io.DataInput
 import java.io.DataOutput
 
@@ -28,7 +29,7 @@ value class CompoundTag(
     }
 
     inline fun forEachSorted(action: (BinaryTag) -> Unit) {
-        this.keys.sorted().forEach {
+        this.keys.sorted().fastForEach {
             action(this[it]!!)
         }
     }
@@ -47,8 +48,9 @@ value class CompoundTag(
             EndTag -> CompoundTag()
             is ByteArrayTag -> {
                 val tags = hashMapOf<String, BinaryTag>()
-                tag.elements.forEachIndexed { index, tag ->
-                    tags[index.toString()] = ByteTag(tag)
+                val elements = tag.elements
+                for (index in elements.indices) {
+                    tags[index.toString()] = ByteTag(elements.getByte(index))
                 }
                 CompoundTag(tags)
             }
@@ -77,7 +79,7 @@ value class CompoundTag(
                 CompoundTag(tags)
             }
 
-            else -> tag.boxed()
+            else -> tag.ensureCompound()
         }
     }
 }

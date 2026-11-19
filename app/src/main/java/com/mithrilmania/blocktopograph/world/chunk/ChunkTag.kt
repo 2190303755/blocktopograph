@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.world.chunk
 /**
  * [Reference from Tommaso Checchi (/u/mojang_tommo), MCPE developer](https://www.reddit.com/r/MCPE/comments/5cw2tm/level_format_changes_in_mcpe_0171_100/d9zv9s8/)
  *
+ * [Actor Storage in Minecraft - Bedrock Edition](https://learn.microsoft.com/en-us/minecraft/creator/documents/actorstorage)
  * [基岩版LevelDB格式](https://zh.minecraft.wiki/w/User:Miemiemethod/%E5%9F%BA%E5%B2%A9%E7%89%88LevelDB%E6%A0%BC%E5%BC%8F#%E7%8B%AC%E7%AB%8B%E9%94%AE%E5%90%8D)
  */
 enum class ChunkTag(@JvmField val dataID: Byte) {
@@ -22,7 +23,7 @@ enum class ChunkTag(@JvmField val dataID: Byte) {
     BORDER_BLOCKS(0x38.toByte()),
     HARDCODED_SPAWNERS(0x39.toByte()),
     RANDOM_TICKS(0x3A.toByte()),
-    CHECKSUMS(0x3B.toByte()),
+    CHECK_SUMS(0x3B.toByte()),
     GENERATION_SEED(0x3C.toByte()),
     GENERATED_PRE_CAVE_AND_CLIFFS_BLENDING(0x3D.toByte()),
     BLENDING_BIOME_HEIGHT(0x3E.toByte()),
@@ -32,5 +33,6 @@ enum class ChunkTag(@JvmField val dataID: Byte) {
     VERSION_ENCHANT(0x6E.toByte()),
     VERSION_MARK_INSERT(0x6F.toByte()),
     LEGACY_VERSION(0x76.toByte()),
-    AABB_VOLUMES(0x77.toByte())
+    AABB_VOLUMES(0x77.toByte()),
+    JIGSAW_STRUCTURE_BLUEPRINT(0x78.toByte())
 }

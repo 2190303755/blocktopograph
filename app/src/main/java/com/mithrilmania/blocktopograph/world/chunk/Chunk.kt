@@ -5,12 +5,15 @@ import com.mithrilmania.blocktopograph.BuildConfig
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates.getAirTemplate
 import com.mithrilmania.blocktopograph.registry.Registry
+import com.mithrilmania.blocktopograph.registry.getOrAssignId
 import com.mithrilmania.blocktopograph.util.APP_TAG
+import com.mithrilmania.blocktopograph.util.startsWith
 import com.mithrilmania.blocktopograph.world.HeightRange
-import com.mithrilmania.blocktopograph.world.WorldStorage
+import com.mithrilmania.blocktopograph.world.NO_CACHE_OPTION
 import com.mithrilmania.blocktopograph.world.chunk.Data3DTerrain.Companion.Data3DTerrain
 import com.mithrilmania.blocktopograph.world.chunk.SubChunkV1.Companion.readLayer
 import it.unimi.dsi.fastutil.longs.Long2IntMap
+import org.iq80.leveldb.DB
 
 class Chunk(
     @JvmField val pos: ChunkPos,
@@ -18,52 +21,59 @@ class Chunk(
     @JvmField val lowerBound: Int,
     @JvmField val upperBound: Int,
     @JvmField val terrain: Terrain,
-    @JvmField val storage: WorldStorage,
+    @JvmField val storage: DB,
     @JvmField val blocks: Registry<BlockTemplate>
 ) {
     @JvmField
-    val subchunks: Array<SubChunk?> = arrayOfNulls(
+    val subChunks: Array<SubChunk?> = arrayOfNulls(
         ((upperBound - 1) shr 4) - (lowerBound shr 4) + 1
     )
+
+    private var deleted = false
 
     fun getSubChunk(y: Int): SubChunk? {
         if (y < this.lowerBound || y >= this.upperBound) return null
         val index = y shr 4
         val offset = index - (this.lowerBound shr 4)
-        var subchunk = this.subchunks[offset]
-        if (subchunk !== null) return subchunk
+        var subChunk = this.subChunks[offset]
+        if (subChunk !== null) return subChunk
         if (BuildConfig.DEBUG) {
-            Log.d(APP_TAG, "Trying to load subchunk #${offset} at ${this.pos}")
+            Log.d(APP_TAG, "Trying to load sub-chunk #${offset} at ${this.pos}")
         }
-        val data = this.storage.db[
+        val data = this.storage[
             this.pos.buildKey(index.toByte()),
             DEFAULT_OPTION
         ]
         if (data === null) {
             if (this.terrain is SubChunk) {
-                this.subchunks[offset] = this.terrain
+                this.subChunks[offset] = this.terrain
                 return this.terrain
             }
             return null
         }
         val format = data[0].toInt() and 0xFF
-        subchunk = if (format == 1 || format > 7) {
+        subChunk = if (format == 1 || format > 7) {
+            val registry = this.blocks
             val stream = data.inputStream()
             stream.skip(1L)
-            val minor = format > 7 && (stream.read() and 0xFF) > 2
-            if (format > 8) {
-                stream.skip(1L)
-            }
+            val minor = format > 7 && (stream.read() and 0xFF) > 1
+            val absIndex = if (format > 8) stream.read() else -1
             SubChunkV1(
-                this.blocks,
-                stream.readLayer(this.blocks),
-                if (minor) stream.readLayer(this.blocks) else singletonPalette(this.blocks[getAirTemplate()])
+                format,
+                absIndex,
+                registry,
+                stream.readLayer(registry),
+                if (minor) {
+                    stream.readLayer(registry)
+                } else {
+                    emptyPalette(registry.getOrAssignId(getAirTemplate()))
+                }
             )
         } else {
             SubChunkV0(data)
         }
-        this.subchunks[offset] = subchunk
-        return subchunk
+        this.subChunks[offset] = subChunk
+        return subChunk
     }
 
     fun getHeight(x: Int, z: Int): Int = this.terrain.getHeight(x, z)
@@ -79,17 +89,68 @@ class Chunk(
     fun getBlock(x: Int, y: Int, z: Int, layer: Int = 0): BlockTemplate {
         return this.getSubChunk(y)?.getBlock(x, y, z, layer) ?: getAirTemplate()
     }
+
+    /**
+     * Consider to use [SubChunk.setBlock] for batched operations
+     */
+    fun setBlock(x: Int, y: Int, z: Int, block: BlockTemplate, layer: Int) {
+        if (this.deleted) return
+        this.getSubChunk(y)?.setBlock(x, y, z, block, layer)
+    }
+
+    /**
+     * Changes the biome of one column and marks the terrain data dirty.
+     */
+    fun setBiome(x: Int, z: Int, id: Int): Boolean {
+        return !this.deleted && this.terrain.setBiome(x, z, id)
+    }
+
+    /** Writes all dirty terrain and subchunk data back to the database. */
+    fun save() {
+        if (this.deleted) return
+        val pos = this.pos
+        val db = this.storage
+        this.terrain.save()?.let {
+            val prefix = pos.buildPrefix()
+            db[prefix, this.terrain.terrainTag] = it
+        }
+        val subChunk = this.subChunks
+        for (offset in subChunk.indices) {
+            subChunk[offset]?.save()?.let {
+                val section = offset + (this.lowerBound shr 4)
+                db.put(pos.buildKey(section.toByte()), it)
+            }
+        }
+    }
+
+    /** Deletes every key belonging to this chunk, like the old removeFullChunk operation. */
+    fun delete() {
+        if (this.deleted) return
+        this.deleted = true
+        val baseLength = if (this.pos.dimension == 0) 8 else 12
+        val base = ByteArray(baseLength)
+        this.pos.buildPrefix().copyInto(base, 0, 0, baseLength)
+        this.storage.iterator(NO_CACHE_OPTION).use { iterator ->
+            iterator.seek(base)
+            while (iterator.hasNext()) {
+                val key = iterator.next().key
+                if (!key.startsWith(base)) break
+                if (key.size in (baseLength + 1)..(baseLength + 3)) {
+                    iterator.remove()
+                }
+            }
+        }
+    }
 }
 
 fun ChunkPos.resolveChunk(
-    storage: WorldStorage,
+    storage: DB,
     bounds: Long2IntMap,
     blocks: Registry<BlockTemplate>
 ): Chunk {
     val prefix = this.buildPrefix()
-    val db = storage.db
     // resolve format version
-    val format = db[prefix, ChunkTag.VERSION] ?: db[prefix, ChunkTag.LEGACY_VERSION]
+    val format = storage[prefix, ChunkTag.VERSION] ?: storage[prefix, ChunkTag.LEGACY_VERSION]
     if (format === null || format.isEmpty()) {
         throw NoSuchChunkException("Failed to resolve format of chunk")
     }
@@ -98,7 +159,7 @@ fun ChunkPos.resolveChunk(
     }
     // resolve bounds from metadata
     var hash = 0L
-    db[prefix, ChunkTag.METADATA_HASH]?.forEachIndexed { index, byte ->
+    storage[prefix, ChunkTag.METADATA_HASH]?.forEachIndexed { index, byte ->
         // just in case that the length is insufficient but too lazy to provide default value
         hash = hash or ((byte.toLong() and 0xFFL) shl (index * 8))
     }
@@ -129,13 +190,13 @@ fun ChunkPos.resolveChunk(
     }
     // resolve terrain
     val terrain: Terrain
-    var data = db[prefix, ChunkTag.DATA_3D]
+    var data = storage[prefix, ChunkTag.DATA_3D]
     if (data === null) {
-        data = db[prefix, ChunkTag.DATA_2D]
+        data = storage[prefix, ChunkTag.DATA_2D]
         if (data === null) {
-            data = db[prefix, ChunkTag.DATA_2D_LEGACY]
+            data = storage[prefix, ChunkTag.DATA_2D_LEGACY]
             if (data === null) {
-                data = db[prefix, ChunkTag.LEGACY_TERRAIN]
+                data = storage[prefix, ChunkTag.LEGACY_TERRAIN]
                 if (data === null) {
                     throw NullPointerException("Failed to resolve terrain of chunk")
                 }

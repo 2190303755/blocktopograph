@@ -17,11 +17,26 @@
  */
 package org.iq80.leveldb.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static org.iq80.leveldb.impl.DbConstants.L0_SLOWDOWN_WRITES_TRIGGER;
+import static org.iq80.leveldb.impl.DbConstants.L0_STOP_WRITES_TRIGGER;
+import static org.iq80.leveldb.impl.DbConstants.NUM_NON_TABLE_CACHE_FILES;
+import static org.iq80.leveldb.impl.SequenceNumber.MAX_SEQUENCE_NUMBER;
+import static org.iq80.leveldb.impl.ValueType.DELETION;
+import static org.iq80.leveldb.impl.ValueType.VALUE;
+import static org.iq80.leveldb.util.SizeOf.SIZE_OF_INT;
+import static org.iq80.leveldb.util.SizeOf.SIZE_OF_LONG;
+import static org.iq80.leveldb.util.Slices.readLengthPrefixedBytes;
+import static org.iq80.leveldb.util.Slices.writeLengthPrefixedBytes;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBComparator;
@@ -80,20 +95,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static java.util.Objects.requireNonNull;
-import static org.iq80.leveldb.impl.DbConstants.L0_SLOWDOWN_WRITES_TRIGGER;
-import static org.iq80.leveldb.impl.DbConstants.L0_STOP_WRITES_TRIGGER;
-import static org.iq80.leveldb.impl.DbConstants.NUM_NON_TABLE_CACHE_FILES;
-import static org.iq80.leveldb.impl.SequenceNumber.MAX_SEQUENCE_NUMBER;
-import static org.iq80.leveldb.impl.ValueType.DELETION;
-import static org.iq80.leveldb.impl.ValueType.VALUE;
-import static org.iq80.leveldb.util.SizeOf.SIZE_OF_INT;
-import static org.iq80.leveldb.util.SizeOf.SIZE_OF_LONG;
-import static org.iq80.leveldb.util.Slices.readLengthPrefixedBytes;
-import static org.iq80.leveldb.util.Slices.writeLengthPrefixedBytes;
-
 @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
 public class DbImpl
         implements DB
@@ -128,7 +129,7 @@ public class DbImpl
 
     private ManualCompaction manualCompaction;
 
-    private CompactionStats[] stats = new CompactionStats[DbConstants.NUM_LEVELS];
+    private final CompactionStats[] stats = new CompactionStats[DbConstants.NUM_LEVELS];
 
     public DbImpl(Options rawOptions, String dbname, Env env)
             throws IOException
@@ -301,18 +302,6 @@ public class DbImpl
         }
     }
 
-    // Fix user-supplied options to be reasonable
-    private static <T extends Comparable<T>> T clipToRange(T in, T min, T max)
-    {
-        if (in.compareTo(min) < 0) {
-            return min;
-        }
-        if (in.compareTo(max) > 0) {
-            return max;
-        }
-        return in;
-    }
-
     /**
      * Ensure we do not use external values as is. Ensure value are in correct ranges
      * and a copy of external Options instance is used.
@@ -320,10 +309,11 @@ public class DbImpl
     private Options sanitizeOptions(File databaseDir, Options src) throws IOException
     {
         final Options result = Options.fromOptions(src);
-        result.maxOpenFiles(clipToRange(src.maxOpenFiles(), 64 + NUM_NON_TABLE_CACHE_FILES, 50000));
-        result.writeBufferSize(clipToRange(src.writeBufferSize(), 64 << 10, 1 << 30));
-        result.maxFileSize(clipToRange(src.maxFileSize(), 1 << 20, 1 << 30));
-        result.blockSize(clipToRange(src.blockSize(), 1 << 10, 4 << 20));
+
+        result.maxOpenFiles(Math.clamp(src.maxOpenFiles(), 64 + NUM_NON_TABLE_CACHE_FILES, 50000));
+        result.writeBufferSize(Math.clamp(src.writeBufferSize(), 64 << 10, 1 << 30));
+        result.maxFileSize(Math.clamp(src.maxFileSize(), 1 << 20, 1 << 30));
+        result.blockSize(Math.clamp(src.blockSize(), 1 << 10, 4 << 20));
         if (result.logger() == null && databaseDir != null && (databaseDir.isDirectory() || databaseDir.mkdirs())) {
             File file = databaseDir.child(Filename.infoLogFileName());
             file.renameTo(databaseDir.child(Filename.oldInfoLogFileName()));

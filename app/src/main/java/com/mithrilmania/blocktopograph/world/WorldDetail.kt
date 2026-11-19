@@ -19,6 +19,11 @@ import com.mithrilmania.blocktopograph.nbt.io.FilteredCompound
 import com.mithrilmania.blocktopograph.nbt.io.putSimpleFilter
 import com.mithrilmania.blocktopograph.nbt.io.skipString
 import com.mithrilmania.blocktopograph.storage.Location
+import com.mithrilmania.blocktopograph.storage.SAFLocation
+import com.mithrilmania.blocktopograph.storage.ShizukuLocation
+import com.mithrilmania.blocktopograph.world.access.SAFWorldAccess
+import com.mithrilmania.blocktopograph.world.access.ShizukuWorldAccess
+import com.mithrilmania.blocktopograph.world.access.WorldAccess
 import java.io.InputStream
 
 class WorldDetail(
@@ -34,9 +39,19 @@ class WorldDetail(
     var behaviors: Int by mutableIntStateOf(0)
     var resources: Int by mutableIntStateOf(0)
     var size: String? by mutableStateOf(null)
+}
 
-    fun applyTo(intent: Intent) = this.location.applyTo(intent)
-        .putExtra(EXTRA_TITLE, this.name)
+fun WorldDetail.applyTo(intent: Intent) = this.location.applyTo(intent)
+    .putExtra(EXTRA_TITLE, this.name)
+
+fun WorldDetail.buildWorld(context: Context): WorldAccess = when (this.location) {
+    is SAFLocation -> SAFWorldAccess(this.location.uri, this.config.toFile(), context, this.name)
+    is ShizukuLocation -> ShizukuWorldAccess(
+        this.location.path,
+        context,
+        this.name,
+        this.config.toFile()
+    )
 }
 
 class WorldStatistics(

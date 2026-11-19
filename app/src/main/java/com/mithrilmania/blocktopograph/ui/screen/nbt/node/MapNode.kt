@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -20,14 +20,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.InsertionRequest
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
+import com.mithrilmania.blocktopograph.ui.screen.nbt.InsertionRequest
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.util.todoI18n
 import com.mithrilmania.blocktopograph.util.upcoming
 import java.util.TreeMap
 
@@ -85,7 +86,7 @@ class MapNode(
     override fun icon() = painterResource(R.drawable.ic_tag_compound)
 
     @Composable
-    override fun summary() = "${this.children.size}个键值对" // TODO i18n
+    override fun summary() = "${this.children.size}个键值对".todoI18n()
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -101,7 +102,7 @@ class MapNode(
             val context = LocalContext.current
             BottomSheetActionButton(
                 icon = Icons.Filled.Search,
-                text = "查找", // TODO i18n
+                text = "查找".todoI18n(),
                 modifier = Modifier.weight(1.0F)
             ) {
                 context.upcoming()

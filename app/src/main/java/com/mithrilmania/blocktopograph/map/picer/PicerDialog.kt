@@ -40,13 +40,13 @@ import com.mithrilmania.blocktopograph.chunk.Chunk
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
 import com.mithrilmania.blocktopograph.map.edit.RectEditTarget
 import com.mithrilmania.blocktopograph.ui.component.TextButton
-import com.mithrilmania.blocktopograph.ui.component.showSnackbar
+import com.mithrilmania.blocktopograph.ui.component.awaitSnackbar
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.toast
 import com.mithrilmania.blocktopograph.world.WorldModel
+import com.mithrilmania.blocktopograph.world.access.resolvePlainName
 import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
-import com.mithrilmania.blocktopograph.world.resolvePlainName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -111,7 +111,7 @@ sealed interface PicerState {
             handle: WorldModel,
             viewScope: CoroutineScope
         ) {
-            val storage = handle.world.storage
+            val storage = handle.getCurrentStorage()
             if (storage === null) {
                 viewer.picerState = null
                 viewer.application.toast(R.string.picer_failed_nodata)
@@ -249,7 +249,7 @@ sealed interface PicerState {
 
                 viewer.viewModelScope.launch {
                     val resources = viewer.application.resources
-                    viewer.snackbar.showSnackbar(
+                    viewer.snackbar.awaitSnackbar(
                         resources.getString(R.string.picer_saved),
                         resources.getString(R.string.general_share),
                         SnackbarDuration.Long

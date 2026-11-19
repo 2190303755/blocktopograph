@@ -3,11 +3,18 @@ package com.mithrilmania.blocktopograph.world.chunk
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.block.KnownBlockRepr
-import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_DIMENSION
+import com.mithrilmania.blocktopograph.world.CHUNK_DIMENSION
+
+fun metaOf(block: BlockTemplate): Int {
+    return 0 // fixme
+}
 
 class LegacyTerrain(
     @JvmField val terrain: ByteArray
 ) : Terrain, SubChunk {
+    private var isDirty = false
+    override val terrainTag: ChunkTag
+        get() = ChunkTag.LEGACY_TERRAIN
     override fun getBlock(x: Int, y: Int, z: Int, layer: Int): BlockTemplate {
         val index = legacyIndexAt(x, y, z)
         val compound = this.terrain[META_MAP_OFFSET + (index shr 1)].toInt()
@@ -17,6 +24,22 @@ class LegacyTerrain(
         )
         val states = BlockTemplates.getOfType(legacy.identifier)
         return states.getOrNull(legacy.subId) ?: BlockTemplates.getAirTemplate()
+    }
+
+    override fun setBlock(x: Int, y: Int, z: Int, block: BlockTemplate, layer: Int) {
+        val typeId = KnownBlockRepr.resolve(block.block.typeId)
+        val meta = metaOf(block) // fixme
+        val index = legacyIndexAt(x, y, z)
+        val pos = META_MAP_OFFSET + (index shr 1)
+        var compound = this.terrain[pos].toInt()
+        compound = if ((index and 1) == 1) {
+            ((meta and 0xFF) shl 4) or (compound and 0x00FF)
+        } else {
+            (meta and 0xFF) or (compound and 0xFF00)
+        }
+        this.terrain[index] = typeId.toByte()
+        this.terrain[pos] = compound.toByte()
+        this.isDirty = true
     }
 
     override fun getBrightness(src: BrightnessSource, x: Int, y: Int, z: Int): Int {
@@ -34,6 +57,17 @@ class LegacyTerrain(
     override fun getBiome(x: Int, y: Int, z: Int): Int {
         return this.terrain[BIOME_MAP_OFFSET + indexAt(x, z) * 4].toInt()
     }
+
+    override fun setBiome(x: Int, z: Int, id: Int): Boolean {
+        this.terrain[BIOME_MAP_OFFSET + indexAt(x, z) * 4] = id.toByte()
+        return true
+    }
+
+    override fun save(forced: Boolean): ByteArray? =
+        if (forced || this.isDirty) {
+            this.isDirty = false
+            this.terrain
+        } else null
 
     companion object {
         const val BLOCKS_PER_LEGACY_TERRAIN = CHUNK_DIMENSION * CHUNK_DIMENSION * 128

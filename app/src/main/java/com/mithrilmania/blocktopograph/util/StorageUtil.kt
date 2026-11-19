@@ -11,8 +11,10 @@ import android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
 import android.provider.DocumentsContract.Document.COLUMN_SIZE
 import android.provider.DocumentsContract.Document.MIME_TYPE_DIR
 import android.util.Log
+import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 
 typealias DocumentUri = Uri
 typealias TreeUri = Uri
@@ -113,20 +115,41 @@ fun DocumentUri.copyFolderTo(resolver: ContentResolver, folder: File) {
     }
 }
 
-val TreeUri.toDocumentUri: DocumentUri
-    get() {
-        if (DocumentsContract.isTreeUri(this)) {
-            val paths = this.pathSegments
-            when (paths.size) {
-                4 -> if (paths[2] == "document") return this
-                2 -> return DocumentsContract.buildDocumentUriUsingTree(
-                    this,
-                    DocumentsContract.getTreeDocumentId(this)
-                )
-            }
+/**
+ * Copy the contents of this local directory into an existing document.
+ */
+fun File.copyContentsToDocument(resolver: ContentResolver, parent: DocumentUri) {
+    val children = this.listFiles() ?: return
+    for (child in children) {
+        if (child.isDirectory) {
+            val folder = DocumentsContract.createDocument(
+                resolver, parent, MIME_TYPE_DIR, child.name
+            ) ?: throw IOException("Failed to create folder ${child.name}")
+            child.copyContentsToDocument(resolver, folder)
+        } else {
+            val document = DocumentsContract.createDocument(
+                resolver, parent, MIME_TYPE_DEFAULT, child.name
+            ) ?: throw IOException("Failed to create file ${child.name}")
+            resolver.openOutputStream(document, "w")?.use { output ->
+                child.inputStream().use { it.copyTo(output) }
+            } ?: throw IOException("Failed to open ${child.name}")
         }
-        throw IllegalStateException()
     }
+}
+
+fun TreeUri.toDocumentUri(): DocumentUri {
+    if (DocumentsContract.isTreeUri(this)) {
+        val paths = this.pathSegments
+        when (paths.size) {
+            4 -> if (paths[2] == "document") return this
+            2 -> return DocumentsContract.buildDocumentUriUsingTree(
+                this,
+                DocumentsContract.getTreeDocumentId(this)
+            )
+        }
+    }
+    throw IllegalStateException()
+}
 
 fun Uri.getIdOfDocumentOrTreeDocument(context: Context? = null): String {
     if (context !== null && DocumentsContract.isDocumentUri(context, this)) {
@@ -138,6 +161,13 @@ fun Uri.getIdOfDocumentOrTreeDocument(context: Context? = null): String {
 fun Uri.queryString(resolver: ContentResolver, column: String): String? {
     resolver.query(this, arrayOf(column), null, null)?.use {
         if (it.moveToFirst() && !it.isNull(0)) return it.getString(0)
+    }
+    return null
+}
+
+fun Uri.queryLong(resolver: ContentResolver, column: String): Long? {
+    resolver.query(this, arrayOf(column), null, null)?.use {
+        if (it.moveToFirst() && !it.isNull(0)) return it.getLong(0)
     }
     return null
 }
@@ -158,23 +188,3 @@ val File.size: Long
 const val FLAG_GRANT_ALL_URI_PERMISSION =
     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
-/*
-suspend inline fun <T> DataStore<Preferences>.setAsync(key: Preferences.Key<T>, value: T) =
-    this.edit { it[key] = value }
-
-fun <T> DataStore<Preferences>.getAsync(key: Preferences.Key<T>, default: T): Flow<T> =
-    this.data.catch { emit(emptyPreferences()) }.map { it[key] ?: default }
-
-fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>, default: T): T {
-    var result = default
-    runBlocking {
-        this@get.data.first {
-            result = it[key] ?: result
-            true
-        }
-    }
-    return result
-}
-*/
-
-fun String.toLDBKey() = this.toByteArray(Charsets.UTF_8)

@@ -1,6 +1,5 @@
 package com.mithrilmania.blocktopograph;
 
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -19,10 +18,10 @@ import com.mithrilmania.blocktopograph.chunk.NBTChunkData;
 import com.mithrilmania.blocktopograph.databinding.ActivityWorldBinding;
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel;
 import com.mithrilmania.blocktopograph.map.MapFragment;
-import com.mithrilmania.blocktopograph.world.World;
-import com.mithrilmania.blocktopograph.world.WorldKt;
 import com.mithrilmania.blocktopograph.world.WorldModel;
 import com.mithrilmania.blocktopograph.world.WorldModelKt;
+import com.mithrilmania.blocktopograph.world.access.WorldAccess;
+import com.mithrilmania.blocktopograph.world.access.WorldAccessKt;
 
 public abstract class WorldActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -53,8 +52,7 @@ public abstract class WorldActivity extends AppCompatActivity
             //Shit
             return;
         }
-        World handler = worldModel.getWorld();
-        worldModel.open(this);
+        WorldAccess handler = worldModel.getWorld();
         this.worldModel = worldModel;
 
         WorldViewerModel model = new ViewModelProvider(this).get(WorldViewerModel.class);
@@ -90,7 +88,7 @@ public abstract class WorldActivity extends AppCompatActivity
         // Title = world-name
         TextView title = headerView.findViewById(R.id.world_drawer_title);
         assert title != null;
-        title.setText(WorldKt.resolvePlainName(handler, this));
+        title.setText(WorldAccessKt.resolvePlainName(handler, this));
 
         // Subtitle = world-seed (Tap worldseed to choose to copy it)
         TextView subtitle = headerView.findViewById(R.id.world_drawer_subtitle);
@@ -115,7 +113,7 @@ public abstract class WorldActivity extends AppCompatActivity
 
             *link to results will be included here for reference when @mithrilmania is done*
          */
-        subtitle.setText(String.valueOf(WorldKt.resolveSeed(handler, this)));
+        subtitle.setText(String.valueOf(WorldAccessKt.resolveSeed(handler)));
 
         // Open the world-map as default content
         this.mapFragment = mBinding.content.worldContent.getFragment();
@@ -129,12 +127,7 @@ public abstract class WorldActivity extends AppCompatActivity
                     return;
                 }
 
-                new AlertDialog.Builder(WorldActivity.this)
-                        .setMessage(R.string.ask_close_world)
-                        .setCancelable(false)
-                        .setPositiveButton(android.R.string.ok, (dialog, id) -> WorldActivity.this.finish())
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
+                model.setConfirmCloseWorld(true);
             }
         });
         LogUtil.d(this, "World activity created");
@@ -145,18 +138,8 @@ public abstract class WorldActivity extends AppCompatActivity
     //  which is not an easy task.
 
     public void closeWorldActivity() {
-        new AlertDialog.Builder(this)
-                .setMessage(R.string.confirm_close_world)
-                .setCancelable(false)
-                .setIcon(R.drawable.ic_action_exit)
-                .setPositiveButton(android.R.string.ok,
-                        (dialog, id) -> {
-                            //finish this activity
-                            mapFragment.closeChunks();
-                            finish();
-                        })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        //the confirmation is rendered by Compose, see WorldEditorActivity#onCreate
+        model.setConfirmCloseWorld(true);
     }
 
 

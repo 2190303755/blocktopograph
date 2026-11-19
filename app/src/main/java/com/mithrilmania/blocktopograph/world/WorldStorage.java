@@ -1,7 +1,6 @@
 package com.mithrilmania.blocktopograph.world;
 
 import static com.mithrilmania.blocktopograph.util.IOUtilKt.writeIntLE;
-import static com.mithrilmania.blocktopograph.util.StorageUtilKt.toLDBKey;
 
 import androidx.annotation.Nullable;
 import androidx.collection.LruCache;
@@ -15,26 +14,22 @@ import com.mithrilmania.blocktopograph.world.chunk.ChunkTag;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBException;
 import org.iq80.leveldb.Options;
-import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.env.Env;
 import org.iq80.leveldb.fileenv.EnvImpl;
 import org.iq80.leveldb.impl.DbImpl;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import kotlin.io.FilesKt;
-
 /**
  * Wrapper around level.dat world spec en levelDB database.
  */
 public class WorldStorage implements Closeable {
-    private static final Env LEVEL_DB_ENV = EnvImpl.createEnv();//TODO: redirect temp dir
+    private static final Env LEVEL_DB_ENV = EnvImpl.createEnv();
     private final LruCache<Key, Chunk> chunks = new ChunkCache(this, 256);
     public final DB db;
     public final String path;
@@ -137,12 +132,8 @@ public class WorldStorage implements Closeable {
         return this.getDBKeysStartingWith(KeyPrefix.PROFILE.bytes);
     }
 
-    public List<byte[]> getDBKeysStartingWith(String prefix) {
-        return getDBKeysStartingWith(toLDBKey(prefix));
-    }
-
     public List<byte[]> getDBKeysStartingWith(byte[] prefix) {
-        var it = this.db.iterator(new ReadOptions().fillCache(false));
+        var it = this.db.iterator(StandaloneKeyKt.NO_CACHE_OPTION);
         it.seek(prefix);
         var items = new ArrayList<byte[]>();
         while (it.hasNext()) {
@@ -212,6 +203,5 @@ public class WorldStorage implements Closeable {
             this.db.close();
         } catch (Throwable ignored) {
         }
-        FilesKt.deleteRecursively(new File(this.path));
     }
 }

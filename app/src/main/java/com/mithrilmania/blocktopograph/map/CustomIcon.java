@@ -8,7 +8,6 @@ import androidx.annotation.NonNull;
 import androidx.compose.ui.unit.IntRect;
 
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -16,7 +15,7 @@ import java.util.HashMap;
 /**
  * CustomIcon provides an easy collection of special icons to use for markers.
  */
-public enum CustomIcon implements NamedBitmapProviderHandle, NamedBitmapProvider {
+public enum CustomIcon implements NamedBitmapProvider {
 
     DEFAULT_MARKER("default_marker", new IntRect(0, 0, 32, 32)),
     BLUE_MARKER("blue_marker", new IntRect(0, 32, 32, 64)),
@@ -41,12 +40,6 @@ public enum CustomIcon implements NamedBitmapProviderHandle, NamedBitmapProvider
     @Override
     public Bitmap getBitmap(){
         return this.bitmap;
-    }
-
-    @NonNull
-    @Override
-    public NamedBitmapProvider getNamedBitmapProvider(){
-        return this;
     }
 
     @NonNull

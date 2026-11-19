@@ -1,19 +1,29 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import androidx.collection.MutableIntList
+import androidx.collection.mutableIntListOf
+import androidx.compose.ui.util.fastForEach
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
 import com.mithrilmania.blocktopograph.nbt.util.toIntTag
-import com.mithrilmania.blocktopograph.util.expandAt
-import com.mithrilmania.blocktopograph.util.shrinkAt
 import java.io.DataInput
 import java.io.DataOutput
 
-data class IntArrayTag(
-    @JvmField
-    var elements: IntArray = IntArray(0)
+inline fun <T> List<T>.toIntList(transform: (T) -> Int): MutableIntList {
+    val elements = MutableIntList(this.size)
+    this.fastForEach {
+        elements.add(transform(it))
+    }
+    return elements
+}
+
+@JvmInline
+value class IntArrayTag(
+    val elements: MutableIntList = mutableIntListOf()
 ) : ArrayTag<IntTag> {
     override val elementTypeId: Byte get() = TAG_INT
     override val type: Type get() = Type
     override val size: Int get() = this.elements.size
+    override fun isEmpty(): Boolean = this.elements.isEmpty()
     operator fun get(index: Int): Int = this.elements[index]
     override fun getAsLong(index: Int): Long = this[index].toLong()
     override fun getAsTag(index: Int): IntTag = IntTag(this[index])
@@ -40,55 +50,65 @@ data class IntArrayTag(
 
     override fun addTag(index: Int, tag: BinaryTag): Boolean {
         if (tag is NumericTag) {
-            this.elements = this.elements.expandAt(index, ::IntArray)
-            this.elements[index] = tag.toInt()
+            this.elements.add(index, tag.toInt())
             return true
         }
         return false
     }
 
     override fun clear() {
-        this.elements = IntArray(0)
+        this.elements.clear()
     }
 
-    fun remove(index: Int): Int {
-        val value = this.elements[index]
-        this.elements = this.elements.shrinkAt(index, ::IntArray)
-        return value
+    fun removeAt(index: Int): Int {
+        return this.elements.removeAt(index)
     }
 
-    override fun removeTag(index: Int): IntTag = IntTag(this.remove(index))
+    override fun removeTag(index: Int): IntTag = IntTag(this.removeAt(index))
 
-    override fun copy(): IntArrayTag = IntArrayTag(this.elements.copyOf())
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        return this.elements.contentEquals((other as IntArrayTag).elements)
+    override fun copy(): IntArrayTag {
+        val copy = MutableIntList(this.elements.size)
+        copy.addAll(this.elements)
+        return IntArrayTag(copy)
     }
-
-    override fun hashCode(): Int = this.elements.contentHashCode()
-
 
     companion object Type : TagType<IntArrayTag> {
         override val typeId get() = TAG_INT_ARRAY
         override fun toString() = "TAG_Int_Array"
-        override fun read(input: DataInput, depth: Int) = IntArrayTag(
-            IntArray(input.readInt()) { input.readInt() }
-        )
+        override fun read(input: DataInput, depth: Int): IntArrayTag {
+            input.readUTF()
+            val length = input.readInt()
+            val elements = MutableIntList(length)
+            repeat(length) {
+                elements.add(input.readInt())
+            }
+            return IntArrayTag(elements)
+        }
 
         override fun transform(tag: BinaryTag) = when (tag) {
-            is NumericTag -> IntArrayTag(intArrayOf(tag.toInt()))
-            is StringTag -> IntArrayTag(intArrayOf(tag.value.trim().toIntOrNull() ?: 0))
-            is ByteArrayTag -> IntArrayTag(IntArray(tag.size) { tag[it].toInt() })
+            is NumericTag -> IntArrayTag(mutableIntListOf(tag.toInt()))
+            is StringTag -> IntArrayTag(mutableIntListOf(tag.value.trim().toIntOrNull() ?: 0))
+            is ListTag -> IntArrayTag(tag.toIntList { it.toIntTag().value })
             is IntArrayTag -> tag
-            is LongArrayTag -> IntArrayTag(IntArray(tag.size) { tag[it].toInt() })
-            is ListTag -> IntArrayTag(IntArray(tag.size) { tag[it].toIntTag().value })
+            is ByteArrayTag -> {
+                val elements = MutableIntList(tag.size)
+                tag.elements.forEachByte {
+                    elements.add(it.toInt())
+                }
+                IntArrayTag(elements)
+            }
+
+            is LongArrayTag -> {
+                val elements = MutableIntList(tag.size)
+                tag.elements.forEach {
+                    elements.add(it.toInt())
+                }
+                IntArrayTag(elements)
+            }
             is CompoundTag -> {
-                val elements = IntArray(tag.size)
-                var index = 0
+                val elements = MutableIntList(tag.size)
                 tag.forEachSorted {
-                    elements[index++] = it.toIntTag().value
+                    elements.add(it.toIntTag().value)
                 }
                 IntArrayTag(elements)
             }

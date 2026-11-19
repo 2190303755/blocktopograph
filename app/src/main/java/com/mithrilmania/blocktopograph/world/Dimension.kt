@@ -38,6 +38,8 @@ enum class VanillaDimension(
 }
 
 val Dimension.isOverworld: Boolean get() = this.runtimeId == 0
+
+@JvmField
 val VANILLA_DIMENSIONS: Int2ObjectMap<VanillaDimension> = run {
     val dimensions = Int2ObjectOpenHashMap<VanillaDimension>(3)
     dimensions[0] = VanillaDimension.OVERWORLD

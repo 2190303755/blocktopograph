@@ -3,21 +3,18 @@ package com.mithrilmania.blocktopograph.editor.world
 import android.app.Application
 import android.content.Intent
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.IntRect
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.mithrilmania.blocktopograph.editor.nbt.ConfiguredNBTSource
 import com.mithrilmania.blocktopograph.map.Player
 import com.mithrilmania.blocktopograph.map.dummyJob
 import com.mithrilmania.blocktopograph.map.edit.EditResultCode
 import com.mithrilmania.blocktopograph.map.edit.SearchAndReplaceRequest
-import com.mithrilmania.blocktopograph.map.getMarkerManager
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_AREA
 import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_LENGTH
@@ -26,31 +23,67 @@ import com.mithrilmania.blocktopograph.map.renderer.MapType
 import com.mithrilmania.blocktopograph.map.selection.Selection
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.io.BedrockNBTInput
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
+import com.mithrilmania.blocktopograph.nbt.io.NBTSource
 import com.mithrilmania.blocktopograph.nbt.io.readAnonymousTypedTag
+import com.mithrilmania.blocktopograph.ui.AppNavKey
+import com.mithrilmania.blocktopograph.ui.AppNavKey.NBTEditor
+import com.mithrilmania.blocktopograph.ui.screen.nbt.ConfirmationRequest
 import com.mithrilmania.blocktopograph.util.Signal
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
 import com.mithrilmania.blocktopograph.util.startsWith
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.KeyPrefix
+import com.mithrilmania.blocktopograph.world.NO_CACHE_OPTION
 import com.mithrilmania.blocktopograph.world.VanillaDimension
-import com.mithrilmania.blocktopograph.world.World
-import com.mithrilmania.blocktopograph.world.boxed
+import com.mithrilmania.blocktopograph.world.WorldStorage
+import com.mithrilmania.blocktopograph.world.access.WorldAccess
+import com.mithrilmania.blocktopograph.world.access.boxed
+import com.mithrilmania.blocktopograph.world.access.extractPlayerPos
+import com.mithrilmania.blocktopograph.world.access.resolveLocalPlayerPos
 import com.mithrilmania.blocktopograph.world.defaultMapTypeCompat
-import com.mithrilmania.blocktopograph.world.extractPlayerPos
-import com.mithrilmania.blocktopograph.world.resolveLocalPlayerPos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.iq80.leveldb.ReadOptions
 import ovh.plrapps.mapcompose.api.Camera
 import kotlin.math.sqrt
 
 class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     @JvmField
-    val pendingMovement: Channel<Camera> = Channel(onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val backStack = mutableStateListOf<AppNavKey>(AppNavKey.WorldList)
+
+    @JvmField
+    val modified = mutableStateOf(false)
+
+    @JvmField
+    val confirmation = mutableStateOf<ConfirmationRequest?>(null)
+
+    fun requestOrExecute(request: ConfirmationRequest) {
+        if (this.modified.value) {
+            this.confirmation.value = request
+        } else {
+            request.invoke()
+        }
+    }
+
+    fun checkAndOpenNBTEditor(
+        source: NBTSource,
+        config: NBTImportConfig
+    ) {
+        requestOrExecute {
+            val stack = backStack
+            if (stack.size > 1) {
+                stack[stack.lastIndex] = NBTEditor(source to config, crossfade = true)
+            } else {
+                stack.add(NBTEditor(source to config))
+            }
+        }
+    }
+
+    @JvmField
+    val pendingMovement: Channel<Camera> = Channel(Channel.CONFLATED)
 
     @JvmField
     val pendingIntent: Channel<Intent> = Channel()
@@ -69,7 +102,7 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     val showGrid: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
 
     @JvmField
-    val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+    val showMarkers: MutableLiveData<Boolean> = MutableLiveData<Boolean>(true)
 
     @JvmField
     val selection = object : Selection() {
@@ -110,9 +143,27 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
     var waitingJob by mutableStateOf(false)
         private set
     var longPressPos by mutableStateOf<LongPressPos?>(null)
+    var confirmCloseWorld by mutableStateOf(false)
+    var showOpenByNameDialog by mutableStateOf(false)
 
-    @JvmField
-    var editing: MutableState<ConfiguredNBTSource?> = mutableStateOf(null)
+    /**
+     * Set when a marker on the map is tapped, to show the marker options dialog.
+     */
+    var tappedMarker by mutableStateOf<AbstractMarker?>(null)
+
+    /**
+     * One-time notice encouraging the user to try map selection.
+     */
+    var showTrySelectionNotice by mutableStateOf(false)
+
+    /**
+     * One-time notice shown when too many markers are rendered on screen.
+     */
+    var showTooManyMarkersNotice by mutableStateOf(false)
+
+    var markerFilterVisible by mutableStateOf(false)
+
+    var createMarkerRequest by mutableStateOf<CreateMarkerRequest?>(null)
 
     fun cancelBlockingJob() {
         this.blockingJob.cancel()
@@ -154,19 +205,19 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
         this.picerState = fallback
     }
 
-    fun loadPlayers(world: World): Job {
+    fun loadPlayers(world: WorldAccess, storage: WorldStorage): Job {
         var loader = this.playerLoader
         if (loader.isActive) return loader
         loader = viewModelScope.launch(Dispatchers.IO) {
             val players = mutableListOf<Player>()
             try {
-                val localPlayerPos: DimensionVec3f? = world.resolveLocalPlayerPos(application)
+                val localPlayerPos: DimensionVec3f? = world.resolveLocalPlayerPos(storage)
                 if (localPlayerPos !== null) {
                     players.add(Player.localPlayer().apply {
                         position = localPlayerPos.boxed()
                     })
                 }
-                world.storage?.db?.iterator(ReadOptions().fillCache(false))
+                storage.db?.iterator(NO_CACHE_OPTION)
                     ?.use { iterator ->
                         val prefix = KeyPrefix.ONLINE_PLAYER.bytes
                         iterator.seek(prefix)
@@ -194,12 +245,12 @@ class WorldViewerModel(app: Application) : AndroidViewModel(app) {
         return loader
     }
 
-    fun loadMarkers(world: World): Job {
+    fun loadMarkers(world: WorldAccess): Job {
         var loader = this.markerLoader
         if (loader.isActive) return loader
         loader = viewModelScope.launch(Dispatchers.IO) {
             val markers: List<AbstractMarker> = try {
-                world.getMarkerManager().markers // TODO: use SAF
+                world.markers.listMarkers()
             } catch (_: Exception) {
                 // TODO log
                 emptyList()

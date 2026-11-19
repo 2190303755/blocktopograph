@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -21,13 +21,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.Insert
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.IntArrayTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.TAG_INT_ARRAY
+import com.mithrilmania.blocktopograph.nbt.toIntList
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
+import com.mithrilmania.blocktopograph.ui.screen.nbt.Insert
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.util.todoI18n
 import com.mithrilmania.blocktopograph.util.upcoming
 
 class IntArrayNode(
@@ -38,12 +40,9 @@ class IntArrayNode(
     override val type: Byte get() = TAG_INT_ARRAY
     override val canBeHeterogeneous: Boolean get() = false
     override fun makePath(child: String): String = "$path[$child]"
-    override fun toBinaryTag(): IntArrayTag {
-        val nodes = this.children
-        return IntArrayTag(
-            IntArray(nodes.size) { nodes[it].value }
-        )
-    }
+    override fun toBinaryTag(): IntArrayTag = IntArrayTag(
+        this.children.toIntList { it.value }
+    )
 
     override fun cast(node: NBTNode): IntNode? {
         when (node) {
@@ -64,17 +63,19 @@ class IntArrayNode(
 
     override fun buildNodes(
         tag: IntArrayTag
-    ): MutableList<IntNode> = tag.elements.mapIndexedTo(
-        mutableStateListOf()
-    ) { index, value ->
-        IntNode(this, index, value)
+    ): MutableList<IntNode> {
+        val nodes = mutableStateListOf<IntNode>()
+        tag.elements.forEachIndexed { index, element ->
+            nodes.add(IntNode(this, index, element))
+        }
+        return nodes
     }
 
     @Composable
     override fun icon() = painterResource(R.drawable.ic_tag_int_array)
 
     @Composable
-    override fun summary() = "${this.children.size}个元素" // TODO i18n
+    override fun summary() = "${this.children.size}个元素".todoI18n()
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -89,7 +90,7 @@ class IntArrayNode(
             val context = LocalContext.current
             BottomSheetActionButton(
                 icon = Icons.Filled.Search,
-                text = "查找", // TODO i18n
+                text = "查找".todoI18n(),
                 modifier = Modifier.weight(1.0F)
             ) {
                 context.upcoming()
@@ -104,7 +105,7 @@ class IntArrayNode(
                         this@IntArrayNode,
                         IntNode(
                             this@IntArrayNode,
-                            this@IntArrayNode.children.size,
+                            children.size,
                             0
                         )
                     )

@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import ovh.plrapps.mapcompose.ui.state.MapState
 import ovh.plrapps.mapcompose.ui.state.VisibleAreaPadding
 import ovh.plrapps.mapcompose.ui.state.ZoomPanState
@@ -359,30 +357,12 @@ suspend fun MapState.visibleArea(padding: IntOffset = IntOffset.Zero): VisibleAr
         awaitLayout()
         val width = (layoutSize.width + padding.x * 2) / scale
         val height = (layoutSize.height + padding.y * 2) / scale
-        val xLeft = cameraX - width / 2
-        val yTop = cameraY - height / 2
-        val xRight = cameraX + width
-        val yBottom = cameraY + height
+        val left = cameraX - width / 2
+        val top = cameraY - height / 2
+        val right = left + width
+        val bottom = top + height
 
-        visibleAreaMutex.withLock {
-            val area = visibleArea
-            if (area == null) {
-                visibleArea = VisibleArea(
-                    xLeft, yTop, xRight, yTop, xRight, yBottom, xLeft,
-                    yBottom
-                )
-            } else {
-                area._p1x = xLeft
-                area._p1y = yTop
-                area._p2x = xRight
-                area._p2y = yTop
-                area._p3x = xRight
-                area._p3y = yBottom
-                area._p4x = xLeft
-                area._p4y = yBottom
-            }
-            visibleArea as VisibleArea
-        }
+        VisibleArea(left, top, right, bottom)
     }
 }
 
@@ -410,38 +390,24 @@ suspend fun MapState.visibleAreaFlow(
  *    p4         p3
  * ```
  */
-data class VisibleArea(
-    internal var _p1x: Double,
-    internal var _p1y: Double,
-    internal var _p2x: Double,
-    internal var _p2y: Double,
-    internal var _p3x: Double,
-    internal var _p3y: Double,
-    internal var _p4x: Double,
-    internal var _p4y: Double,
-) {
-    val p1x: Double
-        get() = _p1x
-    val p1y: Double
-        get() = _p1y
-    val p2x: Double
-        get() = _p2x
-    val p2y: Double
-        get() = _p2y
-    val p3x: Double
-        get() = _p3x
-    val p3y: Double
-        get() = _p3y
-    val p4x: Double
-        get() = _p4x
-    val p4y: Double
-        get() = _p4y
-}
+typealias VisibleArea = BoundingBox
 
-/* Internally, we're working on a single VisibleArea instance, and we must ensure mutual exclusion
- * when creating the instance. */
-internal val visibleAreaMutex = Mutex()
-internal var visibleArea: VisibleArea? = null
+val VisibleArea.p1x: Double
+    get() = xLeft
+val VisibleArea.p1y: Double
+    get() = yTop
+val VisibleArea.p2x: Double
+    get() = xRight
+val VisibleArea.p2y: Double
+    get() = yTop
+val VisibleArea.p3x: Double
+    get() = xRight
+val VisibleArea.p3y: Double
+    get() = yBottom
+val VisibleArea.p4x: Double
+    get() = xLeft
+val VisibleArea.p4y: Double
+    get() = yBottom
 
 /**
  * Returns a flow which emits [MapState] whenever the viewport changes.

@@ -25,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -97,22 +96,21 @@ fun BlockStatesPreview(
     majorOnly: Boolean
 ) {
     var selecting by rememberSaveable { mutableIntStateOf(0) }
-    val context = LocalContext.current
     AnimatedContent(majorOnly) { mode ->
         if (mode) {
-            BlockStatePreview(states.major, context = context) { selecting = 1 }
+            BlockStatePreview(states.major) { selecting = 1 }
         } else {
             Column {
                 Text(
                     text = stringResource(R.string.map_edit_snr_fg_slot),
                     style = MaterialTheme.typography.bodySmall
                 )
-                BlockStatePreview(states.major, context = context) { selecting = 1 }
+                BlockStatePreview(states.major) { selecting = 1 }
                 Text(
                     text = stringResource(R.string.map_edit_snr_bg_slot),
                     style = MaterialTheme.typography.bodySmall
                 )
-                BlockStatePreview(states.minor, context = context) { selecting = 2 }
+                BlockStatePreview(states.minor) { selecting = 2 }
             }
         }
     }

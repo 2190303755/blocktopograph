@@ -6,40 +6,37 @@ import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.util.math.DimensionVector3;
+import com.mithrilmania.blocktopograph.world.StandaloneKey;
 
 import java.util.Objects;
 
+@Deprecated
 public class Player {
-
-    public static final String LOCAL_PLAYER_NAME = "~local_player";
-
-    private final boolean isLocal;
-    private String dbName;
+    private final String dbName;
     private DimensionVector3<Float> position;
 
-    private Player(boolean isLocal, String dbName) {
-        this.isLocal = isLocal;
+    private Player(String dbName) {
         this.dbName = dbName;
     }
 
     @NonNull
 
     public static Player localPlayer() {
-        return new Player(true, LOCAL_PLAYER_NAME);
+        return new Player(null);
     }
 
     @NonNull
-
     public static Player networkPlayer(String dbName) {
-        return new Player(false, dbName);
+        return new Player(dbName);
     }
 
     public boolean isLocal() {
-        return isLocal;
+        return this.dbName == null;
     }
 
     public String getDbName() {
-        return dbName;
+        var name = this.dbName;
+        return name == null ? StandaloneKey.LOCAL_PLAYER.literal : name;
     }
 
     public DimensionVector3<Float> getPosition() {

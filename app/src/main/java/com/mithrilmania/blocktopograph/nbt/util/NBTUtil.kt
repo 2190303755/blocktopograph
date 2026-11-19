@@ -2,54 +2,55 @@ package com.mithrilmania.blocktopograph.nbt.util
 
 import com.mithrilmania.blocktopograph.EMPTY_CHAR
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
-import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
 import com.mithrilmania.blocktopograph.nbt.CollectionTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
 import com.mithrilmania.blocktopograph.nbt.DoubleTag
 import com.mithrilmania.blocktopograph.nbt.FloatTag
-import com.mithrilmania.blocktopograph.nbt.IntArrayTag
 import com.mithrilmania.blocktopograph.nbt.IntTag
-import com.mithrilmania.blocktopograph.nbt.ListTag
-import com.mithrilmania.blocktopograph.nbt.LongArrayTag
 import com.mithrilmania.blocktopograph.nbt.LongTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.TAG_COMPOUND
 import com.mithrilmania.blocktopograph.nbt.TAG_END
-import com.mithrilmania.blocktopograph.nbt.io.SNBTStringReader
 import com.mithrilmania.blocktopograph.util.math.Vec3f
 import com.mithrilmania.blocktopograph.util.tryOrNull
 
+@JvmField
 val SIMPLE_VALUE: Regex = "[A-Za-z0-9._+-]+".toRegex()
 
 fun String.parseSNBT() = tryOrNull {
-    SNBTParser(SNBTStringReader(this)).parseRoot()
+    SNBTParser(this.reader()).parseRoot()
+}
+
+fun String.hexToCharCode(): Int {
+    val code = this.hexToInt()
+    if (Character.isValidCodePoint(code)) return code
+    throw IllegalArgumentException("Invalid code point $this")
 }
 
 fun StringBuilder.appendQuoted(text: String): StringBuilder {
     var quote = EMPTY_CHAR
-    val length = this.length
-    this.append(' ')
+    val leading = this.length
+    this.append(DOUBLE_QUOTE_CHAR)
     text.forEach { char ->
-        if (char == '\\') {
-            this.append('\\')
-        } else if (char == '"' || char == '\'') {
+        if (char == BACKSLASH_CHAR) {
+            this.append(BACKSLASH_CHAR)
+        } else if (char == DOUBLE_QUOTE_CHAR || char == SINGLE_QUOTE_CHAR) {
             if (quote == EMPTY_CHAR) {
-                quote = if (char == '"') '\'' else '"'
-            }
-            if (quote == char) {
-                this.append('\\')
+                quote = if (char == DOUBLE_QUOTE_CHAR) SINGLE_QUOTE_CHAR else DOUBLE_QUOTE_CHAR
+            } else if (quote == char) {
+                this.append(BACKSLASH_CHAR)
             }
         }
         this.append(char)
     }
-    if (quote == EMPTY_CHAR) {
-        quote = '"'
+    if (quote == SINGLE_QUOTE_CHAR) {
+        this.setCharAt(leading, SINGLE_QUOTE_CHAR)
+        return this.append(SINGLE_QUOTE_CHAR)
     }
-    this.setCharAt(length, quote)
-    return this.append(quote)
+    return this.append(DOUBLE_QUOTE_CHAR)
 }
 
 fun StringBuilder.appendSafeLiteral(
@@ -78,7 +79,7 @@ inline fun <T> StringBuilder.append(
     }
 }
 
-fun Char.isSafeLiteral() = when (this) {
+fun Char.isValidInLiteral() = when (this) {
     in '0'..'9',
     in 'A'..'Z',
     in 'a'..'z',
@@ -87,23 +88,20 @@ fun Char.isSafeLiteral() = when (this) {
     else -> false
 }
 
-fun BinaryTag.boxed(): CompoundTag {
+fun BinaryTag.ensureCompound(): CompoundTag {
     if (this is CompoundTag) return this
     val tags = hashMapOf<String, BinaryTag>()
     tags[""] = this
     return CompoundTag(tags)
 }
 
-fun CompoundTag.unbox(): BinaryTag? = if (this.size == 1) this[""] else null
+fun CompoundTag.unwrap(): BinaryTag? = if (this.size == 1) this[""] else null
 
-fun BinaryTag.unboxOrSelf(): BinaryTag = if (this is CompoundTag) (this.unbox() ?: this) else this
+fun BinaryTag.unwrapOrSelf(): BinaryTag = if (this is CompoundTag) (this.unwrap() ?: this) else this
 
 fun BinaryTag?.extracted(): BinaryTag? = when (this) {
-    is ByteArrayTag -> this.elements.firstOrNull()?.let(::ByteTag)
-    is IntArrayTag -> this.elements.firstOrNull()?.let(::IntTag)
-    is LongArrayTag -> this.elements.firstOrNull()?.let(::LongTag)
-    is ListTag -> this.firstOrNull()
-    is CompoundTag -> this.unbox()
+    is CompoundTag -> this.unwrap()
+    is CollectionTag<*> -> if (this.isEmpty()) null else this.getAsTag(0)
     else -> this
 }
 
@@ -151,13 +149,13 @@ fun CollectionTag<*>.resolveVec3f(): Vec3f? = if (this.size == 3) Vec3f(
 ) else null
 
 inline fun <T> List<T>.getHomogenousTypeId(typeId: (T) -> Byte): Byte {
-    var first = TAG_END
+    var homogenous = TAG_END
     this.forEach {
-        val type = typeId(it)
-        if (first != type) {
-            if (first != TAG_END) return TAG_COMPOUND
-            first = type
+        val current = typeId(it)
+        if (homogenous != current) {
+            if (homogenous != TAG_END) return TAG_COMPOUND
+            homogenous = current
         }
     }
-    return first
+    return homogenous
 }

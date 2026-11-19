@@ -8,20 +8,22 @@ import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
-import com.mithrilmania.blocktopograph.nbt.io.TagWithMeta
+import com.mithrilmania.blocktopograph.nbt.util.TagWithMeta
 import com.mithrilmania.blocktopograph.storage.File
 import com.mithrilmania.blocktopograph.util.APP_TAG
-import com.mithrilmania.blocktopograph.util.error
 import java.io.IOException
 
 class WorldConfig(
-    @JvmField val source: File
+    @JvmField val source: File,
+    context: Context
 ) : NBTSource {
+    @JvmField
+    val appContext: Context = context.applicationContext
     private var cache: CompoundTag? = null
 
-    suspend fun getCached(context: Context? = null): CompoundTag {
-        if (this.cache === null && context !== null) {
-            this@WorldConfig.readNBT(context, NBTImportConfigImpl())
+    suspend fun getCached(): CompoundTag {
+        if (this.cache === null) {
+            this.readNBT(this.appContext, NBTImportConfigImpl())
         }
         return this.cache ?: CompoundTag()
     }
@@ -30,7 +32,7 @@ class WorldConfig(
         val result = try {
             this.source.readNBT(context, config)
         } catch (e: IOException) {
-            e.error("Failed to read $source")
+            Log.e(APP_TAG, "Failed to read $source", e)
             return null
         }
         if (result?.tag is CompoundTag) {
@@ -53,9 +55,11 @@ class WorldConfig(
         }
     }
 
-    override fun resolveName(context: Context): String {
-        return this.source.resolveName(context)
-    }
+    override fun resolveName(context: Context): String =
+        this.source.resolveName(context)
+
+    override fun describeSource(): String =
+        this.source.describeSource()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -18,12 +18,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +37,10 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import com.mithrilmania.blocktopograph.R
 
+@JvmField
 val fadeInAndExpandVertically = fadeIn() + expandVertically()
+
+@JvmField
 val fadeOutAndShrinkVertically = fadeOut() + shrinkVertically()
 
 @Composable
@@ -98,7 +99,6 @@ fun Expander(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> Expander(
     title: String,
@@ -129,8 +129,8 @@ fun <T> Expander(
         )
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()),
-            exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()),
+            enter = fadeInAndExpandVertically,
+            exit = fadeOutAndShrinkVertically,
         ) {
             Column(
                 modifier = (if (selectable) Modifier.selectableGroup() else Modifier)

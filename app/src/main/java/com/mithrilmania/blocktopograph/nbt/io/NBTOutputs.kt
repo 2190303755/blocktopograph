@@ -5,20 +5,15 @@ import java.io.Closeable
 import java.io.DataOutput
 import java.io.DataOutputStream
 import java.io.OutputStream
+import java.io.UTFDataFormatException
 import java.lang.Double.doubleToLongBits
 import java.lang.Float.floatToIntBits
 
-interface NBTOutput : DataOutput, Closeable
-
-class JavaNBTOutput(
-    val stream: DataOutputStream
-) : NBTOutput, DataOutput by stream, Closeable by stream {
-    constructor(stream: OutputStream) : this(DataOutputStream(stream))
-}
+typealias JavaNBTOutput = DataOutputStream
 
 class BedrockNBTOutput(
-    val stream: OutputStream
-) : NBTOutput, Closeable by stream {
+    @JvmField val stream: OutputStream
+) : DataOutput, Closeable by stream {
     override fun write(b: Int) {
         this.stream.write(b)
     }
@@ -45,8 +40,7 @@ class BedrockNBTOutput(
     }
 
     override fun writeChar(v: Int) {
-        this.stream.write(v)
-        this.stream.write(v shr 8)
+        this.writeShort(v)
     }
 
     override fun writeInt(v: Int) {
@@ -75,22 +69,26 @@ class BedrockNBTOutput(
     }
 
     override fun writeBytes(s: String) {
+        val stream = this.stream
         s.forEach {
-            this.stream.write(it.code)
+            stream.write(it.code)
         }
     }
 
     override fun writeChars(s: String) {
+        val stream = this.stream
         s.forEach {
             val v = it.code
-            this.stream.write(v)
-            this.stream.write(v shr 8)
+            stream.write(v)
+            stream.write(v shr 8)
         }
     }
 
     override fun writeUTF(s: String) {
         val bytes = s.toByteArray(Charsets.UTF_8)
-        // TODO: check size
+        if (bytes.size > 65535) {
+            throw UTFDataFormatException("encoded string too long: ${bytes.size} bytes")
+        }
         this.writeShort(bytes.size)
         this.write(bytes)
     }

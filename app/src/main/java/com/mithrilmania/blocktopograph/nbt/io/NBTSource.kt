@@ -3,19 +3,21 @@ package com.mithrilmania.blocktopograph.nbt.io
 import android.content.Context
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.CompoundTag
+import com.mithrilmania.blocktopograph.nbt.util.TagWithMeta
 
 interface NBTSource {
     suspend fun readNBT(context: Context, config: NBTImportConfig): TagWithMeta?
     suspend fun saveNBT(context: Context, config: NBTExportConfig, name: String, tag: BinaryTag)
     fun resolveName(context: Context): String
+    fun describeSource(): String
     override fun equals(other: Any?): Boolean
 }
 
 class LocalPlayerSource(
-    val dat: NBTSource
+    @JvmField val dat: NBTSource
 ) : NBTSource, NBTImportConfig {
     override var format: NBTFormat = NBTFormat.LITTLE_ENDIAN
-    override var header: HeaderPresence = HeaderPresence.PRESENT
+    override var header: Boolean? = true
     override suspend fun readNBT(
         context: Context,
         config: NBTImportConfig
@@ -23,7 +25,7 @@ class LocalPlayerSource(
         val current = this.dat.readNBT(context, config)
         if (current === null) {
             this.format = NBTFormat.LITTLE_ENDIAN
-            this.header = HeaderPresence.PRESENT
+            this.header = true
         } else {
             if (current.tag is CompoundTag) {
                 val player = current.tag[KEY_LOCAL_PLAYER]
@@ -34,11 +36,7 @@ class LocalPlayerSource(
             } else {
                 NBTFormat.UNKNOWN
             }
-            this.header = if (current.version === null) {
-                HeaderPresence.UNCERTAIN
-            } else {
-                HeaderPresence.PRESENT
-            }
+            this.header = if (current.storageVersion === null) null else true
         }
         return null
     }
@@ -49,15 +47,18 @@ class LocalPlayerSource(
         name: String,
         tag: BinaryTag
     ) {
-        val current = this.dat.readNBT(context, this)
-        if (current?.tag is CompoundTag) {
-            current.tag[KEY_LOCAL_PLAYER] = tag
-            this.dat.saveNBT(context, config, current.name, current.tag)
+        val data = this.dat.readNBT(context, this)
+        if (data?.tag is CompoundTag) {
+            data.tag[KEY_LOCAL_PLAYER] = tag
+            this.dat.saveNBT(context, config, data.name, data.tag)
         }
     }
 
     override fun resolveName(context: Context): String =
         this.dat.resolveName(context) + " > $KEY_LOCAL_PLAYER"
+
+    override fun describeSource(): String =
+        this.dat.describeSource() + " > $KEY_LOCAL_PLAYER"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

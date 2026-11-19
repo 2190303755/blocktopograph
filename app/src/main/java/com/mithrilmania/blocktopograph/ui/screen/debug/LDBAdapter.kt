@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.test
+package com.mithrilmania.blocktopograph.ui.screen.debug
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState

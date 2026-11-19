@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.world.chunk
 import org.iq80.leveldb.DB
 import org.iq80.leveldb.ReadOptions
 
+@JvmField
 val DEFAULT_OPTION: ReadOptions = ReadOptions()
 
 fun indexAt(x: Int, z: Int): Int =
@@ -21,4 +22,13 @@ operator fun DB.get(
 ): ByteArray? {
     chunk[chunk.size - 1] = tag.dataID
     return this[chunk, options]
+}
+
+operator fun DB.set(
+    chunk: ByteArray,
+    tag: ChunkTag,
+    value: ByteArray
+) {
+    chunk[chunk.size - 1] = tag.dataID
+    this.put(chunk, value)
 }

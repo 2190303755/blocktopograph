@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.util.fastForEach
 import ovh.plrapps.mapcompose.core.ColorFilterProvider
 import ovh.plrapps.mapcompose.core.Tile
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
@@ -54,15 +55,13 @@ internal fun TileCanvas(
         withTransform({
             /* Geometric transformations seem to be applied in reversed order of declaration */
             translate(
-                left = size.width / 2.0F - ((zoomPanState.cameraX - refX) * zoomPanState.scale).toFloat(),
-                top = size.height / 2.0F - ((zoomPanState.cameraY - refY) * zoomPanState.scale).toFloat()
+                left = size.width * 0.5F - ((zoomPanState.cameraX - refX) * zoomPanState.scale).toFloat(),
+                top = size.height * 0.5F - ((zoomPanState.cameraY - refY) * zoomPanState.scale).toFloat()
             )
             scale(scale = zoomPanState.scale.toFloat(), Offset.Zero)
         }) {
-
-            for (tile in tilesToRender) {
-                if (tile.markedForSweep) continue
-                val bitmap = tile.bitmap ?: continue
+            tilesToRender.fastForEach { tile ->
+                val bitmap = tile.bitmap ?: return@fastForEach
                 val tileScaled = tileSize shl visibleTilesResolver.scaleShiftAtLevel(tile.zoom)
 
                 drawTile(
@@ -79,9 +78,6 @@ internal fun TileCanvas(
                 /* If a tile isn't fully opaque, increase its alpha state by the alpha tick */
                 if (tile.alpha < 1f) {
                     tile.alpha = (tile.alpha + alphaTick).coerceAtMost(1f)
-                } else {
-                    tile.overlaps?.markedForSweep = true
-                    tile.overlaps = null
                 }
             }
         }

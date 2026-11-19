@@ -11,27 +11,12 @@ import java.io.InputStream
 import java.lang.Double.longBitsToDouble
 import java.lang.Float.intBitsToFloat
 
-interface NBTInput : DataInput, Closeable
-
-class JavaNBTInput(
-    val stream: DataInputStream
-) : NBTInput, DataInput by stream, Closeable by stream {
-    constructor(stream: InputStream) : this(DataInputStream(stream))
-    constructor(bytes: ByteArray) : this(bytes.inputStream())
-}
+typealias JavaNBTInput = DataInputStream
 
 class BedrockNBTInput(
-    val stream: InputStream
-) : NBTInput, Closeable by stream {
+    @JvmField val stream: InputStream
+) : DataInput, Closeable by stream {
     constructor(bytes: ByteArray) : this(bytes.inputStream())
-
-    @Deprecated(
-        message = "Unsupported Operation",
-        replaceWith = ReplaceWith("java.io.BufferedReader")
-    )
-    override fun readLine(): Nothing {
-        throw UnsupportedOperationException()
-    }
 
     override fun readFully(b: ByteArray) {
         ByteStreams.readFully(this.stream, b)
@@ -107,5 +92,13 @@ class BedrockNBTInput(
         val b4 = this.readByte()
         val b3 = this.readByte()
         return ((b3.toInt() and 0xFF) shl 8) or (b4.toInt() and 0xFF)
+    }
+
+    @Deprecated(
+        message = "Unsupported Operation",
+        replaceWith = ReplaceWith("java.io.BufferedReader")
+    )
+    override fun readLine(): Nothing {
+        throw UnsupportedOperationException()
     }
 }

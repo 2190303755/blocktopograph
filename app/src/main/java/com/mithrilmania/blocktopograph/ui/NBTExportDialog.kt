@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt
+package com.mithrilmania.blocktopograph.ui
 
 import android.content.Context
 import androidx.activity.result.ActivityResultLauncher
@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.mithrilmania.blocktopograph.MIME_SNBT
 import com.mithrilmania.blocktopograph.MIME_TYPE_DEFAULT
+import com.mithrilmania.blocktopograph.MIME_TYPE_SNBT
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.nbt.io.NBTExportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
@@ -37,29 +37,29 @@ import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
 import com.mithrilmania.blocktopograph.util.FileCreator
 
 class NBTExportModel(
-    val source: NBTSource?,
-    val repick: Boolean,
+    @JvmField val source: NBTSource?,
+    @JvmField val repick: Boolean,
     stringify: Boolean,
     prettify: Boolean,
     heterogeneous: Boolean,
     compressed: Boolean,
     littleEndian: Boolean,
-    version: UInt?
+    version: Int?
 ) : NBTExportConfig {
     var attachHeader by mutableStateOf(version != null)
     var version by mutableStateOf(version)
     override var stringify by mutableStateOf(stringify)
     override var prettify by mutableStateOf(prettify)
     override var heterogeneous by mutableStateOf(heterogeneous)
-    override var compressed by mutableStateOf(compressed)
+    override var compress by mutableStateOf(compressed)
     override var littleEndian by mutableStateOf(littleEndian)
-    override val storageVersion: UInt?
+    override val storageVersion: Int?
         get() = if (this.attachHeader) this.version else null
 
     fun buildOptions(context: Context) = FileCreator.Options(
-        if (this.stringify) MIME_SNBT else MIME_TYPE_DEFAULT,
+        if (this.stringify) MIME_TYPE_SNBT else MIME_TYPE_DEFAULT,
         (this.source as? SAFFile)?.uri,
-        this.source?.resolveName(context) ?: ""
+        this.source?.resolveName(context)
     )
 }
 
@@ -72,14 +72,6 @@ fun NBTExportDialog(
     onDismiss: () -> Unit,
     onExport: (NBTSource) -> Unit
 ) {
-    val isHeaderAvailable = remember {
-        derivedStateOf {
-            exporter.version !== null
-                    && exporter.littleEndian
-                    && !exporter.stringify
-                    && !exporter.compressed
-        }
-    }.value
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = state
@@ -157,16 +149,24 @@ fun NBTExportDialog(
                             title = stringResource(R.string.dialog_storage_option_compression),
                             modifier = Modifier
                                 .toggleable(
-                                    value = exporter.compressed,
+                                    value = exporter.compress,
                                     role = Role.Switch,
-                                ) { exporter.compressed = it }
+                                ) { exporter.compress = it }
                                 .applyInfoBarPadding(horizontal = 32.dp)
                         ) {
                             Switch(
-                                checked = exporter.compressed,
+                                checked = exporter.compress,
                                 onCheckedChange = null
                             )
                         }
+                        val isHeaderAvailable = remember {
+                            derivedStateOf {
+                                exporter.version !== null
+                                        && exporter.littleEndian
+                                        && !exporter.stringify
+                                        && !exporter.compress
+                            }
+                        }.value
                         InfoBar(
                             title = stringResource(R.string.dialog_storage_option_header),
                             modifier = Modifier

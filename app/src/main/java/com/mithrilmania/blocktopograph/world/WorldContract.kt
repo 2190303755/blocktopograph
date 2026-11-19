@@ -2,11 +2,14 @@ package com.mithrilmania.blocktopograph.world
 
 import android.os.Environment
 
+const val CHUNK_DIMENSION = 16
+const val CHUNK_INDICES = CHUNK_DIMENSION - 1
 const val FILE_LEVEL_DAT = "level.dat"
 const val FILE_WORLD_ICON = "world_icon.jpeg"
 const val FILE_BEHAVIOR_PACKS = "world_behavior_packs.json"
 const val FILE_RESOURCE_PACKS = "world_resource_packs.json"
 const val FOLDER_DATABASE = "db"
+const val FILE_MARKERS = "markers.txt"
 const val KEY_GAME_MODE = "GameType"
 const val KEY_LEVEL_NAME = "LevelName"
 const val KEY_RANDOM_SEED = "RandomSeed"

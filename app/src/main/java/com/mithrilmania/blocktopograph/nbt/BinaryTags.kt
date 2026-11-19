@@ -30,6 +30,7 @@ sealed interface NumericTag : PrimitiveTag {
 sealed interface CollectionTag<T : BinaryTag> : BinaryTag {
     val elementTypeId: Byte
     val size: Int
+    fun isEmpty(): Boolean
     fun clear()
     fun getAsTag(index: Int): T
     fun setTag(index: Int, tag: BinaryTag): Boolean
@@ -46,11 +47,11 @@ object EndTag : BinaryTag, TagType<EndTag> {
     override val type: TagType<*> get() = this
     override fun toString() = "TAG_End"
     override fun copy(): EndTag = this
-    override fun transform(tag: BinaryTag): EndTag = EndTag
+    override fun transform(tag: BinaryTag): EndTag = this
     override fun read(
         input: DataInput,
         depth: Int
-    ): EndTag = EndTag
+    ): EndTag = this
 
     override fun write(output: DataOutput) {}
     override fun accept(visitor: TagVisitor) {}

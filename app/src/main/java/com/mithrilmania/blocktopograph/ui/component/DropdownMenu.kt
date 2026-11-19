@@ -19,7 +19,6 @@ import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -30,6 +29,7 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.MenuItemShapes
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -60,7 +60,7 @@ fun AppBarScope.clickableItem(
     }, label = label, enabled = enabled)
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 fun AppBarScope.cascadingMenu(
     icon: ImageVector,
     label: String,
@@ -132,12 +132,14 @@ fun DropdownMenuItem(
     label: String,
     enabled: Boolean = true,
     shape: Shape = MenuDefaults.standaloneItemShape,
+    colors: MenuItemColors = MenuDefaults.itemColors(),
     onClick: () -> Unit
 ) {
     DropdownMenuItem(
         onClick = onClick,
         text = { Text(label) },
         shape = shape,
+        colors = colors,
         leadingIcon = {
             Icon(
                 imageVector = icon,
@@ -165,10 +167,10 @@ fun DropdownMenuItem(
 }
 
 @Stable
+@JvmField
 val ItemContentPadding: PaddingValues =
     PaddingValues(horizontal = 12.dp, vertical = 0.dp) // 16 - 4
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> DropdownMenuChip(
     options: List<T>,
@@ -195,7 +197,6 @@ fun <T> DropdownMenuChip(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> DropdownMenuField(
     options: List<T>,
@@ -225,7 +226,6 @@ fun <T> DropdownMenuField(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ExposedDropdownMenu(
     options: List<T>,

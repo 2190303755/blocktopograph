@@ -14,8 +14,8 @@ import com.mithrilmania.blocktopograph.nbt.util.resolveVec3f
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.world.Dimension
-import com.mithrilmania.blocktopograph.world.World
 import com.mithrilmania.blocktopograph.world.WorldModel
+import com.mithrilmania.blocktopograph.world.access.WorldAccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -83,13 +83,13 @@ fun loadBlockEntityMarkers(
 }
 
 fun loadCustomMarkers(
-    world: World,
+    world: WorldAccess,
     chunkX: Int,
     chunkZ: Int,
     markers: MutableList<AbstractMarker>
 ) {
     runSuppressing {
-        markers.addAll(world.getMarkerManager().getMarkersOfChunk(chunkX, chunkZ))
+        markers.addAll(world.markers.getMarkersOfChunk(chunkX, chunkZ))
     }
 }
 
@@ -102,7 +102,7 @@ fun WorldModel.loadMarkers(
     dimension: Dimension
 ) {
     this.viewModelScope.launch(Dispatchers.IO) {
-        val storage = this@loadMarkers.world.storage ?: return@launch
+        val storage = this@loadMarkers.awaitStorage() ?: return@launch
         val markers = mutableListOf<AbstractMarker>()
         for (chunkX in minChunkX until maxChunkX) {
             for (chunkZ in minChunkZ until maxChunkZ) {

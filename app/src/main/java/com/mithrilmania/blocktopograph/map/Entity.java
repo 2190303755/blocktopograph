@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory;
 import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
 import java.io.IOException;
 
@@ -30,7 +29,7 @@ ___ Please attribute @mithrilmania for generating+updating this enum
     https://d1u5p3l4wpay3k.cloudfront.net/minecraft_gamepedia/4/40/EntityCSS.png
 
  */
-public enum Entity implements NamedBitmapProviderHandle, NamedBitmapProvider {
+public enum Entity implements NamedBitmapProvider {
     CHICKEN(10, "Chicken", new String[]{"Chicken", "chicken"}, "chicken", 4),
     COW(11, "Cow", new String[]{"Cow", "cow"}, "cow", 3),
     PIG(12, "Pig", new String[]{"Pig", "pig"}, "pig", 1),
@@ -173,12 +172,6 @@ public enum Entity implements NamedBitmapProviderHandle, NamedBitmapProvider {
             Entity.UNKNOWN.bitmap = Bitmap.createBitmap(24, 24, Bitmap.Config.RGB_565);
         }
         return Entity.UNKNOWN.bitmap;
-    }
-
-    @NonNull
-    @Override
-    public NamedBitmapProvider getNamedBitmapProvider() {
-        return this;
     }
 
     @NonNull

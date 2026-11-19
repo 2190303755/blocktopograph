@@ -1,11 +1,8 @@
 package com.mithrilmania.blocktopograph.ui
 
-import android.content.Context
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,12 +30,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
+import coil3.compose.AsyncImage
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.block.BlockTemplates
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
@@ -53,24 +49,19 @@ import java.util.stream.Collectors
 fun BlockStatePreview(
     state: BlockTemplate,
     modifier: Modifier = Modifier,
-    context: Context = LocalContext.current,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = OutlinedTextFieldDefaults.roundedShape,
     onSelect: (BlockTemplate) -> Unit
 ) {
     InfoBar(
         title = state.block.typeId,
         description = state.subName ?: state.block.typeId,
         icon = {
-            val icon = state.icon.getIcon(context)
-            if (icon === null) {
-                Spacer(Modifier.size(32.dp))
-            } else {
-                Image(
-                    bitmap = icon.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+            AsyncImage(
+                model = state.icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                filterQuality = FilterQuality.None
+            )
         },
         modifier = modifier
             .clickable { onSelect(state) }
@@ -83,7 +74,6 @@ fun BlockStatePreview(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PickBlockDialog(
     onCancel: () -> Unit,
@@ -133,7 +123,6 @@ fun BlockPicker(
                 }
             }
         }
-        val context = LocalContext.current
         LazyColumn(Modifier
             .sizeIn(maxHeight = 512.dp)
             .clip(MaterialTheme.shapes.medium)) {
@@ -141,7 +130,7 @@ fun BlockPicker(
                 items = templates,
                 key = { it.block.typeId + it.block.hashCode() }
             ) {
-                BlockStatePreview(it, Modifier.animateItem(), context, RectangleShape, onSelect)
+                BlockStatePreview(it, Modifier.animateItem(), RectangleShape, onSelect)
             }
         }
     }

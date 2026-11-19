@@ -9,9 +9,28 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.ScrollingView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+@Composable
+fun rememberBridgedLazyListState(
+    coroutineScope: CoroutineScope = rememberCoroutineScope()
+): LazyListState {
+    val state = rememberLazyListState()
+    AndroidView(
+        factory = ::ScrollableStateBridge,
+        onReset = ScrollableStateBridge::release,
+        onRelease = ScrollableStateBridge::release
+    ) {
+        it.bind(state, coroutineScope)
+    }
+    return state
+}
 
 /**
  * Adapter for HyperOS ScrollToTopListener
@@ -24,6 +43,12 @@ class ScrollableStateBridge(context: Context) : ViewGroup(context), ScrollingVie
         this.scrollableState = state
         this.coroutineScope = scope
     }
+
+    fun release() {
+        this.scrollableState = null
+        this.coroutineScope = null
+    }
+
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
 

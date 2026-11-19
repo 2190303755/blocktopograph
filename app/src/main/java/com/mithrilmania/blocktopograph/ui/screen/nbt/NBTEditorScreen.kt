@@ -1,12 +1,13 @@
-package com.mithrilmania.blocktopograph.editor.nbt
+package com.mithrilmania.blocktopograph.ui.screen.nbt
 
 import android.content.ClipData
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
@@ -14,41 +15,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
-import androidx.compose.foundation.text.input.KeyboardActionHandler
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -57,21 +39,19 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoveDown
 import androidx.compose.material.icons.filled.MoveUp
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AppBarRow
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SheetState
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
@@ -82,53 +62,49 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_NBT_FORMAT
+import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
+import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.node.CollectionNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.MapNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.RootNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.buildNode
-import com.mithrilmania.blocktopograph.editor.nbt.node.stringify
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
-import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
-import com.mithrilmania.blocktopograph.nbt.io.NBTSource
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.nbt.toTagType
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
 import com.mithrilmania.blocktopograph.nbt.util.getHomogenousTypeId
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.storage.SAFFile
-import com.mithrilmania.blocktopograph.ui.ScrollableStateBridge
+import com.mithrilmania.blocktopograph.storage.ShizukuFile
+import com.mithrilmania.blocktopograph.ui.AppNavKey
+import com.mithrilmania.blocktopograph.ui.AppNavKey.NBTEditor
+import com.mithrilmania.blocktopograph.ui.NBTExportDialog
+import com.mithrilmania.blocktopograph.ui.NBTImportDialog
+import com.mithrilmania.blocktopograph.ui.NBTImportModel
+import com.mithrilmania.blocktopograph.ui.NBTPickerDialog
+import com.mithrilmania.blocktopograph.ui.TagNameInputField
+import com.mithrilmania.blocktopograph.ui.TagPickerDialog
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.AllSheetValues
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
@@ -136,7 +112,6 @@ import com.mithrilmania.blocktopograph.ui.component.AnimatedExpanderIndicator
 import com.mithrilmania.blocktopograph.ui.component.DragHandleConsumedHeight
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuItem
 import com.mithrilmania.blocktopograph.ui.component.HiddenOrExpanded
-import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.component.TooltipBox
@@ -144,179 +119,58 @@ import com.mithrilmania.blocktopograph.ui.component.TopAppBar
 import com.mithrilmania.blocktopograph.ui.component.cascadingMenu
 import com.mithrilmania.blocktopograph.ui.component.clickableItem
 import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.CollectionNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.MapNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.NBTNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.RootNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.buildNode
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.stringify
 import com.mithrilmania.blocktopograph.util.FileCreator
 import com.mithrilmania.blocktopograph.util.collectText
+import com.mithrilmania.blocktopograph.util.toEnum
 import com.mithrilmania.blocktopograph.util.toast
-import com.mithrilmania.blocktopograph.util.upcoming
+import com.mithrilmania.blocktopograph.util.todoI18n
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-typealias ConfiguredNBTSource = Pair<NBTSource, NBTImportConfig>
-
-fun NBTEditorModel.saveAsync() {
-    val source = this.source
-    if (source === null) {
-        this.buildExporter()
+fun resolveNBTEditor(intent: Intent): NBTEditor? {
+    val extras = intent.extras ?: Bundle()
+    val uri = intent.data
+    val source = if (uri === null) {
+        ShizukuFile(extras.getString(EXTRA_PATH) ?: return null)
     } else {
-        this.viewModelScope.launch {
-            saveToFile(source)
-        }
+        SAFFile(uri)
     }
-}
-
-fun NBTEditorModel.confirmAction() {
-    (this.confirmation ?: return).invoke()
-    this.confirmation = null
-}
-
-fun NBTEditorModel.requestOrExecute(
-    request: ConfirmationRequest
-) {
-    if (this.modified) {
-        this.confirmation = request
-    } else {
-        request.invoke()
-    }
-}
-
-fun NBTEditorModel.reload() {
-    importer = NBTImportModel(
-        source = source ?: return,
-        header = if (storageVersion !== null || littleEndian) {
-            HeaderPresence.UNCERTAIN
-        } else {
-            HeaderPresence.ABSENT
-        },
-        format = if (stringify) {
-            NBTFormat.STRINGIFIED
-        } else if (littleEndian) {
-            NBTFormat.LITTLE_ENDIAN
-        } else {
-            NBTFormat.BIG_ENDIAN
-        }
+    val format = extras.getString(EXTRA_EDITOR_NBT_FORMAT)
+        ?.uppercase()
+        .toEnum(NBTFormat.UNKNOWN)
+    return NBTEditor(
+        source to NBTImportConfigImpl(
+            format,
+            if (format.isHeaderAvailable
+                && extras.getBoolean(EXTRA_EDITOR_DETECT_HEADER, true)
+            ) null else false
+        ),
+        extras.getBoolean(EXTRA_EDITOR_SKIP_IMPORTER, false)
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TagEditor(
-    sheetState: SheetState,
-    textFieldState: TextFieldState,
-    supportingText: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    isError: Boolean = false,
-    lineLimits: TextFieldLineLimits = TextFieldLineLimits.SingleLine,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    inputTransformation: InputTransformation? = null,
-    onAction: KeyboardActionHandler
+fun NBTEditorScreen(
+    spec: AppNavKey.NBTEditor,
+    onNew: () -> Unit,
+    onExit: () -> Unit,
+    factory: (Context) -> NBTEditorModel = { NBTEditorModel(it, spec) }
 ) {
-    Column(Modifier.verticalScroll(rememberScrollState())) {
-        val focusRequester = remember { FocusRequester() }
-        LaunchedEffect(sheetState.currentValue === SheetValue.Expanded) {
-            focusRequester.requestFocus()
-        }
-        OutlinedTextField(
-            state = textFieldState,
-            modifier = modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .focusProperties {
-                    canFocus = sheetState.currentValue === SheetValue.Expanded
-                }
-                .windowInsetsPadding(
-                    safeLayoutInsets()
-                        .only(WindowInsetsSides.Bottom)
-                        .union(WindowInsets.ime)
-                ),
-            shape = OutlinedTextFieldDefaults.roundedShape,
-            lineLimits = lineLimits,
-            isError = isError,
-            supportingText = supportingText,
-            keyboardOptions = keyboardOptions,
-            inputTransformation = inputTransformation,
-            onKeyboardAction = onAction,
-            trailingIcon = {
-                IconButton(Icons.Filled.Check) {
-                    onAction.onKeyboardAction {}
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun NBTSummary(
-    expandable: RootNode?,
-    icon: Painter,
-    key: String,
-    summary: String,
-    modifier: Modifier
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(painter = icon, contentDescription = null)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = key,
-                style = MaterialTheme.typography.labelMedium
-            )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        if (expandable !== null) {
-            AnimatedExpanderIndicator(
-                expandable.expanded,
-                SplitButtonDefaults.TrailingIconSize
-            )
-        }
-    }
-}
-
-@Composable
-fun NBTEditingHost(
-    source: MutableState<ConfiguredNBTSource?>,
-    editor: NBTEditorModel = viewModel<NBTEditorModel>(),
-    content: @Composable () -> Unit
-) {
-    Crossfade(
-        targetState = source.value,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (it === null) {
-            content()
-        } else {
-            val onBack: () -> Unit = {
-                source.value = null
-                editor.navigation = null
-                editor.reset(false)
-            }
-            BackHandler(true, onBack)
-            NBTEditor(Modifier, editor, onBack)
-            LaunchedEffect(it) {
-                editor.navigation = it
-            }
-        }
-    }
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-fun NBTEditor(
-    modifier: Modifier = Modifier,
-    editor: NBTEditorModel = viewModel(),
-    onExit: ConfirmationRequest
-) {
+    val context = LocalContext.current
+    val editor = viewModel { factory(context) }
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) callback@{
         editor.importer = NBTImportModel(SAFFile(it ?: return@callback))
     }
-    val context = LocalContext.current
     val creator = rememberLauncherForActivityResult(FileCreator) callback@{
         val file = SAFFile(it ?: return@callback)
         editor.viewModelScope.launch {
@@ -328,19 +182,18 @@ fun NBTEditor(
         editor.confirmation = onExit
     }
     if (editor.confirmation !== null) {
-        // TODO i18n
         AlertDialog(
             onDismissRequest = {
                 editor.confirmation = null
             },
-            title = { Text("更改未保存") },
+            title = { Text("更改未保存".todoI18n()) },
             neutralButton = {
-                TextButton("继续编辑") {
+                TextButton("继续编辑".todoI18n()) {
                     editor.confirmation = null
                 }
             },
             positiveButton = {
-                TextButton("保存") {
+                TextButton(stringResource(R.string.action_file_save)) {
                     val source = editor.source
                     if (source === null) {
                         editor.buildExporter()
@@ -353,12 +206,12 @@ fun NBTEditor(
                 }
             },
             negativeButton = {
-                TextButton("不保存") {
+                TextButton("不保存".todoI18n()) {
                     editor.confirmAction()
                 }
             }
         ) {
-            Text("如果不保存，您的更改将丢失")
+            Text("如果不保存，您的更改将丢失".todoI18n())
         }
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -445,12 +298,12 @@ fun NBTEditor(
                                         SplitButtonDefaults.TonalLeadingButton(onClick = {
                                             coroutineScope.launch {
                                                 clipboard.setClipEntry(
-                                                    ClipEntry(
-                                                        ClipData.newPlainText(
-                                                            null,
+                                                    ClipData.newPlainText(
+                                                        null,
+                                                        withContext(Dispatchers.Default) {
                                                             focused.stringify()
-                                                        )
-                                                    )
+                                                        }
+                                                    ).toClipEntry()
                                                 )
                                             }
                                         }) {
@@ -462,14 +315,15 @@ fun NBTEditor(
                                         }
                                     },
                                     trailingButton = {
-                                        TooltipBox("Options") { tooltip -> // TODO i18n
+                                        TooltipBox("Options".todoI18n()) { tooltip ->
                                             SplitButtonDefaults.TonalTrailingButton(
                                                 checked = showActions,
                                                 onCheckedChange = { showActions = it },
                                                 modifier =
                                                     Modifier.semantics {
                                                         stateDescription =
-                                                            if (showActions) "Expanded" else "Collapsed"
+                                                            (if (showActions) "Expanded" else "Collapsed")
+                                                                .todoI18n()
                                                         contentDescription = tooltip
                                                     },
                                             ) {
@@ -609,9 +463,8 @@ fun NBTEditor(
                 }
             }
         },
-        modifier = modifier,
         scaffoldState = scaffoldState,
-        sheetPeekHeight = with(LocalDensity.current) {
+        sheetPeekHeight = LocalDensity.current.run {
             cutout.getBottom(this).toDp()
         } + DragHandleConsumedHeight,
         sheetDragHandle = null,
@@ -630,7 +483,7 @@ fun NBTEditor(
                         Text(
                             stringResource(
                                 R.string.activity_nbt_editor_subtitle,
-                                version.toLong()
+                                version.toUInt().toLong()
                             )
                         )
                     }
@@ -640,13 +493,13 @@ fun NBTEditor(
                     AppBarRow(maxItemCount = 4) {
                         clickableItem(
                             Icons.AutoMirrored.Filled.Undo,
-                            "Undo", // TODO: i18n
+                            "Undo".todoI18n(),
                             editor.undo.isNotEmpty(),
                             editor::performUndo
                         )
                         clickableItem(
                             Icons.AutoMirrored.Filled.Redo,
-                            "Redo", // TODO: i18n
+                            "Redo".todoI18n(),
                             editor.redo.isNotEmpty(),
                             editor::performRedo
                         )
@@ -658,9 +511,7 @@ fun NBTEditor(
                                 resources.getString(R.string.action_file_create),
                                 shape = MenuDefaults.leadingItemShape
                             ) {
-                                editor.requestOrExecute {
-                                    editor.reset(true)
-                                }
+                                editor.requestOrExecute(onNew)
                                 showMenu.value = false
                             }
                             DropdownMenuItem(resources.getString(R.string.action_file_open)) {
@@ -697,9 +548,9 @@ fun NBTEditor(
                         clickableItem(
                             Icons.Filled.Info,
                             resources.getString(R.string.action_file_info),
-                            false
+                            editor.source !== null
                         ) {
-                            context.upcoming()
+                            editor.showProperties = true
                         }
                         clickableItem(
                             Icons.AutoMirrored.Filled.ExitToApp,
@@ -810,6 +661,50 @@ fun NBTEditor(
             }
         }
     }
+    if (editor.showProperties) {
+        editor.source?.let { source ->
+            val onDismissRequest = {
+                editor.showProperties = false
+            }
+            AlertDialog(
+                onDismissRequest = onDismissRequest,
+                title = {
+                    Text(stringResource(R.string.action_file_info))
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+                        SegmentedListItem(
+                            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 3),
+                            supportingContent = {
+                                SelectionContainer {
+                                    Text(source.describeSource())
+                                }
+                            }
+                        ) { Text("数据源".todoI18n()) }
+                        SegmentedListItem(
+                            shapes = ListItemDefaults.segmentedShapes(index = 1, count = 3),
+                            supportingContent = {
+                                Text(
+                                    if (editor.stringify) "SNBT".todoI18n()
+                                    else if (editor.littleEndian) "小端序".todoI18n()
+                                    else "大端序".todoI18n()
+                                )
+                            }
+                        ) { Text("格式".todoI18n()) }
+                        SegmentedListItem(
+                            shapes = ListItemDefaults.segmentedShapes(index = 2, count = 3),
+                            supportingContent = {
+                                Text(if (editor.compress) "是".todoI18n() else "否".todoI18n())
+                            }
+                        ) { Text("压缩".todoI18n()) }
+                    }
+                },
+                confirmButton = {
+                    TextButton(stringResource(android.R.string.ok), onClick = onDismissRequest)
+                }
+            )
+        }
+    }
     AnimatedBottomSheetDialog(
         targetState = editor.exporter,
         enabledValues = HiddenOrExpanded
@@ -836,84 +731,6 @@ fun NBTEditor(
         ) {
             editor.viewModelScope.launch {
                 editor.readFromFile(importer.source, importer)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
-@Composable
-fun NBTTree(
-    padding: PaddingValues,
-    editor: NBTEditorModel,
-    sheetState: SheetState,
-    modifier: Modifier
-) {
-    Box(modifier) {
-        AnimatedVisibility(
-            visible = editor.flattening,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .zIndex(1.0F)
-                .padding(top = padding.calculateTopPadding())
-        ) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-        val itemShape = MaterialTheme.shapes.small
-        val coroutineScope = rememberCoroutineScope()
-        val listState = rememberLazyListState()
-        AndroidView(::ScrollableStateBridge) {
-            it.bind(listState, coroutineScope)
-        }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .horizontalScroll(rememberScrollState()),
-            state = listState,
-            contentPadding = padding
-        ) {
-            items(
-                items = editor.nodes,
-                key = { it.uid },
-                contentType = { it.type },
-            ) { node ->
-                val indent = Modifier
-                    .padding(start = (node.depth * 32 - 16).dp)
-                NBTSummary(
-                    expandable = node as? RootNode,
-                    icon = node.icon(),
-                    key = node.key.toString(),
-                    summary = node.summary(),
-                    modifier = (if (node === editor.focused) indent.background(
-                        MaterialTheme.colorScheme.tertiaryContainer,
-                        itemShape
-                    ) else indent)
-                        .clip(itemShape)
-                        .clickable {
-                            val isFocused = editor.focused === node
-                            if (node is RootNode && node.parent is NBTNode) {
-                                val expanded = !node.expanded
-                                if (expanded) {
-                                    editor.expandNode(node)
-                                    node.expanded = true
-                                } else if (isFocused) {
-                                    editor.collapsesNode(node)
-                                    node.expanded = false
-                                }
-                            }
-                            editor.focused = node
-                            if (isFocused) {
-                                coroutineScope.launch {
-                                    sheetState.expand()
-                                }
-                            }
-                        }
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                        .animateItem()
-                )
             }
         }
     }

@@ -43,25 +43,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DEFAULT_FORMAT
-import com.mithrilmania.blocktopograph.EXTRA_EDITOR_DETECT_HEADER
-import com.mithrilmania.blocktopograph.EXTRA_EDITOR_SKIP_IMPORTER
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorActivity
-import com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorActivity
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
+import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfigImpl
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.util.toast
+import com.mithrilmania.blocktopograph.util.todoI18n
 import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.WorldDetail
+import com.mithrilmania.blocktopograph.world.applyTo
 import kotlinx.coroutines.launch
 import java.util.Date
 import com.mithrilmania.blocktopograph.editor.world.WorldEditorActivity as OldWorldEditorActivity
@@ -126,14 +124,14 @@ fun CopyableWorldDetailEntry(
             val context = LocalContext.current
             Modifier.clickable {
                 coroutineScope.launch {
-                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
+                    clipboard.setClipEntry(ClipData.newPlainText(label, content).toClipEntry())
                     context.toast(R.string.toast_copy_success)
                 }
             }
         } else {
             Modifier.clickable {
                 coroutineScope.launch {
-                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, content)))
+                    clipboard.setClipEntry(ClipData.newPlainText(label, content).toClipEntry())
                 }
             }
         },
@@ -141,21 +139,18 @@ fun CopyableWorldDetailEntry(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalGridApi::class)
+@OptIn(ExperimentalGridApi::class)
 @Composable
-fun WorldDetailDialog(
+fun WorldDetailDialogContent(
     detail: WorldDetail,
-    state: SheetState,
-    onDismiss: () -> Unit
+    onNavigate: (AppNavKey) -> Unit,
+    onLoad: () -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = state
-    ) {
+    Column {
         val context = LocalContext.current
         Column(
             modifier = Modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .weight(1.0F, false)
                 .verticalScroll(rememberScrollState()),
@@ -240,7 +235,7 @@ fun WorldDetailDialog(
                 )
                 WorldDetailEntry(
                     Icons.Filled.PhotoLibrary,
-                    "资源包",
+                    "资源包".todoI18n(),
                     detail.resources.toString(),
                     modifier = Modifier.clickable {
                         context.upcoming()
@@ -249,7 +244,7 @@ fun WorldDetailDialog(
                 )
                 WorldDetailEntry(
                     Icons.AutoMirrored.Filled.LibraryBooks,
-                    "行为包",
+                    "行为包".todoI18n(),
                     detail.behaviors.toString(),
                     modifier = Modifier.clickable {
                         context.upcoming()
@@ -259,38 +254,44 @@ fun WorldDetailDialog(
             }
         }
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             BottomSheetActionButton(
                 text = stringResource(R.string.edit_config),
                 modifier = Modifier.weight(1.0F)
             ) {
-                context.startActivity(
-                    detail.config.applyTo(
-                        Intent(
-                            context,
-                            NBTEditorActivity::class.java
-                        ).setAction(Intent.ACTION_VIEW)
-                            .putExtra(EXTRA_EDITOR_DEFAULT_FORMAT, NBTFormat.LITTLE_ENDIAN.name)
-                            .putExtra(EXTRA_EDITOR_DETECT_HEADER, true)
-                            .putExtra(EXTRA_EDITOR_SKIP_IMPORTER, true)
+                onNavigate(
+                    AppNavKey.NBTEditor(
+                        detail.config.toFile() to NBTImportConfigImpl(
+                            NBTFormat.LITTLE_ENDIAN,
+                            true
+                        )
                     )
                 )
             }
             BottomSheetActionButton(
                 text = stringResource(R.string.edit_world),
-                modifier = Modifier.weight(1.0F)
-            ) {
-                context.startActivity(
-                    detail.applyTo(
-                        Intent(
-                            context,
-                            WorldEditorActivity::class.java
-                        )
-                    )
-                )
-            }
+                modifier = Modifier.weight(1.0F),
+                onClick = onLoad
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WorldDetailDialog(
+    detail: WorldDetail,
+    state: SheetState,
+    onNavigate: (AppNavKey) -> Unit,
+    onDismiss: () -> Unit,
+    onLoad: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = state
+    ) {
+        WorldDetailDialogContent(detail, onNavigate, onLoad)
     }
 }

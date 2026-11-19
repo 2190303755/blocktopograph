@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,7 +27,7 @@ import java.util.Map;
  * <p>
  * --- Please attribute @mithrilmania for generating+updating this enum
  */
-public enum KnownBlockRepr implements NamedBitmapProviderHandle, NamedBitmapProvider {
+public enum KnownBlockRepr implements NamedBitmapProvider {
     /*
      * ==============================
      *       Blocks
@@ -1271,12 +1270,6 @@ public enum KnownBlockRepr implements NamedBitmapProviderHandle, NamedBitmapProv
     @Override
     public Bitmap getBitmap() {
         return this.bitmap;
-    }
-
-    @NonNull
-    @Override
-    public NamedBitmapProvider getNamedBitmapProvider() {
-        return this;
     }
 
     @NonNull

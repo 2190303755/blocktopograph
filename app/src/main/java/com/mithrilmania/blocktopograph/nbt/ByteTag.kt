@@ -7,7 +7,7 @@ import java.io.DataOutput
 
 @JvmInline
 value class ByteTag(@JvmField val value: Byte) : NumericTag {
-    constructor(boolean: Boolean) : this(if (boolean) 0.toByte() else 1.toByte())
+    constructor(boolean: Boolean) : this(if (boolean) 1.toByte() else 0.toByte())
     override val type: Type get() = Type
     override fun toNumber(): Byte = this.value
     override fun toByte(): Byte = this.value

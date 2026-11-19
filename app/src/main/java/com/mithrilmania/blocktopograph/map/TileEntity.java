@@ -7,13 +7,12 @@ import androidx.annotation.NonNull;
 
 import com.mithrilmania.blocktopograph.block.ListingBlock;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
 import java.util.HashMap;
 import java.util.Map;
 
 
-public enum TileEntity implements NamedBitmapProviderHandle, NamedBitmapProvider {
+public enum TileEntity implements NamedBitmapProvider {
 
     CHEST(0, "Chest", "Chest", ListingBlock.B_54_CHEST),
     TRAPPED_CHEST(1, "Trapped Chest", "TrappedChest", ListingBlock.B_146_TRAPPED_CHEST),
@@ -72,12 +71,6 @@ public enum TileEntity implements NamedBitmapProviderHandle, NamedBitmapProvider
     @Override
     public Bitmap getBitmap() {
         return icon;
-    }
-
-    @NonNull
-    @Override
-    public NamedBitmapProvider getNamedBitmapProvider() {
-        return this;
     }
 
     @NonNull

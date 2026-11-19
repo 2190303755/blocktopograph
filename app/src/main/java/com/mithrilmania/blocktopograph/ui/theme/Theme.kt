@@ -1,16 +1,13 @@
 package com.mithrilmania.blocktopograph.ui.theme
 
 import android.os.Build
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -29,17 +26,8 @@ fun BlocktopographCompatTheme(
         else -> lightColorScheme()
     }
 
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         content = content
     )
-}
-
-fun ComponentActivity.setThemedContent(
-    parent: CompositionContext? = null,
-    content: @Composable () -> Unit
-) {
-    this.setContent(parent) {
-        BlocktopographCompatTheme(content = content)
-    }
 }

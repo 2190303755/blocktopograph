@@ -1,32 +1,44 @@
 package com.mithrilmania.blocktopograph.registry
 
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
-import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import androidx.compose.ui.util.fastForEachIndexed
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap
 import java.util.concurrent.ConcurrentHashMap
 
-class NamedRegistry<T : Any> {
-    private val byId = ObjectArrayList<T>()
-    private val toId = Object2IntOpenHashMap<T>()
-    private val byName = ConcurrentHashMap<String, T>()
+fun <T : NamedEntry> NamedRegistryFactory(builtin: List<T>): NamedRegistryFactory<T> {
+    val size = builtin.size
+    val toId = Reference2IntOpenHashMap<T>(size)
+    val byName = Object2ObjectOpenHashMap<String, T>(builtin.size)
+    toId.defaultReturnValue(-1)
+    builtin.fastForEachIndexed { numericId, entry ->
+        toId.put(entry, numericId)
+        byName[entry.identifier] = entry
+    }
+    return NamedRegistryFactory(builtin, toId, byName)
+}
 
-    init {
-        this.toId.defaultReturnValue(-1)
+class NamedRegistryFactory<T : NamedEntry> internal constructor(
+    private val byId: List<T>,
+    private val toId: Reference2IntOpenHashMap<T>,
+    private val byName: Object2ObjectOpenHashMap<String, T>
+) {
+    fun create() = NamedRegistry(this.byId, this.toId, this.byName)
+}
+
+
+class NamedRegistry<T : NamedEntry> internal constructor(
+    builtin: List<T>,
+    builtinToId: Reference2IntOpenHashMap<T>,
+    private val builtinByName: Object2ObjectOpenHashMap<String, T>
+) : Registry<T>(builtin, builtinToId) {
+    private val dynamicByName: ConcurrentHashMap<String, T> = ConcurrentHashMap()
+
+    override fun onRegister(entry: T) {
+        val old = this.dynamicByName.putIfAbsent(entry.identifier, entry)
+        require(old === null || old == entry)
     }
 
-    @Synchronized
-    operator fun set(identifier: String, value: T) {
-        val old = this.byName.putIfAbsent(identifier, value)
-        require(old === null || old == value)
-        this.byName[identifier] = value
-        val index = this.byId.size
-        this.byId.add(value)
-        this.toId.put(value, index)
+    operator fun get(identifier: String): T? {
+        return this.builtinByName[identifier] ?: this.dynamicByName[identifier]
     }
-
-    operator fun get(identifier: String): T? = this.byName[identifier]
-
-    operator fun get(runtimeId: Int): T? = this.byId.getOrNull(runtimeId)
-
-    @Synchronized
-    operator fun get(value: T): Int = this.toId.getInt(value)
 }

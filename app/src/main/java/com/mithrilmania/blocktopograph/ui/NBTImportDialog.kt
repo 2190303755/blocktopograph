@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt
+package com.mithrilmania.blocktopograph.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,10 +11,10 @@ import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mithrilmania.blocktopograph.nbt.io.HeaderPresence
 import com.mithrilmania.blocktopograph.nbt.io.NBTFormat
 import com.mithrilmania.blocktopograph.nbt.io.NBTImportConfig
 import com.mithrilmania.blocktopograph.nbt.io.NBTSource
@@ -22,11 +22,12 @@ import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.DropdownMenuChip
 import com.mithrilmania.blocktopograph.ui.component.InfoBar
 import com.mithrilmania.blocktopograph.ui.component.applyInfoBarPadding
+import com.mithrilmania.blocktopograph.util.todoI18n
 
 class NBTImportModel(
     val source: NBTSource,
     format: NBTFormat = NBTFormat.UNKNOWN,
-    header: HeaderPresence = HeaderPresence.UNCERTAIN,
+    header: Boolean? = null,
 ) : NBTImportConfig {
     override var format by mutableStateOf(format)
     override var header by mutableStateOf(header)
@@ -50,7 +51,7 @@ fun NBTImportDialog(
                 .verticalScroll(rememberScrollState())
         ) {
             InfoBar(
-                title = "格式",
+                title = "格式".todoI18n(),
                 modifier = Modifier.applyInfoBarPadding(horizontal = 32.dp)
             ) {
                 DropdownMenuChip(
@@ -63,30 +64,30 @@ fun NBTImportDialog(
                         NBTFormat.BIG_ENDIAN -> "大端序"
                         NBTFormat.LITTLE_ENDIAN -> "小端序"
                         else -> "未知"
-                    }
+                    }.todoI18n()
                 }
             }
             InfoBar(
-                title = "标头",
+                title = "标头".todoI18n(),
                 modifier = Modifier
                     .applyInfoBarPadding(horizontal = 32.dp)
             ) {
                 DropdownMenuChip(
-                    options = HeaderPresence.entries,
-                    selected = if (importer.format.isHeaderAvailable) importer.header else HeaderPresence.ABSENT,
+                    options = remember { listOf(null, false, true) },
+                    selected = if (importer.format.isHeaderAvailable) importer.header else false,
                     onSelect = { importer.header = it },
                     enabled = importer.format.isHeaderAvailable
                 ) {
                     when (it) {
-                        HeaderPresence.ABSENT -> "不存在"
-                        HeaderPresence.PRESENT -> "存在"
+                        true -> "存在"
+                        false -> "不存在"
                         else -> "自动检测"
-                    }
+                    }.todoI18n()
                 }
             }
         }
         BottomSheetActionButton(
-            text = "导入",
+            text = "导入".todoI18n(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp),

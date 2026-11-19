@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt
+package com.mithrilmania.blocktopograph.ui
 
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -9,8 +9,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -38,7 +36,6 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.EndTag
 import com.mithrilmania.blocktopograph.nbt.KINDS_OF_SELECTABLE_TAGS
@@ -46,6 +43,7 @@ import com.mithrilmania.blocktopograph.nbt.TAG_END
 import com.mithrilmania.blocktopograph.nbt.toTagType
 import com.mithrilmania.blocktopograph.nbt.util.parseSNBT
 import com.mithrilmania.blocktopograph.ui.component.PastableDialog
+import com.mithrilmania.blocktopograph.ui.screen.nbt.node.NBTNode
 import com.mithrilmania.blocktopograph.util.collectText
 
 fun MutableIntState.transform(pasted: BinaryTag, source: NBTNode? = null): BinaryTag =
@@ -53,7 +51,6 @@ fun MutableIntState.transform(pasted: BinaryTag, source: NBTNode? = null): Binar
         if (source === null || pasted !== EndTag) pasted else source.toBinaryTag()
     )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TagTypePicker(
     type: MutableIntState,
@@ -130,7 +127,9 @@ fun TagNameInputField(
             Text(if (duplicate.value) stringResource(R.string.error_duplicate_key) else "")
         },
         onKeyboardAction = {
-            validator(name.text)
+            val isDuplicate = validator(name.text)
+            duplicate.value = isDuplicate
+            if (!isDuplicate) it()
         }
     )
 }

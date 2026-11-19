@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.painter.Painter
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.BinaryTag
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
 import com.mithrilmania.blocktopograph.nbt.ByteTag
@@ -26,9 +25,8 @@ import com.mithrilmania.blocktopograph.nbt.ShortTag
 import com.mithrilmania.blocktopograph.nbt.StringTag
 import com.mithrilmania.blocktopograph.nbt.util.NBTStringifier
 import com.mithrilmania.blocktopograph.nbt.util.appendSafeLiteral
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.ExperimentalExtendedContracts
 
 private val UID: AtomicInteger = AtomicInteger()
 
@@ -170,7 +168,6 @@ fun NBTNode.visit(action: (NBTNode) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalContracts::class, ExperimentalExtendedContracts::class)
 fun BinaryTag.buildNode(
     parent: RootLike,
     key: Any

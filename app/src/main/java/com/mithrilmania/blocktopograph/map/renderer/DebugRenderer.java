@@ -1,6 +1,6 @@
 package com.mithrilmania.blocktopograph.map.renderer;
 
-import static com.mithrilmania.blocktopograph.editor.world.v2.WorldEditorModelKt.CHUNK_DIMENSION;
+import static com.mithrilmania.blocktopograph.world.WorldContractKt.CHUNK_DIMENSION;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;

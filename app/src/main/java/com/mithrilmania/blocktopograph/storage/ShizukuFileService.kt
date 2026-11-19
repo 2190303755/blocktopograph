@@ -4,11 +4,14 @@ import android.content.Context
 import android.os.ParcelFileDescriptor
 import android.os.RemoteException
 import androidx.annotation.Keep
+import androidx.compose.ui.util.fastCoerceAtLeast
 import com.mithrilmania.blocktopograph.IFileService
 import com.mithrilmania.blocktopograph.IWorldCallback
 import com.mithrilmania.blocktopograph.ParcelFileMetadata
+import com.mithrilmania.blocktopograph.PreparedWorkspace
 import com.mithrilmania.blocktopograph.util.runSuppressing
 import com.mithrilmania.blocktopograph.util.size
+import com.mithrilmania.blocktopograph.util.tryOrNull
 import com.mithrilmania.blocktopograph.world.FILE_BEHAVIOR_PACKS
 import com.mithrilmania.blocktopograph.world.FILE_LEVEL_DAT
 import com.mithrilmania.blocktopograph.world.FILE_RESOURCE_PACKS
@@ -18,9 +21,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.iq80.leveldb.impl.Filename
 import org.json.JSONArray
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -30,9 +35,11 @@ import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.system.exitProcess
 
-class FileService() : IFileService.Stub() {
+class ShizukuFileService() : IFileService.Stub() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     /**
@@ -71,7 +78,7 @@ class FileService() : IFileService.Stub() {
                         config,
                         ParcelFileDescriptor.MODE_READ_WRITE
                     )
-                    callback.onWorldSubmit(folderPath, datFd, null)
+                    callback.onWorldSubmit(folderPath, datFd)
                 } catch (_: RemoteException) {
                     datFd?.close()
                 }
@@ -116,17 +123,112 @@ class FileService() : IFileService.Stub() {
         File(src).copyRecursively(File(dest))
     }
 
+    override fun mergeDB(world: String, db: String): String? {
+        val worldDir = File(world)
+        val neo = File(db)
+        if (!worldDir.isDirectory || !neo.isDirectory) return null
 
-    override fun prepareDB(cache: String, world: String): String? {
+        val old = File(worldDir, FOLDER_DATABASE)
+        var backup = File(old.parentFile, "${old.name}-bak")
+        var duplicate = 0
+        while (backup.exists()) {
+            backup = File(old.parentFile, "${old.name}-bak(${++duplicate})")
+        }
+
+        // Try to write the db back in place by swapping the old folder.
+        val moved = runCatching {
+            Files.move(old.toPath(), backup.toPath(), ATOMIC_MOVE)
+        }.isSuccess
+
+        if (moved) {
+            val copied = runCatching {
+                neo.copyRecursively(old)
+                File(old, Filename.currentFileName()).isFile
+            }.getOrDefault(false)
+
+            if (copied) {
+                backup.deleteRecursively()
+                return null
+            }
+
+            // Roll back the failed in-place update.
+            runSuppressing {
+                old.deleteRecursively()
+            }
+            runSuppressing {
+                Files.move(backup.toPath(), old.toPath(), ATOMIC_MOVE)
+            }
+            return null
+        }
+
+        val zip = File(neo.parentFile, "${neo.name}.mcworld")
+        ZipOutputStream(FileOutputStream(zip)).use { zip ->
+            worldDir.listFiles()?.forEach { child ->
+                if (child.name == FOLDER_DATABASE) return@forEach
+                if (child.isDirectory) {
+                    child.walkTopDown().forEach { entry ->
+                        val relative = entry.relativeTo(worldDir)
+                        if (relative.path.isEmpty()) return@forEach
+                        if (entry.isDirectory) {
+                            zip.putNextEntry(ZipEntry("$relative/"))
+                        } else {
+                            zip.putNextEntry(ZipEntry(relative.path))
+                            entry.inputStream().use { it.copyTo(zip) }
+                        }
+                        zip.closeEntry()
+                    }
+                } else {
+                    zip.putNextEntry(ZipEntry(child.name))
+                    child.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
+            }
+            neo.walkTopDown().forEach { entry ->
+                val relative = entry.relativeTo(neo)
+                if (relative.path.isEmpty()) return@forEach
+                val name = if (entry.isDirectory) "db/$relative/" else "db/$relative"
+                zip.putNextEntry(ZipEntry(name))
+                if (!entry.isDirectory) {
+                    entry.inputStream().use { it.copyTo(zip) }
+                }
+                zip.closeEntry()
+            }
+        }
+        return zip.absolutePath
+    }
+
+    override fun prepareDB(
+        cache: String,
+        world: String,
+        previous: PreparedWorkspace?
+    ): PreparedWorkspace? {
         if (!File(cache).isDirectory) return null
         val src = File(world, FOLDER_DATABASE)
         if (!src.isDirectory) return null
+        val current = File(src, Filename.currentFileName())
+        if (!current.isFile) return null
+        val manifest = File(src, tryOrNull {
+            current.readText().trim()
+        } ?: return null)
+        if (!manifest.isFile) return null
+        val mtime = manifest.lastModified().fastCoerceAtLeast(0)
+        if (previous !== null) {
+            val folder = File(cache, previous.uuid.toString())
+            if (previous.manifestModifiedMillis == mtime && folder.isDirectory) return previous
+            folder.deleteRecursively()
+        }
+        var uuid: UUID
         var folder: File
         do {
-            folder = File(cache, UUID.randomUUID().toString())
+            uuid = UUID.randomUUID()
+            folder = File(cache, uuid.toString())
         } while (folder.exists())
         src.copyRecursively(folder)
-        return folder.absolutePath
+        return PreparedWorkspace().apply {
+            uuidMostSignificantBits = uuid.mostSignificantBits
+            uuidLeastSignificantBits = uuid.leastSignificantBits
+            manifestModifiedMillis = mtime
+        }
     }
 
     override fun canonicalize(path: String): String? {

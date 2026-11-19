@@ -22,14 +22,16 @@ object FileCreator : ActivityResultContract<Options?, Uri?>() {
     class Options(
         @JvmField val mime: String,
         @JvmField val location: Uri? = null,
-        @JvmField val name: String = ""
+        @JvmField val name: String? = null
     ) {
         fun applyTo(intent: Intent): Intent {
             if (this.location !== null) {
                 intent.putExtra(EXTRA_INITIAL_URI, this.location)
             }
+            if (this.name !== null) {
+                intent.putExtra(EXTRA_TITLE, this.name)
+            }
             return intent.setType(this.mime)
-                .putExtra(EXTRA_TITLE, this.name)
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -21,13 +21,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.Insert
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
 import com.mithrilmania.blocktopograph.nbt.ByteArrayTag
 import com.mithrilmania.blocktopograph.nbt.NumericTag
 import com.mithrilmania.blocktopograph.nbt.TAG_BYTE_ARRAY
+import com.mithrilmania.blocktopograph.nbt.toByteList
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
 import com.mithrilmania.blocktopograph.ui.component.safeLayoutInsets
+import com.mithrilmania.blocktopograph.ui.screen.nbt.Insert
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.util.todoI18n
 import com.mithrilmania.blocktopograph.util.upcoming
 
 class ByteArrayNode(
@@ -38,12 +40,9 @@ class ByteArrayNode(
     override val type: Byte get() = TAG_BYTE_ARRAY
     override val canBeHeterogeneous: Boolean get() = false
     override fun makePath(child: String): String = "$path[$child]"
-    override fun toBinaryTag(): ByteArrayTag {
-        val nodes = this.children
-        return ByteArrayTag(
-            ByteArray(nodes.size) { nodes[it].value }
-        )
-    }
+    override fun toBinaryTag(): ByteArrayTag = ByteArrayTag(
+        this.children.toByteList { it.value }
+    )
 
     override fun cast(node: NBTNode): ByteNode? {
         when (node) {
@@ -64,17 +63,22 @@ class ByteArrayNode(
 
     override fun buildNodes(
         tag: ByteArrayTag
-    ): MutableList<ByteNode> = tag.elements.mapIndexedTo(
-        mutableStateListOf()
-    ) { index, value ->
-        ByteNode(this, index, value)
+    ): MutableList<ByteNode> {
+        val nodes = mutableStateListOf<ByteNode>()
+        val elements = tag.elements
+        for (index in elements.indices) {
+            nodes.add(
+                ByteNode(this, index, elements.getByte(index))
+            )
+        }
+        return nodes
     }
 
     @Composable
     override fun icon() = painterResource(R.drawable.ic_tag_byte_array)
 
     @Composable
-    override fun summary() = "${this.children.size}个元素"// TODO i18n
+    override fun summary() = "${this.children.size}个元素".todoI18n()
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -90,7 +94,7 @@ class ByteArrayNode(
             val context = LocalContext.current
             BottomSheetActionButton(
                 icon = Icons.Filled.Search,
-                text = "查找", // TODO i18n
+                text = "查找".todoI18n(),
                 modifier = Modifier.weight(1.0F)
             ) {
                 context.upcoming()
@@ -105,7 +109,7 @@ class ByteArrayNode(
                         this@ByteArrayNode,
                         ByteNode(
                             this@ByteArrayNode,
-                            this@ByteArrayNode.children.size,
+                            children.size,
                             0.toByte()
                         )
                     )

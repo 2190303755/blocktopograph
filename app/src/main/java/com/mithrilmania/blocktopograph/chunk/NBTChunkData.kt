@@ -73,6 +73,6 @@ class NBTChunkData(chunk: Chunk, val dataType: ChunkTag) : ChunkData(chunk) {
     }
 
     override fun createEmpty() {
-        this.tags["Placeholder"] = IntTag(42)
+        this.tags["Placeholder"] = IntTag(42) // sic
     }
 }

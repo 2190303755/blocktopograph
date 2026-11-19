@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import androidx.core.content.IntentCompat
 import androidx.core.os.BundleCompat
+import com.mithrilmania.blocktopograph.EMPTY_CHAR
 import com.mithrilmania.blocktopograph.block.Block
 import java.io.InputStream
 import java.io.PushbackInputStream
@@ -30,22 +31,12 @@ fun InputStream.autoDecompress(
         stream.unread(header, 0, read)
         if (read == 2 && GZIPInputStream.GZIP_MAGIC ==
             (header[0].toInt() and 0xFF) or ((header[1].toInt() and 0xFF) shl 8)
-        ) {
-            return GZIPInputStream(stream, bufferSize)
-        }
+        ) return GZIPInputStream(stream, bufferSize)
     }
     return stream.buffered(bufferSize)
 }
 
-fun String.toChar(): Char = if (this.length == 1) this[0] else 0.toChar()
-
-fun String.lenientHexToByteArray(): ByteArray {
-    val text = this.trim()
-    if (this.length > 1 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X')) {
-        return text.substring(2).hexToByteArray()
-    }
-    return text.hexToByteArray()
-}
+fun String.toChar(): Char = if (this.length == 1) this[0] else EMPTY_CHAR
 
 fun ClipData.collectText(): String? {
     val list = mutableListOf<CharSequence>()

@@ -2,14 +2,18 @@ package com.mithrilmania.blocktopograph.map
 
 import android.graphics.Rect
 import androidx.lifecycle.lifecycleScope
+import com.mithrilmania.blocktopograph.chunk.Chunk
 import com.mithrilmania.blocktopograph.chunk.Version
 import com.mithrilmania.blocktopograph.editor.world.WorldViewerModel
 import com.mithrilmania.blocktopograph.map.marker.AbstractMarker
 import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_AREA
 import com.mithrilmania.blocktopograph.map.picer.PICER_MAX_LENGTH
+import com.mithrilmania.blocktopograph.storage.VirtualFile
 import com.mithrilmania.blocktopograph.util.readIntLE
 import com.mithrilmania.blocktopograph.world.Dimension
-import com.mithrilmania.blocktopograph.world.World
+import com.mithrilmania.blocktopograph.world.NO_CACHE_OPTION
+import com.mithrilmania.blocktopograph.world.WorldModel
+import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
 import com.mithrilmania.blocktopograph.world.chunk.ChunkTag
 import com.mithrilmania.blocktopograph.world.isOverworld
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +22,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.iq80.leveldb.ReadOptions
+import org.iq80.leveldb.DB
 import java.util.concurrent.CopyOnWriteArraySet
 
 data class Viewport(
@@ -57,16 +61,15 @@ fun MapFragment.registerSignalListener(model: WorldViewerModel) {
     }
 }
 
-suspend fun World.analyzeChunksImpl(dimension: Dimension): Rect {
-    val storage = this.storage ?: throw NullPointerException()
-    val db = storage.db
+suspend fun WorldModel.analyzeChunksImpl(dimension: Dimension): Rect {
+    val db = this.awaitStorage()?.db ?: throw NullPointerException()
     val versionMark = ChunkTag.VERSION.dataID
     val legacyVersionMark = ChunkTag.LEGACY_VERSION.dataID
     var rect: Rect? = null
     val extended = !dimension.isOverworld
     var hasWrongChunks = false
     var hasOldChunks = false
-    db.iterator(ReadOptions().fillCache(false)).use { iterator ->
+    db.iterator(NO_CACHE_OPTION).use { iterator ->
         iterator.seekToFirst()
         var count = 0
         while (iterator.hasNext()) {
@@ -109,3 +112,13 @@ suspend fun World.analyzeChunksImpl(dimension: Dimension): Rect {
     return rect
 }
 
+fun DB.createNBTSource(chunk: Chunk, tag: ChunkTag, mark: String): VirtualFile {
+    val pos = ChunkPos(chunk.mDimension.runtimeId, chunk.mChunkX, chunk.mChunkZ)
+    val key = pos.buildPrefix()
+    key[key.size - 1] = tag.dataID
+    return VirtualFile(
+        this,
+        "$mark at ${chunk.mDimension.identifier} (${chunk.mChunkX}, ${chunk.mChunkZ}) ",
+        key
+    )
+}

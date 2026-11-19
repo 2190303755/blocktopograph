@@ -45,7 +45,7 @@ fun LongPressDialog(
                 val onDismissRequest = { viewer.longPressPos = null }
                 BasicAlertDialog(
                     onDismissRequest = onDismissRequest,
-                    properties = DialogProperties(scrimAlpha = 0.3F)
+                    properties = DialogProperties(/*scrimAlpha = 0.3F*/)
                 ) {
                     Column(
                         Modifier

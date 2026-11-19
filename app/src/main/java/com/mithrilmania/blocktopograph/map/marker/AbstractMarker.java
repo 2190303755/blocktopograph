@@ -8,13 +8,12 @@ import androidx.appcompat.widget.AppCompatImageView;
 
 import com.mithrilmania.blocktopograph.R;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 import com.mithrilmania.blocktopograph.util.math.IntegerPos;
 import com.mithrilmania.blocktopograph.world.Dimension;
 
 import java.util.Objects;
 
-public class AbstractMarker implements NamedBitmapProviderHandle {
+public class AbstractMarker {
 
     public final int x, y, z;
     public final Dimension dimension;
@@ -67,7 +66,6 @@ public class AbstractMarker implements NamedBitmapProviderHandle {
     }
 
     @NonNull
-    @Override
     public NamedBitmapProvider getNamedBitmapProvider() {
         return namedBitmapProvider;
     }

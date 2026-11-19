@@ -1,4 +1,4 @@
-package com.mithrilmania.blocktopograph.editor.nbt.node
+package com.mithrilmania.blocktopograph.ui.screen.nbt.node
 
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -20,12 +20,13 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import com.mithrilmania.blocktopograph.R
-import com.mithrilmania.blocktopograph.editor.nbt.NBTEditorModel
-import com.mithrilmania.blocktopograph.editor.nbt.Operation
-import com.mithrilmania.blocktopograph.editor.nbt.TagEditor
 import com.mithrilmania.blocktopograph.nbt.FloatTag
 import com.mithrilmania.blocktopograph.nbt.TAG_FLOAT
+import com.mithrilmania.blocktopograph.ui.screen.nbt.NBTEditorModel
+import com.mithrilmania.blocktopograph.ui.screen.nbt.Operation
+import com.mithrilmania.blocktopograph.ui.screen.nbt.TagEditor
 import com.mithrilmania.blocktopograph.util.isDecimal
+import com.mithrilmania.blocktopograph.util.todoI18n
 
 class FloatNode(
     parent: RootLike,
@@ -60,10 +61,10 @@ class FloatNode(
             textFieldState = textFieldState,
             isError = isError,
             supportingText = {
-                // TODO: i18n
-                Text(if (isError) "Invalid float" else "", Modifier.clearAndSetSemantics {})
+                Text(
+                    if (isError) "Invalid float".todoI18n() else "",
+                    Modifier.clearAndSetSemantics {})
             },
-            // TODO: Provide localized description of the error
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.DecimalSigned,
                 imeAction = ImeAction.Done

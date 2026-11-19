@@ -1,30 +1,52 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import androidx.compose.ui.util.fastForEach
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
 import com.mithrilmania.blocktopograph.nbt.util.toByteTag
-import com.mithrilmania.blocktopograph.util.expandAt
-import com.mithrilmania.blocktopograph.util.shrinkAt
+import it.unimi.dsi.fastutil.bytes.ByteArrayList
+import it.unimi.dsi.fastutil.bytes.ByteList
 import java.io.DataInput
 import java.io.DataOutput
 
-data class ByteArrayTag(
-    @JvmField
-    var elements: ByteArray = ByteArray(0)
+fun mutableByteListOf(value: Byte): ByteArrayList {
+    val elements = ByteArrayList()
+    elements.add(value)
+    return elements
+}
+
+inline fun <T> List<T>.toByteList(transform: (T) -> Byte): ByteArrayList {
+    val elements = ByteArrayList(this.size)
+    this.fastForEach {
+        elements.add(transform(it))
+    }
+    return elements
+}
+
+inline fun ByteList.forEachByte(action: (Byte) -> Unit) {
+    for (index in this.indices) {
+        action(this.getByte(index))
+    }
+}
+
+@JvmInline
+value class ByteArrayTag(
+    val elements: ByteArrayList = ByteArrayList()
 ) : ArrayTag<ByteTag> {
     override val elementTypeId: Byte get() = TAG_BYTE
     override val type: Type get() = Type
     override val size: Int get() = this.elements.size
-    operator fun get(index: Int): Byte = this.elements[index]
+    override fun isEmpty(): Boolean = this.elements.isEmpty
+    operator fun get(index: Int): Byte = this.elements.getByte(index)
     override fun getAsLong(index: Int): Long = this[index].toLong()
     override fun getAsTag(index: Int): ByteTag = ByteTag(this[index])
-
     override fun accept(visitor: TagVisitor) {
         visitor.visit(this)
     }
 
     override fun write(output: DataOutput) {
-        output.writeInt(this.size)
-        output.write(this.elements)
+        val size = this.size
+        output.writeInt(size)
+        output.write(this.elements.elements(), 0, size)
     }
 
     operator fun set(index: Int, value: Byte) {
@@ -41,54 +63,63 @@ data class ByteArrayTag(
 
     override fun addTag(index: Int, tag: BinaryTag): Boolean {
         if (tag is NumericTag) {
-            this.elements = this.elements.expandAt(index, ::ByteArray)
-            this.elements[index] = tag.toByte()
+            this.elements.add(index, tag.toByte())
             return true
         }
         return false
     }
 
     override fun clear() {
-        this.elements = ByteArray(0)
+        this.elements.clear()
     }
 
-    fun remove(index: Int): Byte {
-        val value = this.elements[index]
-        this.elements = this.elements.shrinkAt(index, ::ByteArray)
-        return value
+    fun removeAt(index: Int): Byte {
+        return this.elements.removeByte(index)
     }
 
-    override fun removeTag(index: Int): ByteTag = ByteTag(this.remove(index))
+    override fun removeTag(index: Int): ByteTag = ByteTag(this.removeAt(index))
 
-    override fun copy(): ByteArrayTag = ByteArrayTag(this.elements.copyOf())
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        return this.elements.contentEquals((other as ByteArrayTag).elements)
-    }
-
-    override fun hashCode(): Int = this.elements.contentHashCode()
+    override fun copy(): ByteArrayTag = ByteArrayTag(ByteArrayList(this.elements))
 
     companion object Type : TagType<ByteArrayTag> {
         override val typeId get() = TAG_BYTE_ARRAY
         override fun toString() = "TAG_Byte_Array"
         override fun read(input: DataInput, depth: Int) = ByteArrayTag(
-            ByteArray(input.readInt()).also { input.readFully(it) }
+            ByteArrayList.wrap(
+                ByteArray(input.readInt()).also { input.readFully(it) }
+            )
         )
 
         override fun transform(tag: BinaryTag) = when (tag) {
-            is NumericTag -> ByteArrayTag(byteArrayOf(tag.toByte()))
-            is StringTag -> ByteArrayTag(byteArrayOf(tag.value.trim().toByteOrNull() ?: 0.toByte()))
+            is NumericTag -> ByteArrayTag(mutableByteListOf(tag.toByte()))
+            is StringTag -> ByteArrayTag(
+                mutableByteListOf(
+                    tag.value.trim().toByteOrNull() ?: 0.toByte()
+                )
+            )
+
+            is ListTag -> ByteArrayTag(tag.tags.toByteList { it.toByteTag().value })
             is ByteArrayTag -> tag
-            is IntArrayTag -> ByteArrayTag(ByteArray(tag.size) { tag[it].toByte() })
-            is LongArrayTag -> ByteArrayTag(ByteArray(tag.size) { tag[it].toByte() })
-            is ListTag -> ByteArrayTag(ByteArray(tag.size) { tag[it].toByteTag().value })
+            is IntArrayTag -> {
+                val elements = ByteArrayList(tag.size)
+                tag.elements.forEach {
+                    elements.add(it.toByte())
+                }
+                ByteArrayTag(elements)
+            }
+
+            is LongArrayTag -> {
+                val elements = ByteArrayList(tag.size)
+                tag.elements.forEach {
+                    elements.add(it.toByte())
+                }
+                ByteArrayTag(elements)
+            }
+
             is CompoundTag -> {
-                val elements = ByteArray(tag.size)
-                var index = 0
+                val elements = ByteArrayList(tag.size)
                 tag.forEachSorted {
-                    elements[index++] = it.toByteTag().value
+                    elements.add(it.toByteTag().value)
                 }
                 ByteArrayTag(elements)
             }

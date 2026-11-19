@@ -1,19 +1,29 @@
 package com.mithrilmania.blocktopograph.nbt
 
+import androidx.collection.MutableLongList
+import androidx.collection.mutableLongListOf
+import androidx.compose.ui.util.fastForEach
 import com.mithrilmania.blocktopograph.nbt.util.TagVisitor
 import com.mithrilmania.blocktopograph.nbt.util.toLongTag
-import com.mithrilmania.blocktopograph.util.expandAt
-import com.mithrilmania.blocktopograph.util.shrinkAt
 import java.io.DataInput
 import java.io.DataOutput
 
-data class LongArrayTag(
-    @JvmField
-    var elements: LongArray = LongArray(0)
+inline fun <T> List<T>.toLongList(transform: (T) -> Long): MutableLongList {
+    val elements = MutableLongList(this.size)
+    this.fastForEach {
+        elements.add(transform(it))
+    }
+    return elements
+}
+
+@JvmInline
+value class LongArrayTag(
+    val elements: MutableLongList = mutableLongListOf()
 ) : ArrayTag<LongTag> {
     override val elementTypeId: Byte get() = TAG_LONG
     override val type: Type get() = Type
     override val size: Int get() = this.elements.size
+    override fun isEmpty(): Boolean = this.elements.isEmpty()
     operator fun get(index: Int): Long = this.elements[index]
     override fun getAsLong(index: Int): Long = this[index]
     override fun getAsTag(index: Int): LongTag = LongTag(this[index])
@@ -40,55 +50,64 @@ data class LongArrayTag(
 
     override fun addTag(index: Int, tag: BinaryTag): Boolean {
         if (tag is NumericTag) {
-            this.elements = this.elements.expandAt(index, ::LongArray)
-            this.elements[index] = tag.toLong()
+            this.elements.add(index, tag.toLong())
             return true
         }
         return false
     }
 
     override fun clear() {
-        this.elements = LongArray(0)
+        this.elements.clear()
     }
 
-    fun remove(index: Int): Long {
-        val value = this.elements[index]
-        this.elements = this.elements.shrinkAt(index, ::LongArray)
-        return value
+    fun removeAt(index: Int): Long {
+        return this.elements.removeAt(index)
     }
 
-    override fun removeTag(index: Int): LongTag = LongTag(this.remove(index))
+    override fun removeTag(index: Int): LongTag = LongTag(this.removeAt(index))
 
-    override fun copy(): LongArrayTag = LongArrayTag(this.elements.copyOf())
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        return this.elements.contentEquals((other as LongArrayTag).elements)
+    override fun copy(): LongArrayTag {
+        val copy = MutableLongList(this.elements.size)
+        copy.addAll(this.elements)
+        return LongArrayTag(copy)
     }
-
-    override fun hashCode(): Int = this.elements.contentHashCode()
-
 
     companion object Type : TagType<LongArrayTag> {
         override val typeId get() = TAG_LONG_ARRAY
         override fun toString() = "TAG_Long_Array"
-        override fun read(input: DataInput, depth: Int) = LongArrayTag(
-            LongArray(input.readInt()) { input.readLong() }
-        )
+        override fun read(input: DataInput, depth: Int): LongArrayTag {
+            val length = input.readInt()
+            val elements = MutableLongList(length)
+            repeat(length) {
+                elements.add(input.readLong())
+            }
+            return LongArrayTag(elements)
+        }
 
         override fun transform(tag: BinaryTag) = when (tag) {
-            is NumericTag -> LongArrayTag(longArrayOf(tag.toLong()))
-            is StringTag -> LongArrayTag(longArrayOf(tag.value.trim().toLongOrNull() ?: 0L))
-            is ByteArrayTag -> LongArrayTag(LongArray(tag.size) { tag[it].toLong() })
-            is IntArrayTag -> LongArrayTag(LongArray(tag.size) { tag[it].toLong() })
+            is NumericTag -> LongArrayTag(mutableLongListOf(tag.toLong()))
+            is StringTag -> LongArrayTag(mutableLongListOf(tag.value.trim().toLongOrNull() ?: 0L))
+            is ListTag -> LongArrayTag(tag.toLongList { it.toLongTag().value })
             is LongArrayTag -> tag
-            is ListTag -> LongArrayTag(LongArray(tag.size) { tag[it].toLongTag().value })
+            is ByteArrayTag -> {
+                val elements = MutableLongList(tag.size)
+                tag.elements.forEachByte {
+                    elements.add(it.toLong())
+                }
+                LongArrayTag(elements)
+            }
+
+            is IntArrayTag -> {
+                val elements = MutableLongList(tag.size)
+                tag.elements.forEach {
+                    elements.add(it.toLong())
+                }
+                LongArrayTag(elements)
+            }
             is CompoundTag -> {
-                val elements = LongArray(tag.size)
-                var index = 0
+                val elements = MutableLongList(tag.size)
                 tag.forEachSorted {
-                    elements[index++] = it.toLongTag().value
+                    elements.add(it.toLongTag().value)
                 }
                 LongArrayTag(elements)
             }

@@ -10,14 +10,13 @@ import androidx.compose.ui.graphics.Color;
 
 import com.mithrilmania.blocktopograph.LogUtil;
 import com.mithrilmania.blocktopograph.util.NamedBitmapProvider;
-import com.mithrilmania.blocktopograph.util.NamedBitmapProviderHandle;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public enum Item implements NamedBitmapProviderHandle, NamedBitmapProvider {
+public enum Item implements NamedBitmapProvider {
 
     /*
      * ==============================
@@ -320,12 +319,6 @@ public enum Item implements NamedBitmapProviderHandle, NamedBitmapProvider {
     @Override
     public Bitmap getBitmap() {
         return this.bitmap;
-    }
-
-    @NonNull
-    @Override
-    public NamedBitmapProvider getNamedBitmapProvider() {
-        return this;
     }
 
     @NonNull

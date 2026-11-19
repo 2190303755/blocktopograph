@@ -1,13 +1,14 @@
-package com.mithrilmania.blocktopograph.editor.world.v2.layer
+package com.mithrilmania.blocktopograph.ui.screen.world.layer
 
 import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.core.graphics.set
 import com.mithrilmania.blocktopograph.block.BlockTemplates
-import com.mithrilmania.blocktopograph.editor.world.v2.CHUNK_INDICES
+
 import com.mithrilmania.blocktopograph.map.Biome
 import com.mithrilmania.blocktopograph.util.ColorUtil
 import com.mithrilmania.blocktopograph.util.Noise
+import com.mithrilmania.blocktopograph.world.CHUNK_INDICES
 import com.mithrilmania.blocktopograph.world.chunk.BrightnessSource
 import com.mithrilmania.blocktopograph.world.chunk.Chunk
 import com.mithrilmania.blocktopograph.world.chunk.ChunkCache

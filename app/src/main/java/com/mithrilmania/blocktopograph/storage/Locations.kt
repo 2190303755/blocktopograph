@@ -7,10 +7,10 @@ import com.mithrilmania.blocktopograph.EXTRA_PATH
 import com.mithrilmania.blocktopograph.util.findChild
 import com.mithrilmania.blocktopograph.util.queryName
 import java.nio.file.Paths
-import java.io.File as JvmFile
 
 sealed interface Location {
     val location: Any
+    fun toFile(): File
     fun resolve(child: String, context: Context? = null): Location?
     fun applyTo(intent: Intent): Intent
     fun queryName(context: Context): String
@@ -20,6 +20,7 @@ sealed interface Location {
 
 class SAFLocation(@JvmField val uri: Uri) : Location {
     override val location get() = this.uri
+    override fun toFile(): SAFFile = SAFFile(this.uri)
     override fun resolve(
         child: String,
         context: Context?
@@ -42,11 +43,12 @@ class SAFLocation(@JvmField val uri: Uri) : Location {
 
     override fun hashCode(): Int = this.uri.hashCode()
 
-    override fun toString(): String = this.uri.let { it.lastPathSegment ?: it.toString() }
+    override fun toString(): String = this.uri.lastPathSegment ?: this.uri.toString()
 }
 
-class ShizukuLocation constructor(@JvmField val path: String) : Location {
+class ShizukuLocation(@JvmField val path: String) : Location {
     override val location get() = this.path
+    override fun toFile(): ShizukuFile = ShizukuFile(this.path)
     override fun resolve(
         child: String,
         context: Context?

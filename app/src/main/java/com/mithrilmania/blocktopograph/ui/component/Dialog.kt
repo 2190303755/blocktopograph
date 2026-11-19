@@ -41,9 +41,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
+@JvmField
 val DialogPadding = PaddingValues(all = 24.dp)
+
+@JvmField
 val IconPadding = PaddingValues(bottom = 16.dp)
+
+@JvmField
 val TitlePadding = PaddingValues(bottom = 16.dp)
+
+@JvmField
 val TextPadding = PaddingValues(bottom = 24.dp)
 
 @Composable
@@ -60,7 +67,6 @@ fun ProvideContentColorTextStyle(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertDialog(
     onDismissRequest: () -> Unit,
@@ -190,7 +196,6 @@ fun <T : Any> AnimatedBottomSheetDialog(
     enabledValues: Set<SheetValue> = AllSheetValues,
     content: @Composable (SheetState, T) -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
         enabledValues = enabledValues
@@ -198,19 +203,14 @@ fun <T : Any> AnimatedBottomSheetDialog(
     var effectiveState by remember { mutableStateOf(targetState) }
     LaunchedEffect(targetState) {
         if (targetState === null) {
-            coroutineScope.launch { sheetState.hide() }
+            launch { sheetState.hide() }
                 .invokeOnCompletion {
                     if (!sheetState.isVisible) {
                         effectiveState = null
                     }
                 }
-        } else if (effectiveState === null) {
-            effectiveState = targetState
         } else {
             effectiveState = targetState
-            coroutineScope.launch {
-                sheetState.expand()
-            }
         }
     }
     effectiveState?.let {

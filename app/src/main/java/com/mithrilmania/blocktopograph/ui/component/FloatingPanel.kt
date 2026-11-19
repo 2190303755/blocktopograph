@@ -14,23 +14,22 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,9 +45,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtLeast
+import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
-import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastMaxOfOrDefault
 import androidx.compose.ui.util.lerp
 
 
@@ -67,6 +67,7 @@ class FloatingPanelScaffoldState(
 ) {
     private var isFloating = false
     private var lastLayoutHeight = -1
+
     val anchoredDraggableState: AnchoredDraggableState<PanelValue> =
         AnchoredDraggableState(initialValue = initialValue)
     var showMotionSpec: FiniteAnimationSpec<Float> = snap()
@@ -113,7 +114,7 @@ class FloatingPanelScaffoldState(
                     return consumed
                 }
             }
-            consumedVelocity = with(flingBehavior) { scrollScope.performFling(initialVelocity) }
+            consumedVelocity = flingBehavior.run { scrollScope.performFling(initialVelocity) }
         }
         return consumedVelocity
     }
@@ -140,37 +141,17 @@ class FloatingPanelScaffoldState(
     }
 }
 
-@Composable
-fun rememberFloatingPanelScaffoldState(
-    initialValue: PanelValue = PanelValue.Peek,
-    allowHiddenState: Boolean = true,
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    collapseOffset: (Density, Int, Boolean) -> Float,
-): FloatingPanelScaffoldState = remember(
-    initialValue,
-    snackbarHostState,
-    allowHiddenState,
-    collapseOffset
-) {
-    FloatingPanelScaffoldState(
-        initialValue = initialValue,
-        snackbarHostState = snackbarHostState,
-        allowHiddenState = allowHiddenState,
-        collapseOffset = collapseOffset,
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Panel(
+private fun Panel(
     state: FloatingPanelScaffoldState,
-    isFloating: Boolean,
+    floatingState: State<Boolean>,
     content: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
     val anchoredDraggableFlingBehavior = AnchoredDraggableDefaults.flingBehavior(
         state = state.anchoredDraggableState,
-        positionalThreshold = { with(density) { 56.dp.toPx() } },
+        positionalThreshold = { density.run { 56.dp.toPx() } },
         animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
     )
 
@@ -219,19 +200,14 @@ fun Panel(
         }
     }
     Surface(
-        modifier = if (isFloating) {
-            Modifier
-                .fillMaxHeight()
-                .widthIn(max = 376.dp)
-        } else {
-            Modifier.fillMaxSize()
-        }
+        modifier = Modifier
+            .fillMaxSize()
             .nestedScroll(connection)
             .anchoredDraggable(
                 state = state.anchoredDraggableState,
                 orientation = Orientation.Vertical
             ),
-        shape = if (isFloating) MaterialTheme.shapes.large else BottomSheetDefaults.ExpandedShape,
+        shape = if (floatingState.value) MaterialTheme.shapes.large else BottomSheetDefaults.ExpandedShape,
         color = BottomSheetDefaults.ContainerColor,
         shadowElevation = BottomSheetDefaults.Elevation,
         content = content
@@ -239,21 +215,26 @@ fun Panel(
 }
 
 /**
- * @see Scaffold
- * @see BottomSheetScaffold
+ * @see androidx.compose.material3.Scaffold
+ * @see androidx.compose.material3.BottomSheetScaffold
  */
 @Composable
 fun FloatingPanelScaffold(
     scaffoldState: FloatingPanelScaffoldState,
-    panelContent: @Composable () -> Unit,
+    panelContent: @Composable (PaddingValues) -> Unit,
     modifier: Modifier = Modifier,
     padding: Dp = 16.dp,
     insets: WindowInsets = safeLayoutInsets(),
     floatingThreshold: Dp = 600.dp,
-    action: @Composable () -> Unit = { },
-    snackbarHost: @Composable (SnackbarHostState) -> Unit = { SnackbarHost(it) },
+    floatingMaxWidth: Dp = 376.dp,
+    action: @Composable () -> Unit = {},
+    isPanelAction: State<Boolean>? = null,
+    snackbarHost: @Composable (SnackbarHostState) -> Unit = { outer ->
+        SnackbarHost(outer) { inner -> SwipeableSnackbar(inner) }
+    },
     content: @Composable () -> Unit
 ) {
+    val panelPadding = remember { DynamicBottomPaddingValues() }
     val showMotion = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     val hideMotion = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
     val spatialFlingSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
@@ -263,36 +244,48 @@ fun FloatingPanelScaffold(
         scaffoldState.anchoredDraggableMotionSpec = spatialFlingSpec
     }
     FloatingPanelScaffoldLayout(
+        panelPadding = panelPadding,
         modifier = modifier,
         state = scaffoldState,
         threshold = floatingThreshold,
+        maxWidth = floatingMaxWidth,
         padding = padding,
         insets = insets,
         panel = {
+            val floatingState = rememberSaveable { mutableStateOf(false) }
             SubcomposeLayout { constraints ->
-                val layoutWidth = constraints.maxWidth
                 val layoutHeight = constraints.maxHeight
+                val layoutWidth = constraints.maxWidth
                 val isFloating = layoutWidth >= floatingThreshold.roundToPx()
                 scaffoldState.updateAnchorsIfNeeded(this, layoutHeight, isFloating)
+                val visibleHeight = layoutHeight - scaffoldState.offset.toInt()
+                if (visibleHeight <= 0) return@SubcomposeLayout layout(
+                    constraints.minWidth,
+                    constraints.minWidth
+                ) {}
+                floatingState.value = isFloating
                 val contentConstraints = if (isFloating) constraints.copy(
                     minWidth = 0,
                     minHeight = 0,
-                    maxWidth = layoutWidth / 2,
-                    maxHeight = (layoutHeight - scaffoldState.offset.toInt()).fastCoerceAtLeast(0)
+                    maxWidth = (layoutWidth / 2).fastCoerceAtMost(floatingMaxWidth.roundToPx()),
+                    maxHeight = visibleHeight
                 ) else constraints.copy(minWidth = 0, minHeight = 0)
                 val placeables = subcompose(Unit) {
-                    Panel(scaffoldState, isFloating, panelContent)
+                    Panel(scaffoldState, floatingState) {
+                        panelContent(panelPadding)
+                    }
                 }.fastMap { it.measure(contentConstraints) }
 
                 layout(
-                    placeables.fastMaxOfOrNull { it.width } ?: constraints.minWidth,
-                    placeables.fastMaxOfOrNull { it.height } ?: constraints.minHeight
+                    placeables.fastMaxOfOrDefault(constraints.minWidth) { it.width },
+                    placeables.fastMaxOfOrDefault(constraints.minHeight) { it.height }
                 ) {
                     placeables.fastForEach { it.placeRelative(0, scaffoldState.offset.toInt()) }
                 }
             }
         },
         action = action,
+        isPanelAction = isPanelAction,
         snackbar = {
             snackbarHost(scaffoldState.snackbarHostState)
         },
@@ -302,14 +295,17 @@ fun FloatingPanelScaffold(
 
 @Composable
 private fun FloatingPanelScaffoldLayout(
+    panelPadding: DynamicBottomPaddingValues,
     modifier: Modifier,
     state: FloatingPanelScaffoldState,
     threshold: Dp,
+    maxWidth: Dp,
     padding: Dp,
     insets: WindowInsets,
     panel: @Composable () -> Unit,
     content: @Composable () -> Unit,
     action: @Composable () -> Unit,
+    isPanelAction: State<Boolean>?,
     snackbar: @Composable () -> Unit
 ) {
     Layout(
@@ -332,20 +328,34 @@ private fun FloatingPanelScaffoldLayout(
         val panelConstraints = if (isFloating) {
             looseConstraints.copy(maxHeight = layoutHeight - paddingTop - paddingBottom)
         } else looseConstraints
+
+        val hasPanelAction = isPanelAction?.value ?: false
+        val panelActionConstraints = panelConstraints.copy(
+            maxWidth = if (isFloating) {
+                val estimatedPanelWidth = (layoutWidth / 2).fastCoerceAtMost(maxWidth.roundToPx())
+                estimatedPanelWidth.fastCoerceAtMost(
+                    layoutWidth - estimatedPanelWidth - paddingLeft - paddingPx - paddingRight
+                )
+            } else {
+                layoutWidth - paddingLeft - paddingRight
+            }
+        )
+        val actionPlaceables = measurables[2].fastMap { it.measure(panelActionConstraints) }
+        val actionWidth = actionPlaceables.fastMaxOfOrDefault(0) { it.width }
+        panelPadding.bottom = if (isFloating || !hasPanelAction) 0.dp else {
+            (actionPlaceables.fastMaxOfOrDefault(0) { it.height } + paddingPx + insetsBottom).toDp()
+        }
+
         val panelPlaceables = measurables[1].fastMap { it.measure(panelConstraints) }
-        val panelWidth = panelPlaceables.fastMaxOfOrNull { it.width } ?: 0
+        val panelWidth = panelPlaceables.fastMaxOfOrDefault(0) { it.width }
         val effectivePanelWidth =
             panelWidth + if (state.reverseLayout) paddingRight else paddingLeft
         val workspaceWidth = layoutWidth - effectivePanelWidth
 
-        val actionWidth: Int
         val effectiveActionWidth: Int
-        val actionPlaceables: List<Placeable>
         val snackbarPlaceables: List<Placeable>
         if (isFloating) {
             val workspaceConstraints = panelConstraints.copy(maxWidth = workspaceWidth)
-            actionPlaceables = measurables[2].fastMap { it.measure(workspaceConstraints) }
-            actionWidth = actionPlaceables.fastMaxOfOrNull { it.width } ?: 0
             effectiveActionWidth =
                 actionWidth + if (state.reverseLayout) paddingLeft else paddingRight
 
@@ -358,17 +368,15 @@ private fun FloatingPanelScaffoldLayout(
             }
             snackbarPlaceables = measurables[3].fastMap { it.measure(snackbarConstraints) }
         } else {
-            actionPlaceables = measurables[2].fastMap { it.measure(looseConstraints) }
-            actionWidth = actionPlaceables.fastMaxOfOrNull { it.width } ?: 0
             effectiveActionWidth = actionWidth
             snackbarPlaceables = measurables[3].fastMap { it.measure(looseConstraints) }
         }
 
         layout(layoutWidth, layoutHeight) {
-            val actionHeight = actionPlaceables.fastMaxOfOrNull { it.height } ?: 0
+            val actionHeight = actionPlaceables.fastMaxOfOrDefault(0) { it.height }
 
-            val snackbarWidth = snackbarPlaceables.fastMaxOfOrNull { it.width } ?: 0
-            val snackbarHeight = snackbarPlaceables.fastMaxOfOrNull { it.height } ?: 0
+            val snackbarWidth = snackbarPlaceables.fastMaxOfOrDefault(0) { it.width }
+            val snackbarHeight = snackbarPlaceables.fastMaxOfOrDefault(0) { it.height }
 
             contentPlaceables.fastForEach { it.placeRelative(0, 0) }
             if (isFloating) {
@@ -414,8 +422,14 @@ private fun FloatingPanelScaffoldLayout(
                     PanelValue.Expanded, PanelValue.Peek -> {
                         val center = layoutHeight / 2
                         if (state.offset < center) {
-                            actionOffsetY = center - actionHeight - paddingPx
-                            snackbarOffsetY = layoutHeight - snackbarHeight - insetsBottom
+                            if (hasPanelAction) {
+                                actionOffsetY =
+                                    layoutHeight - actionHeight - paddingPx - insetsBottom
+                                snackbarOffsetY = actionOffsetY - snackbarHeight
+                            } else {
+                                actionOffsetY = center - actionHeight - paddingPx
+                                snackbarOffsetY = layoutHeight - snackbarHeight - insetsBottom
+                            }
                         } else {
                             actionOffsetY = state.offset.toInt() - actionHeight - paddingPx
                             snackbarOffsetY = actionOffsetY - snackbarHeight
@@ -436,9 +450,15 @@ private fun FloatingPanelScaffoldLayout(
                 }
 
                 val actionOffsetX = layoutWidth - actionWidth - paddingRight
-                actionPlaceables.fastForEach { it.placeRelative(actionOffsetX, actionOffsetY) }
+                if (hasPanelAction) {
+                    panelPlaceables.fastForEach { it.placeRelative(0, 0) }
 
-                panelPlaceables.fastForEach { it.placeRelative(0, 0) }
+                    actionPlaceables.fastForEach { it.placeRelative(actionOffsetX, actionOffsetY) }
+                } else {
+                    actionPlaceables.fastForEach { it.placeRelative(actionOffsetX, actionOffsetY) }
+
+                    panelPlaceables.fastForEach { it.placeRelative(0, 0) }
+                }
 
                 val snackbarOffsetX = (layoutWidth - snackbarWidth) / 2
                 snackbarPlaceables.fastForEach {
