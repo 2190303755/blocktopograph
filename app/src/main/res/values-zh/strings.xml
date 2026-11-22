@@ -538,4 +538,32 @@
     <string name="scanning_path_resolving">正在解析路径</string>
     <string name="scanning_path_unresolvable">路径解析失败</string>
     <string name="scanning_add_from_saf">从SAF添加</string>
+
+    <!-- 资源包 -->
+    <string name="settings_resource_pack_manager_title">资源包</string>
+    <string name="settings_resource_pack_manager_description">导入、启用、排序和删除纹理资源包</string>
+    <string name="settings_block_texture_binding_title">方块纹理绑定</string>
+    <string name="settings_block_texture_binding_description">设置方块标识符到方块纹理名的绑定</string>
+    <string name="settings_item_texture_binding_title">物品纹理绑定</string>
+    <string name="settings_item_texture_binding_description">设置物品标识符到物品纹理名的绑定</string>
+    <string name="resource_pack_import">导入资源包</string>
+    <string name="resource_pack_import_hint">支持 .mcaddon / .mcpack / .zip，无需解压</string>
+    <string name="resource_pack_download">获取官方资源包</string>
+    <string name="resource_pack_download_hint">从 GitHub 下载 full.zip 后在此导入</string>
+    <string name="resource_pack_empty">尚未导入资源包</string>
+    <string name="resource_pack_reorder">拖动以调整优先级</string>
+    <string name="resource_pack_remove">移除资源包</string>
+    <string name="resource_pack_remove_message">移除资源包 %1$s？其缓存纹理将被删除。</string>
+    <string name="resource_pack_importing">正在导入资源包...</string>
+    <string name="resource_pack_imported">资源包已导入</string>
+    <string name="resource_pack_import_failed">资源包导入失败</string>
+
+    <!-- 纹理绑定 -->
+    <string name="binding_empty">暂无纹理绑定</string>
+    <string name="binding_add">添加绑定</string>
+    <string name="binding_edit">编辑绑定</string>
+    <string name="binding_identifier">方块 / 物品标识符</string>
+    <string name="binding_texture_name">纹理名（texture_data 的 key）</string>
+    <string name="binding_remove">移除绑定</string>
+    <string name="binding_remove_message">移除绑定 %1$s？</string>
 </resources>

@@ -6,6 +6,7 @@ android {
     defaultConfig {
         minSdk = 26
         compileSdk = 37
+        compileSdkMinor = 2
     }
     namespace = "com.hivemc.leveldb"
     lint {

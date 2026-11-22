@@ -3,7 +3,6 @@ package com.mithrilmania.blocktopograph.map.edit
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -125,7 +124,6 @@ fun BlockStatesPreview(
     }
 }
 
-@OptIn(ExperimentalGridApi::class)
 @Composable
 fun SearchAndReplaceDialog(viewer: WorldViewerModel) {
     viewer.replacingRequest?.let { request ->

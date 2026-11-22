@@ -18,6 +18,7 @@
 
 -dontwarn org.jetbrains.annotations.NotNull
 -dontwarn org.jetbrains.annotations.Nullable
+-dontwarn org.intellij.lang.annotations.Language
 
 # @see https://github.com/google/guava/issues/8345 , but I don't think the bug is actually resolved
 -keep class com.google.common.cache.** { *; }
@@ -25,5 +26,12 @@
 -keepclassmembers class com.mithrilmania.blocktopograph.ui.ScrollableStateBridge {
     smoothScrollToPosition(int);
     scrollToPosition(int);
+}
+
+# kotlinx.serialization: keep generated serializers and their companion entry points
+-keepattributes *Annotation*, InnerClasses, Signature
+-keep class **$$serializer { *; }
+-keepclasseswithmembers class com.mithrilmania.blocktopograph.texture.** {
+    kotlinx.serialization.KSerializer serializer(...);
 }
 

@@ -4,6 +4,9 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.filled.FolderCopy
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mithrilmania.blocktopograph.R
@@ -49,6 +52,33 @@ sealed interface AppNavKey {
             get() = R.string.settings_scanning_manager_title
         override val description: Int
             get() = R.string.settings_scanning_manager_description
+    }
+
+    object ResourcePackManager : SettingsNavKey {
+        override val icon: ImageVector
+            get() = Icons.Filled.Layers
+        override val title: Int
+            get() = R.string.settings_resource_pack_manager_title
+        override val description: Int
+            get() = R.string.settings_resource_pack_manager_description
+    }
+
+    object BlockTextureBinding : SettingsNavKey {
+        override val icon: ImageVector
+            get() = Icons.Filled.GridView
+        override val title: Int
+            get() = R.string.settings_block_texture_binding_title
+        override val description: Int
+            get() = R.string.settings_block_texture_binding_description
+    }
+
+    object ItemTextureBinding : SettingsNavKey {
+        override val icon: ImageVector
+            get() = Icons.Filled.Inventory2
+        override val title: Int
+            get() = R.string.settings_item_texture_binding_title
+        override val description: Int
+            get() = R.string.settings_item_texture_binding_description
     }
 
     object CreateWorld : AppNavKey

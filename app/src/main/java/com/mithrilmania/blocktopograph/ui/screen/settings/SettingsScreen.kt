@@ -79,6 +79,9 @@ fun SettingsScreen(onNavigate: (AppNavKey) -> Unit) {
             }
             val keys = remember {
                 arrayOf(
+                    AppNavKey.ResourcePackManager,
+                    AppNavKey.BlockTextureBinding,
+                    AppNavKey.ItemTextureBinding,
                     AppNavKey.WorkspaceManager,
                     AppNavKey.SAFManager,
                     AppNavKey.ScanningManager

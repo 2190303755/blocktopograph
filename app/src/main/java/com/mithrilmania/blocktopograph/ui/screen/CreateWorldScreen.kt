@@ -93,6 +93,7 @@ import com.mithrilmania.blocktopograph.nbt.io.readBinaryTag
 import com.mithrilmania.blocktopograph.nbt.io.writeNBTWithHeader
 import com.mithrilmania.blocktopograph.ui.BlockStatePreview
 import com.mithrilmania.blocktopograph.ui.PickBlockDialog
+import com.mithrilmania.blocktopograph.ui.rememberBlockTextureRequest
 import com.mithrilmania.blocktopograph.ui.component.AnimatedBottomSheetDialog
 import com.mithrilmania.blocktopograph.ui.component.AppBarNavigationButton
 import com.mithrilmania.blocktopograph.ui.component.BottomSheetActionButton
@@ -398,7 +399,7 @@ fun CreateWorldScreen(onCreate: (Uri) -> Unit) {
                             description = "${state.block.typeId} ×${layer.height}".todoI18n(),
                             icon = {
                                 AsyncImage(
-                                    model = state.icon,
+                                    model = rememberBlockTextureRequest(state.block.typeId),
                                     contentDescription = null,
                                     modifier = handle.size(32.dp),
                                     filterQuality = FilterQuality.None

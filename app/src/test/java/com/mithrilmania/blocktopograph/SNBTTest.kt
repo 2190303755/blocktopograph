@@ -113,7 +113,6 @@ class SNBTTest {
         assertParses(IntTag(15), "0o17")
         assertParses(IntTag(0x11b), "0x11b")
 
-        // 下划线分隔数位
         assertParses(IntTag(9), "0b10_01")
         assertParses(IntTag(0xABCD), "0xAB_CD")
     }

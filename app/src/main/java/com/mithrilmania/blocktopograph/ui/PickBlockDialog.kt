@@ -57,7 +57,7 @@ fun BlockStatePreview(
         description = state.subName ?: state.block.typeId,
         icon = {
             AsyncImage(
-                model = state.icon,
+                model = rememberBlockTextureRequest(state.block.typeId),
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
                 filterQuality = FilterQuality.None

@@ -11,7 +11,6 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -146,7 +145,6 @@ class LocatorPaneState {
 
 val PaneBackground = Color(0, 0, 0, 0x60)
 
-@OptIn(ExperimentalGridApi::class)
 @Composable
 fun SelectorPane(
     viewer: WorldViewerModel,

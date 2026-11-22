@@ -1,6 +1,7 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -9,6 +10,7 @@ android {
         minSdk = 26
         targetSdk = 33
         compileSdk = 37
+        compileSdkMinor = 2
         versionCode = 1090008
         versionName = "1.9.5"
         vectorDrawables.useSupportLibrary = true
@@ -55,6 +57,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.lifecycle.viewmodel.compose)
     testImplementation(libs.junit)
+    testImplementation(libs.mockito.kotlin)
     implementation(project(":tileview"))
     implementation(project(":libs:hivemc:leveldb"))
     implementation(project(":libs:plrapps:mapcompose"))
@@ -63,6 +66,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.coil)
     implementation(libs.datastore.preferences)
+    implementation(libs.datastore)
+    implementation(libs.kotlinx.serialization.json)
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(platform(libs.compose.bom))
     implementation(libs.guava)

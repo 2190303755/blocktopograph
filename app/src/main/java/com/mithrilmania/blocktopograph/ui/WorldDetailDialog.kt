@@ -8,7 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.GridConfigurationScope
 import androidx.compose.foundation.layout.Row
@@ -139,7 +138,6 @@ fun CopyableWorldDetailEntry(
     )
 }
 
-@OptIn(ExperimentalGridApi::class)
 @Composable
 fun WorldDetailDialogContent(
     detail: WorldDetail,

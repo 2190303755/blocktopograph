@@ -39,6 +39,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -61,6 +62,7 @@ import androidx.core.content.edit
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.metadata
@@ -85,6 +87,8 @@ import com.mithrilmania.blocktopograph.storage.VirtualFile
 import com.mithrilmania.blocktopograph.storage.wrapAsFile
 import com.mithrilmania.blocktopograph.ui.AppNavKey.NBTEditor
 import com.mithrilmania.blocktopograph.ui.BlankNBTEditor
+import com.mithrilmania.blocktopograph.ui.LocalResourcePackViewModel
+import com.mithrilmania.blocktopograph.ui.ResourcePackViewModel
 import com.mithrilmania.blocktopograph.ui.component.AlertDialog
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import com.mithrilmania.blocktopograph.ui.component.SwipeableSnackbar
@@ -152,190 +156,194 @@ class WorldEditorActivity : WorldActivity() {
         }
         this.findViewById<ComposeView>(R.id.composer).setContent {
             BlocktopographCompatTheme {
-                SelectionObserver(model)
-                val backStack = model.backStack
-                NavDisplay(
-                    entryDecorators = listOf(
-                        rememberSaveableStateHolderNavEntryDecorator(),
-                        rememberViewModelStoreNavEntryDecorator()
-                    ),
-                    backStack = backStack,
-                    transitionSpec = {
-                        slideIntoContainer(
-                            AnimatedContentTransitionScope.SlideDirection.Start
-                        ) togetherWith ExitTransition.KeepUntilTransitionsFinished
-                    },
-                    popTransitionSpec = {
-                        EnterTransition.None togetherWith slideOutOfContainer(
-                            AnimatedContentTransitionScope.SlideDirection.End
-                        )
-                    },
-                    predictivePopTransitionSpec = {
-                        EnterTransition.None togetherWith slideOutOfContainer(
-                            AnimatedContentTransitionScope.SlideDirection.End
-                        )
-                    }
-                ) { key ->
-                    if (key is NBTEditor && key !== BlankNBTEditor) NavEntry(
-                        key = key,
-                        metadata = metadata {
-                            if (key.crossfade) {
-                                put(NavDisplay.TransitionKey) {
-                                    fadeIn() togetherWith fadeOut()
-                                }
-                            }
+                CompositionLocalProvider(
+                    LocalResourcePackViewModel provides viewModel<ResourcePackViewModel>()
+                ) {
+                    SelectionObserver(model)
+                    val backStack = model.backStack
+                    NavDisplay(
+                        entryDecorators = listOf(
+                            rememberSaveableStateHolderNavEntryDecorator(),
+                            rememberViewModelStoreNavEntryDecorator()
+                        ),
+                        backStack = backStack,
+                        transitionSpec = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start
+                            ) togetherWith ExitTransition.KeepUntilTransitionsFinished
+                        },
+                        popTransitionSpec = {
+                            EnterTransition.None togetherWith slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End
+                            )
+                        },
+                        predictivePopTransitionSpec = {
+                            EnterTransition.None togetherWith slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End
+                            )
                         }
-                    ) {
-                        NBTEditorScreen(
-                            spec = key,
-                            onNew = {
-                                backStack[
-                                    backStack.lastIndex
-                                ] = NBTEditor(null, crossfade = true)
-                            },
-                            onExit = {
-                                backStack.navigateBack()
+                    ) { key ->
+                        if (key is NBTEditor && key !== BlankNBTEditor) NavEntry(
+                            key = key,
+                            metadata = metadata {
+                                if (key.crossfade) {
+                                    put(NavDisplay.TransitionKey) {
+                                        fadeIn() togetherWith fadeOut()
+                                    }
+                                }
                             }
                         ) {
-                            NBTEditorModel(it, key, model.modified, model.confirmation).apply {
-                                modified = false
-                                confirmation = null
-                            }
-                        }
-                    } else NavEntry(key) {
-                        Box(Modifier.fillMaxSize()) {
-                            val viewer = model
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .align(Alignment.BottomStart),
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                SnackbarHost(viewer.snackbar) {
-                                    SwipeableSnackbar(it)
+                            NBTEditorScreen(
+                                spec = key,
+                                onNew = {
+                                    backStack[
+                                        backStack.lastIndex
+                                    ] = NBTEditor(null, crossfade = true)
+                                },
+                                onExit = {
+                                    backStack.navigateBack()
                                 }
-                                WorldEditorMenu(
-                                    viewer,
-                                    worldModel,
-                                    Modifier,
-                                    mapFragment
+                            ) {
+                                NBTEditorModel(it, key, model.modified, model.confirmation).apply {
+                                    modified = false
+                                    confirmation = null
+                                }
+                            }
+                        } else NavEntry(key) {
+                            Box(Modifier.fillMaxSize()) {
+                                val viewer = model
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomStart),
+                                    horizontalAlignment = Alignment.End
                                 ) {
-                                    val preferences = getPreferences(MODE_PRIVATE)
-                                    if (!preferences.getBoolean(
-                                            MapFragment.KEY_HAS_DOUBLE_TAP,
-                                            false
-                                        )
+                                    SnackbarHost(viewer.snackbar) {
+                                        SwipeableSnackbar(it)
+                                    }
+                                    WorldEditorMenu(
+                                        viewer,
+                                        worldModel,
+                                        Modifier,
+                                        mapFragment
                                     ) {
-                                        preferences.edit {
-                                            putBoolean(
+                                        val preferences = getPreferences(MODE_PRIVATE)
+                                        if (!preferences.getBoolean(
                                                 MapFragment.KEY_HAS_DOUBLE_TAP,
-                                                true
+                                                false
                                             )
+                                        ) {
+                                            preferences.edit {
+                                                putBoolean(
+                                                    MapFragment.KEY_HAS_DOUBLE_TAP,
+                                                    true
+                                                )
+                                            }
+                                            toast(R.string.map_dblclick_notice)
                                         }
-                                        toast(R.string.map_dblclick_notice)
                                     }
                                 }
-                            }
-                            FloatingPanes(viewer, worldModel)
-                            LongPressDialog(viewer, mapFragment)
-                            MapFragmentDialogs(viewer, mapFragment)
-                            Text(
-                                stringResource(R.string.map_water_mark),
-                                Modifier
-                                    .padding(4.dp)
-                                    .align(Alignment.BottomStart),
-                                fontFamily = FontFamily.SansSerif,
-                                fontWeight = FontWeight.Light,
-                                color = colorResource(R.color.waterMark),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    shadow = Shadow(
-                                        color = colorResource(R.color.waterMarkShadow),
-                                        offset = Offset(2.0F, 2.0F),
-                                        blurRadius = 2.0F
+                                FloatingPanes(viewer, worldModel)
+                                LongPressDialog(viewer, mapFragment)
+                                MapFragmentDialogs(viewer, mapFragment)
+                                Text(
+                                    stringResource(R.string.map_water_mark),
+                                    Modifier
+                                        .padding(4.dp)
+                                        .align(Alignment.BottomStart),
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontWeight = FontWeight.Light,
+                                    color = colorResource(R.color.waterMark),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        shadow = Shadow(
+                                            color = colorResource(R.color.waterMarkShadow),
+                                            offset = Offset(2.0F, 2.0F),
+                                            blurRadius = 2.0F
+                                        )
                                     )
                                 )
-                            )
-                            PicerDialog(viewer, worldModel)
-                            SearchAndReplaceDialog(viewer)
-                            if (viewer.waitingJob) {
-                                BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
-                                    Column(
-                                        Modifier
-                                            .clip(AlertDialogDefaults.shape)
-                                            .background(AlertDialogDefaults.containerColor)
-                                            .padding(24.dp)
-                                    ) {
-                                        Text(
-                                            stringResource(R.string.general_please_wait),
-                                            color = AlertDialogDefaults.titleContentColor,
-                                            style = MaterialTheme.typography.headlineSmall
-                                        )
-                                        CircularProgressIndicator(
+                                PicerDialog(viewer, worldModel)
+                                SearchAndReplaceDialog(viewer)
+                                if (viewer.waitingJob) {
+                                    BasicAlertDialog(onDismissRequest = { viewer.cancelBlockingJob() }) {
+                                        Column(
                                             Modifier
-                                                .padding(top = 16.dp)
-                                                .align(Alignment.CenterHorizontally)
-                                        )
+                                                .clip(AlertDialogDefaults.shape)
+                                                .background(AlertDialogDefaults.containerColor)
+                                                .padding(24.dp)
+                                        ) {
+                                            Text(
+                                                stringResource(R.string.general_please_wait),
+                                                color = AlertDialogDefaults.titleContentColor,
+                                                style = MaterialTheme.typography.headlineSmall
+                                            )
+                                            CircularProgressIndicator(
+                                                Modifier
+                                                    .padding(top = 16.dp)
+                                                    .align(Alignment.CenterHorizontally)
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            if (viewer.confirmCloseWorld) {
-                                val onDismissRequest = {
-                                    viewer.confirmCloseWorld = false
-                                }
-                                AlertDialog(
-                                    onDismissRequest = onDismissRequest,
-                                    title = {
-                                        Text(stringResource(R.string.confirm_close_world))
-                                    },
-                                    neutralButton = {
-                                        TextButton(
-                                            stringResource(android.R.string.cancel),
-                                            onClick = onDismissRequest
-                                        )
-                                    },
-                                    negativeButton = {
-                                        TextButton("暂离".todoI18n()) {
-                                            viewer.confirmCloseWorld = false
-                                            viewer.waitForJob(lifecycleScope.launch {
-                                                mapFragment.closeChunks()
-                                                finish()
-                                            })
-                                        }
-                                    },
-                                    positiveButton = {
-                                        TextButton(stringResource(android.R.string.ok)) {
-                                            viewer.confirmCloseWorld = false
-                                            viewer.waitForJob(lifecycleScope.launch {
-                                                mapFragment.closeChunks()
-                                                withContext(Dispatchers.IO) {
-                                                    worldModel.awaitStorage()?.path?.let {
-                                                        worldModel.world.merge(it)
+                                if (viewer.confirmCloseWorld) {
+                                    val onDismissRequest = {
+                                        viewer.confirmCloseWorld = false
+                                    }
+                                    AlertDialog(
+                                        onDismissRequest = onDismissRequest,
+                                        title = {
+                                            Text(stringResource(R.string.confirm_close_world))
+                                        },
+                                        neutralButton = {
+                                            TextButton(
+                                                stringResource(android.R.string.cancel),
+                                                onClick = onDismissRequest
+                                            )
+                                        },
+                                        negativeButton = {
+                                            TextButton("暂离".todoI18n()) {
+                                                viewer.confirmCloseWorld = false
+                                                viewer.waitForJob(lifecycleScope.launch {
+                                                    mapFragment.closeChunks()
+                                                    finish()
+                                                })
+                                            }
+                                        },
+                                        positiveButton = {
+                                            TextButton(stringResource(android.R.string.ok)) {
+                                                viewer.confirmCloseWorld = false
+                                                viewer.waitForJob(lifecycleScope.launch {
+                                                    mapFragment.closeChunks()
+                                                    withContext(Dispatchers.IO) {
+                                                        worldModel.awaitStorage()?.path?.let {
+                                                            worldModel.world.merge(it)
+                                                        }
+                                                    }?.let {
+                                                        startActivity(
+                                                            Intent()
+                                                                .setAction(Intent.ACTION_VIEW)
+                                                                .setFlags(VIEW_DOCUMENT_FLAG)
+                                                                .setDataAndType(it, MIME_TYPE_ZIP)
+                                                        )
                                                     }
-                                                }?.let {
-                                                    startActivity(
-                                                        Intent()
-                                                            .setAction(Intent.ACTION_VIEW)
-                                                            .setFlags(VIEW_DOCUMENT_FLAG)
-                                                            .setDataAndType(it, MIME_TYPE_ZIP)
-                                                    )
-                                                }
-                                                finish()
-                                            })
+                                                    finish()
+                                                })
+                                            }
                                         }
-                                    }
-                                ) {}
-                            }
-                            if (model.showOpenByNameDialog) {
-                                OpenNBTByNameDialog(
-                                    storage = worldModel.storage,
-                                    onDismiss = {
-                                        model.showOpenByNameDialog = false
-                                    },
-                                    onSelect = { file ->
-                                        model.showOpenByNameDialog = false
-                                        checkAndOpenNBTEditor(file)
-                                    }
-                                )
+                                    ) {}
+                                }
+                                if (model.showOpenByNameDialog) {
+                                    OpenNBTByNameDialog(
+                                        storage = worldModel.storage,
+                                        onDismiss = {
+                                            model.showOpenByNameDialog = false
+                                        },
+                                        onSelect = { file ->
+                                            model.showOpenByNameDialog = false
+                                            checkAndOpenNBTEditor(file)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

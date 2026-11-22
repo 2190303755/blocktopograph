@@ -13,7 +13,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -456,7 +455,6 @@ fun SelectionAction(editor: WorldEditorModel) {
  * selection coordinates and size (updated while dragging the map handles) and the list of
  * operations applicable to the selection.
  */
-@OptIn(ExperimentalGridApi::class)
 @Composable
 fun SelectionPanel(editor: WorldEditorModel) {
     val selection = editor.selection
@@ -698,7 +696,6 @@ private fun LampshadeDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
-@OptIn(ExperimentalGridApi::class)
 @Composable
 private fun SelectionSnrDialog(
     request: SelectionSnrRequest,

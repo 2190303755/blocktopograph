@@ -12,6 +12,8 @@ import com.mithrilmania.blocktopograph.storage.ShizukuFileService
 import com.mithrilmania.blocktopograph.storage.ShizukuFileSystem
 import com.mithrilmania.blocktopograph.storage.WorldDetailMapper
 import com.mithrilmania.blocktopograph.storage.isLegacyExternalStorageAvailable
+import com.mithrilmania.blocktopograph.texture.TextureKeyer
+import com.mithrilmania.blocktopograph.texture.TextureResolver
 import com.mithrilmania.blocktopograph.util.ShizukuConnector
 import okio.FileSystem
 import rikka.shizuku.Shizuku
@@ -28,6 +30,8 @@ class Blocktopograph : Application(),
 
     var exceptionHandler: Thread.UncaughtExceptionHandler? = null
         private set
+
+    val textures by lazy { TextureResolver(this) }
 
     init {
         fileService = ShizukuConnector(
@@ -47,6 +51,8 @@ class Blocktopograph : Application(),
     override fun newImageLoader(context: Context): ImageLoader {
         return ImageLoader.Builder(context).components {
             add(WorldDetailMapper())
+            add(textures)
+            add(TextureKeyer())
         }.fileSystem(
             if (isLegacyExternalStorageAvailable()) FileSystem.SYSTEM else ShizukuFileSystem()
         ).crossfade(true)

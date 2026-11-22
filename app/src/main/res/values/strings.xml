@@ -628,4 +628,32 @@
     <string name="scanning_path_resolving">Resolving path</string>
     <string name="scanning_path_unresolvable">Failed to resolve path</string>
     <string name="scanning_add_from_saf">Add from SAF</string>
+
+    <!-- Resource packs -->
+    <string name="settings_resource_pack_manager_title">Resource packs</string>
+    <string name="settings_resource_pack_manager_description">Import, enable, reorder and remove texture resource packs</string>
+    <string name="settings_block_texture_binding_title">Block texture binding</string>
+    <string name="settings_block_texture_binding_description">Bind block identifiers to terrain texture names</string>
+    <string name="settings_item_texture_binding_title">Item texture binding</string>
+    <string name="settings_item_texture_binding_description">Bind item identifiers to item texture names</string>
+    <string name="resource_pack_import">Import resource pack</string>
+    <string name="resource_pack_import_hint">.mcaddon / .mcpack / .zip, no need to extract</string>
+    <string name="resource_pack_download">Get official resource packs</string>
+    <string name="resource_pack_download_hint">Download full.zip from GitHub and import it here</string>
+    <string name="resource_pack_empty">No resource packs imported</string>
+    <string name="resource_pack_reorder">Drag to change priority</string>
+    <string name="resource_pack_remove">Remove resource pack</string>
+    <string name="resource_pack_remove_message">Remove resource pack %1$s? Its cached textures will be deleted.</string>
+    <string name="resource_pack_importing">Importing resource pack...</string>
+    <string name="resource_pack_imported">Resource pack imported</string>
+    <string name="resource_pack_import_failed">Failed to import resource pack</string>
+
+    <!-- Texture binding -->
+    <string name="binding_empty">No texture bindings</string>
+    <string name="binding_add">Add binding</string>
+    <string name="binding_edit">Edit binding</string>
+    <string name="binding_identifier">Block / item identifier</string>
+    <string name="binding_texture_name">Texture name (texture_data key)</string>
+    <string name="binding_remove">Remove binding</string>
+    <string name="binding_remove_message">Remove binding %1$s?</string>
 </resources>
