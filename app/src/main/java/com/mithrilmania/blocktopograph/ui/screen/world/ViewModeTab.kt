@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,13 +41,16 @@ import com.mithrilmania.blocktopograph.ui.component.InfoBox
 import com.mithrilmania.blocktopograph.util.isDecimal
 import com.mithrilmania.blocktopograph.util.todoI18n
 import com.mithrilmania.blocktopograph.world.isOverworld
+import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.api.cameraX
 import ovh.plrapps.mapcompose.api.cameraY
+import ovh.plrapps.mapcompose.api.scrollTo
+import ovh.plrapps.mapcompose.ui.state.MapModel
 
 @Composable
 fun ViewModeTab(
-    viewModel: WorldEditorModel,
-    info: InitState.Succeed,
+    mapModel: MapModel,
+    worldModel: WorldEditorModel,
     padding: PaddingValues
 ) {
     Column(
@@ -62,16 +66,16 @@ fun ViewModeTab(
         val resources = LocalResources.current
         Expander(
             title = "维度".todoI18n(),
-            items = info.dimensions.values,
+            items = worldModel.world.dimensions.values,
             modifier = Modifier.padding(top = 8.dp),
-            supportingContent = { Text(text = viewModel.dimension.getDisplayName(resources)) },
+            supportingContent = { Text(text = worldModel.dimension.getDisplayName(resources)) },
             selectable = true,
             colors = colors
         ) { dimension, shapes ->
-            val selected = viewModel.dimension.runtimeId == dimension.runtimeId
+            val selected = worldModel.dimension.runtimeId == dimension.runtimeId
             SegmentedListItem(
                 selected = selected,
-                onClick = { viewModel.dimension = dimension },
+                onClick = { worldModel.dimension = dimension },
                 shapes = shapes,
                 colors = colors,
                 trailingContent = { RadioButton(selected = selected, onClick = null) },
@@ -82,16 +86,16 @@ fun ViewModeTab(
             title = "主视图".todoI18n(),
             items = MapLayer.entries,
             supportingContent = {
-                Text(text = stringResource(viewModel.enabledLayer.display))
+                Text(text = stringResource(worldModel.enabledLayer.display))
             },
             selectable = true,
             colors = colors
         ) { layer, shapes ->
-            val selected = viewModel.enabledLayer == layer
+            val selected = worldModel.enabledLayer == layer
             SegmentedListItem(
                 selected = selected,
-                onClick = { viewModel.enabledLayer = layer },
-                enabled = layer !== MapLayer.SLIME_CHUNKS || viewModel.dimension.isOverworld,
+                onClick = { worldModel.enabledLayer = layer },
+                enabled = layer !== MapLayer.SLIME_CHUNKS || worldModel.dimension.isOverworld,
                 shapes = shapes,
                 colors = colors,
                 trailingContent = { RadioButton(selected = selected, onClick = null) },
@@ -100,19 +104,20 @@ fun ViewModeTab(
         }
         SegmentedListItem(
             selected = false,
-            onClick = { viewModel.showGrid = !viewModel.showGrid },
+            onClick = { worldModel.showGrid = !worldModel.showGrid },
             shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
             colors = colors,
             trailingContent = {
                 Switch(
-                    checked = viewModel.showGrid,
+                    checked = worldModel.showGrid,
                     onCheckedChange = null
                 )
             },
             content = { Text(stringResource(R.string.toggle_grid)) }
         )
         CoordinateJumpSection(
-            viewModel = viewModel,
+            mapModel = mapModel,
+            worldModel = worldModel,
             modifier = Modifier.padding(bottom = 8.dp)
         )
     }
@@ -120,9 +125,11 @@ fun ViewModeTab(
 
 @Composable
 private fun CoordinateJumpSection(
-    viewModel: WorldEditorModel,
+    mapModel: MapModel,
+    worldModel: WorldEditorModel,
     modifier: Modifier = Modifier
 ) {
+    val coroutineScope = rememberCoroutineScope()
     InfoBox(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -137,10 +144,10 @@ private fun CoordinateJumpSection(
             val invalidX = remember { mutableStateOf(false) }
             val invalidZ = remember { mutableStateOf(false) }
             val commit: () -> Unit = {
-                val x = viewModel.coordinateX.text.trim().toString().toDoubleOrNull()
-                val z = viewModel.coordinateZ.text.trim().toString().toDoubleOrNull()
+                val x = worldModel.coordinateX.text.trim().toString().toDoubleOrNull()
+                val z = worldModel.coordinateZ.text.trim().toString().toDoubleOrNull()
                 if (x !== null && z !== null) {
-                    viewModel.moveCamera(x, z)
+                    coroutineScope.launch { mapModel.scrollTo(x, z) }
                 }
             }
             Row(
@@ -148,24 +155,24 @@ private fun CoordinateJumpSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CoordinateJumpField(
-                    state = viewModel.coordinateX,
+                    state = worldModel.coordinateX,
                     label = "X".todoI18n(),
                     imeAction = ImeAction.Next,
                     isError = invalidX,
                     modifier = Modifier.weight(1F),
                     onKeyboardAction = { }
                 ) {
-                    viewModel.map.cameraX
+                    mapModel.cameraX
                 }
                 CoordinateJumpField(
-                    state = viewModel.coordinateZ,
+                    state = worldModel.coordinateZ,
                     label = "Z".todoI18n(),
                     imeAction = ImeAction.Go,
                     isError = invalidZ,
                     modifier = Modifier.weight(1F),
                     onKeyboardAction = commit
                 ) {
-                    viewModel.map.cameraY
+                    mapModel.cameraY
                 }
             }
             TextButton(

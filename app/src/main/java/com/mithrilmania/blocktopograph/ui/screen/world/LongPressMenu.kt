@@ -12,7 +12,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
@@ -27,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,13 +37,16 @@ import com.mithrilmania.blocktopograph.ui.AppNavKey
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.theme.BlocktopographCompatTheme
 import com.mithrilmania.blocktopograph.util.todoI18n
-import com.mithrilmania.blocktopograph.util.upcoming
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.chunk.ChunkPos
 import com.mithrilmania.blocktopograph.world.chunk.ChunkTag
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ovh.plrapps.mapcompose.api.getLayoutSize
+import ovh.plrapps.mapcompose.api.scale
+import ovh.plrapps.mapcompose.ui.state.MapModel
+import kotlin.math.roundToInt
 
 /**
  * Map position captured by a long-press, along with its chunk coordinates.
@@ -67,21 +68,44 @@ data class CreateMarkerRequest(
 )
 
 /**
+ * Begins a square selection centered at [worldX]/[worldZ], with an edge of about half
+ * the viewport, matching the legacy selection-board behavior.
+ */
+suspend fun SelectionV2.beginSelectionAt(
+    map: MapModel,
+    worldX: Double,
+    worldZ: Double
+) {
+    val layoutSize = map.getLayoutSize()
+    val scale = map.scale
+    val radius = (minOf(layoutSize.width, layoutSize.height) / scale / 4.0)
+        .roundToInt().coerceAtLeast(1)
+    val centerX = worldX.toInt()
+    val centerZ = worldZ.toInt()
+    this.set(
+        centerX - radius,
+        centerZ - radius,
+        centerX + radius,
+        centerZ + radius
+    )
+    this.isSelecting = true
+}
+
+/**
  * Long-press options menu ported from the view-based world editor. Visibility is driven by
  * [WorldEditorModel.longPressPos] so the dialog survives recomposition like every other
  * editor dialog.
  */
 @Composable
 fun LongPressMenu(
+    mapModel: MapModel,
     editor: WorldEditorModel,
-    info: InitState.Succeed,
     onNavigate: (AppNavKey) -> Unit
 ) {
     val pos = editor.longPressPos
     if (pos !== null) {
         BlocktopographCompatTheme(darkTheme = true) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                val context = LocalContext.current
                 val resources = LocalResources.current
                 val scope = rememberCoroutineScope()
                 val snackbar = editor.scaffoldState.snackbarHostState
@@ -95,7 +119,7 @@ fun LongPressMenu(
                     onDismissRequest()
                     scope.launch {
                         val chunk = withContext(Dispatchers.IO) {
-                            info.chunks.getAsync(
+                            editor.chunks.getAsync(
                                 ChunkPos(editor.dimension.runtimeId, pos.chunkX, pos.chunkZ)
                             ).await()
                         }
@@ -109,7 +133,7 @@ fun LongPressMenu(
                         val key = chunk.pos.buildPrefix()
                         key[key.size - 1] = tag.dataID
                         val source = VirtualFile(
-                            info.storage,
+                            editor.world.storage,
                             "${if (isEntity) "Entity" else "BlockEntity"} at " +
                                     "${editor.dimension.identifier} (${pos.chunkX}, ${pos.chunkZ}) ",
                             key
@@ -192,7 +216,11 @@ fun LongPressMenu(
                                     editor.selection.isSelecting = false
                                 } else {
                                     scope.launch {
-                                        editor.beginSelectionAt(pos.worldX, pos.worldZ)
+                                        editor.selection.beginSelectionAt(
+                                            mapModel,
+                                            pos.worldX,
+                                            pos.worldZ
+                                        )
                                     }
                                 }
                             },
@@ -228,7 +256,6 @@ fun LongPressMenu(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateMarkerDialog(
     request: CreateMarkerRequest,

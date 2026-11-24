@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -80,17 +82,20 @@ class MainActivity : ComponentActivity() {
                         backStack = shared.backStack,
                         transitionSpec = {
                             slideIntoContainer(
-                                AnimatedContentTransitionScope.SlideDirection.Start
+                                towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             ) togetherWith ExitTransition.KeepUntilTransitionsFinished
                         },
                         popTransitionSpec = {
                             EnterTransition.None togetherWith slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End
+                                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             )
                         },
                         predictivePopTransitionSpec = {
                             EnterTransition.None togetherWith slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End
+                                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             )
                         },
                         entryProvider = { key ->

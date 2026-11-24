@@ -1,63 +1,41 @@
 package ovh.plrapps.mapcompose.api
 
-import ovh.plrapps.mapcompose.ui.state.markers.model.ClusterClickBehavior as ClusterClickBehaviorInternal
-import ovh.plrapps.mapcompose.ui.state.markers.model.Custom as CustomInternal
-import ovh.plrapps.mapcompose.ui.state.markers.model.Default as DefaultInternal
-import ovh.plrapps.mapcompose.ui.state.markers.model.None as NoneInternal
+import ovh.plrapps.mapcompose.utils.Point
 
-data class Camera(val x: Double, val y: Double)
+typealias Camera = Point
 
-sealed interface ClusterClickBehavior
-
-/**
- * Zoom-in to reveal a subset or all markers of the cluster.
- */
-data object Default : ClusterClickBehavior
+data class BoundingBox(
+    @JvmField val xLeft: Double,
+    @JvmField val yTop: Double,
+    @JvmField val xRight: Double,
+    @JvmField val yBottom: Double
+)
 
 /**
- * When a cluster is clicked, the provided [onClick] callback is invoked.
- * the optional parameter [withDefaultBehavior] signifies if the [Default] callback behavior should be applied too
+ * ```
+ *    p1         p2
+ *      ---------
+ *      |       |
+ *      |       |
+ *      ---------
+ *    p4         p3
+ * ```
  */
-data class Custom(val withDefaultBehavior: Boolean = false, val onClick: (ClusterData) -> Unit) : ClusterClickBehavior
+typealias VisibleArea = BoundingBox
 
-/**
- * Cluster related data.
- * @param x, y The coordinates of the cluster's barycenter
- * @param markers The list of markers contained by the cluster
- */
-data class ClusterData(val x: Double, val y: Double, val markers: List<MarkerDataSnapshot>)
-
-/**
- * Clusters aren't clickable
- */
-data object None : ClusterClickBehavior
-
-/**
- * Convert public api type to internal type.
- */
-internal fun ClusterClickBehavior.toInternal(): ClusterClickBehaviorInternal {
-    return when (this) {
-        is Custom -> CustomInternal(
-            onClick = {
-                this.onClick(
-                    ClusterData(
-                        it.x,
-                        it.y,
-                        it.markers.map { markerData ->
-                            MarkerDataSnapshot(markerData.id, markerData.x, markerData.y)
-                        }
-                    )
-                )
-            },
-            withDefaultBehavior = this.withDefaultBehavior
-
-        )
-        Default -> DefaultInternal
-        None -> NoneInternal
-    }
-}
-
-sealed interface ClusterScaleThreshold {
-    data object MaxScale : ClusterScaleThreshold
-    data class FixedScale(val scale: Double) : ClusterScaleThreshold
-}
+val VisibleArea.p1x: Double
+    get() = xLeft
+val VisibleArea.p1y: Double
+    get() = yTop
+val VisibleArea.p2x: Double
+    get() = xRight
+val VisibleArea.p2y: Double
+    get() = yTop
+val VisibleArea.p3x: Double
+    get() = xRight
+val VisibleArea.p3y: Double
+    get() = yBottom
+val VisibleArea.p4x: Double
+    get() = xLeft
+val VisibleArea.p4y: Double
+    get() = yBottom

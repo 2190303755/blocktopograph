@@ -1,6 +1,5 @@
 package ovh.plrapps.mapcompose.ui.layout
 
-import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -9,21 +8,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.ui.gestures.detectTapGestures
 import ovh.plrapps.mapcompose.ui.gestures.detectTransformGestures
+import ovh.plrapps.mapcompose.ui.state.ZoomPanState
 
 @Composable
 internal fun ZoomPan(
     modifier: Modifier = Modifier,
-    gestureListener: GestureListener,
-    layoutSizeChangeListener: LayoutSizeChangeListener,
+    zoomPanState: ZoomPanState,
+    visibleAreaPadding: (Density, IntSize) -> IntOffset,
+    onTap: (x: Double, y: Double) -> Unit,
+    onLongPress: (x: Double, y: Double) -> Unit,
+    onTouchDown: () -> Unit,
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -31,40 +33,56 @@ internal fun ZoomPan(
 
     Layout(
         content = content,
-        modifier
-            .pointerInput(gestureListener.isListeningForGestures()) {
-                if (!gestureListener.isListeningForGestures()) return@pointerInput
+        modifier = modifier
+            .pointerInput(zoomPanState.isListeningForGestures()) {
+                if (!zoomPanState.isListeningForGestures()) return@pointerInput
                 detectTransformGestures(
                     onGesture = { pivot, pan, gestureZoom ->
-                        gestureListener.onScaleRatio(gestureZoom.toDouble(), pivot)
-                        gestureListener.onScrollDelta(pan)
+                        zoomPanState.onScaleRatio(gestureZoom.toDouble(), pivot)
+                        zoomPanState.onScrollDelta(pan)
                     },
-                    onTouchDown = gestureListener::onTouchDown,
-                    onTwoFingersTap = gestureListener::onTwoFingersTap,
-                    onFling = { velocity -> gestureListener.onFling(flingSpec, velocity) },
-                    onFlingZoom = gestureListener::onFlingZoom
+                    onTouchDown = {
+                        onTouchDown()
+                        scope.launch { zoomPanState.onTouchDown() }
+                    },
+                    onTwoFingersTap = { pivot ->
+                        scope.launch { zoomPanState.onTwoFingersTap(pivot) }
+                    },
+                    onFling = { velocity ->
+                        scope.launch { zoomPanState.onFling(flingSpec, velocity) }
+                    },
+                    onFlingZoom = { velocity, pivot ->
+                        scope.launch { zoomPanState.onFlingZoom(velocity, pivot) }
+                    }
                 )
             }
-            .pointerInput(gestureListener.isListeningForGestures()) {
-                if (!gestureListener.isListeningForGestures()) return@pointerInput
+            .pointerInput(zoomPanState.isListeningForGestures()) {
+                if (!zoomPanState.isListeningForGestures()) return@pointerInput
                 detectTapGestures(
-                    onTap = gestureListener::onTap,
-                    onDoubleTap = gestureListener::onDoubleTap,
-                    onDoubleTapZoom = { pivot, zoom ->
-                        gestureListener.onScaleRatio(zoom.toDouble(), pivot)
+                    onTap = { offset ->
+                        onTap(zoomPanState.absoluteX(offset), zoomPanState.absoluteY(offset))
                     },
-                    onDoubleTapZoomFling = gestureListener::onFlingZoom,
-                    onPress = { gestureListener.onPress() },
-                    onLongPress = gestureListener::onLongPress,
-                    shouldConsumeTap = { gestureListener.shouldConsumeTapGesture(this, it) },
-                    shouldConsumeLongPress = { gestureListener.shouldConsumeLongPress(this, it) }
+                    onDoubleTap = { offset ->
+                        scope.launch { zoomPanState.onDoubleTap(offset) }
+                    },
+                    onDoubleTapZoom = { pivot, zoom ->
+                        zoomPanState.onScaleRatio(zoom.toDouble(), pivot)
+                    },
+                    onDoubleTapZoomFling = { velocity, pivot ->
+                        scope.launch { zoomPanState.onFlingZoom(velocity, pivot) }
+                    },
+                    onLongPress = { offset ->
+                        onLongPress(zoomPanState.absoluteX(offset), zoomPanState.absoluteY(offset))
+                    }
                 )
-            }
-            .onSizeChanged {
-                layoutSizeChangeListener.onSizeChanged(scope, it)
             }
             .fillMaxSize(),
     ) { measurables, constraints ->
+        /* The MeasureScope is a Density, so the padding lambda accesses the current environment. */
+        val size = IntSize(constraints.maxWidth, constraints.maxHeight)
+        zoomPanState.onMeasure(size, visibleAreaPadding(this, size))
+
+
         val placeables = measurables.fastMap { measurable ->
             // Measure each child
             measurable.measure(constraints)
@@ -78,24 +96,4 @@ internal fun ZoomPan(
             }
         }
     }
-}
-
-internal interface GestureListener {
-    fun onScaleRatio(scaleRatio: Double, pivot: Offset)
-    fun onScrollDelta(scrollDelta: Offset)
-    fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity)
-    fun onFlingZoom(velocity: Float, pivot: Offset)
-    fun onTouchDown()
-    fun onPress()
-    fun onTap(focalPt: Offset)
-    fun onDoubleTap(focalPt: Offset)
-    fun onTwoFingersTap(focalPt: Offset)
-    fun onLongPress(focalPt: Offset)
-    fun isListeningForGestures(): Boolean
-    fun shouldConsumeTapGesture(density: Density, focalPt: Offset): Boolean
-    fun shouldConsumeLongPress(density: Density, focalPt: Offset): Boolean
-}
-
-internal interface LayoutSizeChangeListener {
-    fun onSizeChanged(composableScope: CoroutineScope, size: IntSize)
 }

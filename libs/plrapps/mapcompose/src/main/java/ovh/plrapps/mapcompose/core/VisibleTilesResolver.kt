@@ -1,5 +1,6 @@
 package ovh.plrapps.mapcompose.core
 
+import androidx.annotation.AnyThread
 import androidx.compose.ui.util.fastCoerceAtMost
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -7,8 +8,7 @@ import kotlin.math.log2
 
 /**
  * Resolves the visible tiles.
- * This class isn't thread-safe, and public methods should be invoked from the same thread to ensure
- * consistency.
+ * This class is immutable and thread-safe, so its methods may be invoked from any thread.
  *
  * @param levelCount Number of levels
  * @param magnifyingFactor Alters the level at which tiles are picked for a given scale. By default,
@@ -21,23 +21,20 @@ import kotlin.math.log2
 internal class VisibleTilesResolver(
     levelCount: Int,
     @JvmField val tileSize: Int = 256,
-    @JvmField var magnifyingFactor: Int = 0
+    @JvmField val magnifyingFactor: Int = 0
 ) {
-
     @JvmField
     val maxLevel: Int = levelCount - 1
 
     /**
      * Last level is at scale 1.0, others are at scale 1.0 / power_of_2
      */
-    fun scaleShiftAtLevel(level: Int): Int {
-        return maxLevel - level
-    }
+    fun scaleShiftAtLevel(level: Int): Int = maxLevel - level
 
     /**
      * Returns the level, an entire value belonging to [0 ; [maxLevel]]
      */
-    internal fun getLevel(scale: Double, magnifyingFactor: Int = 0): Int {
+    internal fun getLevel(scale: Double, magnifyingFactor: Int): Int {
         /* This value can be negative */
         val partialLevel = log2(scale) - magnifyingFactor
 
@@ -49,85 +46,28 @@ internal class VisibleTilesResolver(
     }
 
     /**
-     * Get the [VisibleTiles], given the visible area in pixels.
-     *
-     * @param viewport The [Viewport] which represents the visible area. Its values depend on the
-     * scale.
+     * Resolves the visible tiles from the pixel-space bounds of the viewport.
+     * Values are in pixels and depend on [scale].
      */
-    fun getVisibleTiles(viewport: Viewport, scale: Double): VisibleTiles {
-        val level = getLevel(scale, magnifyingFactor)
+    @AnyThread
+    internal fun getVisibleTiles(
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        scale: Double
+    ): VisibleTiles {
+        val level = getLevel(scale, this.magnifyingFactor)
 
-        val scaledTileSize = (tileSize shl scaleShiftAtLevel(level)) * scale
+        val scaledTileSize = (this.tileSize shl scaleShiftAtLevel(level)) * scale
         val sizeFactor = 1.0 / scaledTileSize
-
-        val colLeft = floor(viewport.left * sizeFactor).toInt()
-        val rowTop = floor(viewport.top * sizeFactor).toInt()
-        val colRight = (ceil(viewport.right * sizeFactor).toInt() - 1)
-        val rowBottom = (ceil(viewport.bottom * sizeFactor).toInt() - 1)
 
         return VisibleTiles(
             level,
-            colLeft,
-            rowTop,
-            colRight,
-            rowBottom
+            floor(left * sizeFactor).toInt(),
+            floor(top * sizeFactor).toInt(),
+            ceil(right * sizeFactor).toInt() - 1,
+            ceil(bottom * sizeFactor).toInt() - 1,
         )
     }
-}
-
-/**
- * Properties container for the computed visible tiles.
- * @param level 0-based level index
- * TODO doc
- */
-internal data class VisibleTiles(
-    @JvmField val level: Int,
-    @JvmField val left: Int,
-    @JvmField val top: Int,
-    @JvmField val right: Int,
-    @JvmField val bottom: Int
-)
-
-internal fun VisibleTiles.contains(tile: Tile): Boolean {
-    return level == tile.zoom
-            && tile.row in this.top..this.bottom
-            && tile.col in this.left..this.right
-}
-
-internal fun VisibleTiles.intersects(tile: Tile): Boolean {
-    return if (level == tile.zoom) {
-        tile.row in this.top..this.bottom && tile.col in this.left..this.right
-    } else {
-        val curMinRow = this.top
-        val curMaxRow = this.bottom
-        val curMinCol = this.left
-        val curMaxCol = this.right
-
-        if (tile.zoom > level) { // User is zooming out
-            val dLevel = tile.zoom - level
-            val minRowAtLvl = curMinRow.minAtGreaterLevel(dLevel)
-            val maxRowAtLvl = curMaxRow.maxAtGreaterLevel(dLevel)
-
-            val minColAtLvl = curMinCol.minAtGreaterLevel(dLevel)
-            val maxColAtLvl = curMaxCol.maxAtGreaterLevel(dLevel)
-            tile.row in minRowAtLvl..maxRowAtLvl && tile.col in minColAtLvl..maxColAtLvl
-        } else { // User is zooming in
-            val dLevel = level - tile.zoom
-            val minRowAtLvl = tile.row.minAtGreaterLevel(dLevel)
-            val maxRowAtLvl = tile.row.maxAtGreaterLevel(dLevel)
-
-            val minColAtLvl = tile.col.minAtGreaterLevel(dLevel)
-            val maxColAtLvl = tile.col.maxAtGreaterLevel(dLevel)
-            curMinCol <= maxColAtLvl && minColAtLvl <= curMaxCol && curMinRow <= maxRowAtLvl &&
-                    minRowAtLvl <= curMaxRow
-        }
-    }
-}
-
-private fun Int.minAtGreaterLevel(n: Int): Int {
-    return this shl n
-}
-
-private fun Int.maxAtGreaterLevel(n: Int): Int {
-    return ((this + 1) shl n) - 1
 }

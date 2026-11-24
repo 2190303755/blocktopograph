@@ -17,47 +17,23 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.core.GestureConfiguration
-import ovh.plrapps.mapcompose.ui.layout.GestureListener
-import ovh.plrapps.mapcompose.ui.layout.LayoutSizeChangeListener
 import ovh.plrapps.mapcompose.utils.lerp
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.log2
 import kotlin.math.pow
 
 internal class ZoomPanState(
-    private val stateChangeListener: ZoomPanStateListener,
+    private val stateChangeListener: () -> Unit,
     minScale: Double,
     maxScale: Double,
     scale: Double,
     gestureConfiguration: GestureConfiguration,
-) : GestureListener, LayoutSizeChangeListener {
-    private var scope: CoroutineScope? = null
-    private var onLayoutContinuations = mutableListOf<Continuation<Unit>>()
-
-    /**
-     * Suspends until the view is laid out. To do that, we use the [scope] as flag.
-     *
-     * _Contract_:
-     * On layout change, [scope] and [layoutSize] are initialized, and queued continuations
-     * are resumed.
-     */
-    internal suspend fun awaitLayout() {
-        if (scope != null) return
-        suspendCoroutine {
-            onLayoutContinuations.add(it)
-        }
-    }
-
+) {
     private val areGesturesEnabled by derivedStateOf { isScrollingEnabled || isZoomingEnabled }
     internal var isScrollingEnabled by mutableStateOf(true)
     internal var isZoomingEnabled by mutableStateOf(true)
@@ -68,8 +44,9 @@ internal class ZoomPanState(
     internal var cameraX by mutableDoubleStateOf(0.0)
     internal var cameraY by mutableDoubleStateOf(0.0)
     internal var layoutSize by mutableStateOf(IntSize.Zero)
-
-    internal var visibleAreaPadding = VisibleAreaPadding(0, 0, 0, 0)
+        private set
+    internal var visibleAreaPadding by mutableStateOf(IntOffset.Zero)
+        private set
 
     var minScale = minScale
         set(value) {
@@ -110,54 +87,49 @@ internal class ZoomPanState(
     }
 
     /**
-     * Scales the layout with animated scale, without maintaining scroll position.
+     * Scales with animation, without maintaining scroll position.
+     * Requires [androidx.compose.runtime.MonotonicFrameClock].
      *
      * @param scale The final scale value the layout should animate to.
      * @param animationSpec The [AnimationSpec] the animation should use.
      */
-    @Suppress("unused")
     suspend fun smoothScaleTo(
         scale: Double,
-        animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow)
-    ): Boolean {
-        return invokeAndCheckSuccess {
-            val currScale = this@ZoomPanState.scale
-            if (currScale > 0) {
-                apiAnimatable.snapTo(0f)
-                apiAnimatable.animateTo(1f, animationSpec) {
-                    setScale(lerp(currScale, scale, value))
-                }
+        animationSpec: AnimationSpec<Float> = SpringSpec(stiffness = Spring.StiffnessLow),
+    ) {
+        val currScale = this.scale
+        if (currScale > 0) {
+            apiAnimatable.snapTo(0f)
+            apiAnimatable.animateTo(1f, animationSpec) {
+                setScale(lerp(currScale, scale, value))
             }
         }
     }
 
     /**
      * Animates the scroll to the destination value.
-     *
-     * @return `true` if the operation completed without being cancelled.
+     * Requires [androidx.compose.runtime.MonotonicFrameClock].
      */
     suspend fun smoothScrollTo(
         destCameraX: Double,
         destCameraY: Double,
         animationSpec: AnimationSpec<Float>
-    ): Boolean {
+    ) {
         val startCameraX = this.cameraX
         val startCameraY = this.cameraY
-
-        return invokeAndCheckSuccess {
-            userAnimatable.stop()
-            apiAnimatable.snapTo(0f)
-            apiAnimatable.animateTo(1f, animationSpec) {
-                setCamera(
-                    x = lerp(startCameraX, destCameraX, value),
-                    y = lerp(startCameraY, destCameraY, value)
-                )
-            }
+        userAnimatable.stop()
+        apiAnimatable.snapTo(0f)
+        apiAnimatable.animateTo(1f, animationSpec) {
+            setCamera(
+                x = lerp(startCameraX, destCameraX, value),
+                y = lerp(startCameraY, destCameraY, value),
+            )
         }
     }
 
     /**
      * Animates the scroll and the scale together with the supplied destination values.
+     * Requires [androidx.compose.runtime.MonotonicFrameClock].
      *
      * @param destCameraX Horizontal scroll of the destination point.
      * @param destCameraY Vertical scroll of the destination point.
@@ -169,27 +141,26 @@ internal class ZoomPanState(
         destCameraY: Double,
         destScale: Double,
         animationSpec: AnimationSpec<Float>
-    ): Boolean {
+    ) {
         val startCameraX = this.cameraX
         val startCameraY = this.cameraY
         val startScale = this.scale
 
-        return invokeAndCheckSuccess {
-            userAnimatable.stop()
-            apiAnimatable.snapTo(0f)
-            apiAnimatable.animateTo(1f, animationSpec) {
-                setScale(lerp(startScale, destScale, value), false)
-                setCamera(
-                    x = lerp(startCameraX, destCameraX, value),
-                    y = lerp(startCameraY, destCameraY, value)
-                )
-            }
+        userAnimatable.stop()
+        apiAnimatable.snapTo(0f)
+        apiAnimatable.animateTo(1f, animationSpec) {
+            setScale(lerp(startScale, destScale, value), false)
+            setCamera(
+                x = lerp(startCameraX, destCameraX, value),
+                y = lerp(startCameraY, destCameraY, value),
+            )
         }
     }
 
     /**
      * Animates the layout to the scale provided, while maintaining position determined by the
      * the provided focal point.
+     * Requires [androidx.compose.runtime.MonotonicFrameClock].
      *
      * @param pivot The focal point to maintain, relative to the layout.
      * @param destScale The final scale value the layout should animate to.
@@ -199,35 +170,19 @@ internal class ZoomPanState(
         pivot: Offset,
         destScale: Double,
         animationSpec: AnimationSpec<Float>
-    ): Boolean {
+    ) {
         val destScaleCst = constrainScale(destScale)
         val startScale = scale
-        if (startScale == destScaleCst) return true
+        if (startScale == destScaleCst) return
         /* Pinch and zoom magic */
         val offsetRatio = (destScaleCst - startScale) / (startScale * destScaleCst)
-        return smoothScrollScale(
-            (pivot.x - layoutSize.width / 2.0F) * offsetRatio + cameraX,
-            (pivot.y - layoutSize.height / 2.0F) * offsetRatio + cameraY,
+        val size = layoutSize
+        smoothScrollScale(
+            (pivot.x - size.width / 2.0F) * offsetRatio + cameraX,
+            (pivot.y - size.height / 2.0F) * offsetRatio + cameraY,
             destScaleCst,
             animationSpec
         )
-    }
-
-    /**
-     * Invokes [block] in the scope of the composition and return whether the operation completed
-     * without being cancelled.
-     */
-    internal suspend fun invokeAndCheckSuccess(block: suspend () -> Unit): Boolean {
-        var success = true
-        scope?.launch {
-            block()
-        }?.also {
-            it.invokeOnCompletion { t ->
-                if (t != null) success = false
-            }
-        }?.join()
-
-        return success
     }
 
     suspend fun stopAnimations() {
@@ -236,7 +191,7 @@ internal class ZoomPanState(
         userFloatAnimatable.stop()
     }
 
-    override fun onScaleRatio(scaleRatio: Double, pivot: Offset) {
+    fun onScaleRatio(scaleRatio: Double, pivot: Offset) {
         if (!isZoomingEnabled) return
 
         val formerScale = scale
@@ -244,175 +199,111 @@ internal class ZoomPanState(
 
         /* Pinch and zoom magic */
         val offsetRatio = (scale - formerScale) / (formerScale * scale)
+        val size = layoutSize
         setCamera(
-            x = (pivot.x - layoutSize.width / 2.0F) * offsetRatio + cameraX,
-            y = (pivot.y - layoutSize.height / 2.0F) * offsetRatio + cameraY
+            x = (pivot.x - size.width / 2.0F) * offsetRatio + cameraX,
+            y = (pivot.y - size.height / 2.0F) * offsetRatio + cameraY,
         )
     }
 
-    override fun onScrollDelta(scrollDelta: Offset) {
+    fun onScrollDelta(scrollDelta: Offset) {
         if (!isScrollingEnabled) return
 
         setCamera(cameraX - scrollDelta.x / scale, cameraY - scrollDelta.y / scale)
     }
 
-    override fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity) {
+    suspend fun onFling(flingSpec: DecayAnimationSpec<Offset>, velocity: Velocity) {
         if (!isScrollingEnabled) return
 
-        scope?.launch {
-            userAnimatable.snapTo(Offset.Zero)
-            val initialCameraX = cameraX
-            val initialCameraY = cameraY
-            userAnimatable.animateDecay(
-                initialVelocity = -Offset(velocity.x, velocity.y),
-                animationSpec = flingSpec,
-            ) {
-                setCamera(
-                    x = initialCameraX + value.x / scale,
-                    y = initialCameraY + value.y / scale
-                )
-            }
+        userAnimatable.snapTo(Offset.Zero)
+        val initialCameraX = cameraX
+        val initialCameraY = cameraY
+        userAnimatable.animateDecay(
+            initialVelocity = -Offset(velocity.x, velocity.y),
+            animationSpec = flingSpec,
+        ) {
+            setCamera(
+                x = initialCameraX + value.x / scale,
+                y = initialCameraY + value.y / scale,
+            )
         }
     }
 
-    override fun onFlingZoom(velocity: Float, pivot: Offset) {
+    suspend fun onFlingZoom(velocity: Float, pivot: Offset) {
         if (!isZoomingEnabled || !isFlingZoomEnabled) return
 
-        scope?.launch {
-            userFloatAnimatable.snapTo(0f)
-            val ln2 = ln(2.0)
-            var previous = 0f
-            userFloatAnimatable.animateDecay(
-                initialVelocity = velocity,
-                animationSpec = flingZoomSpec,
-            ) {
-                /* Since scale = 2.pow(z - maxLevel)  , where z is the zoom level
-                 * taking the derivative: d_scale = ln(2) * scale * d_z */
-                onScaleRatio(1.0 + ln2 * (value - previous), pivot)
-                previous = value
-            }
+        userFloatAnimatable.snapTo(0f)
+        val ln2 = ln(2.0)
+        var previous = 0f
+        userFloatAnimatable.animateDecay(
+            initialVelocity = velocity,
+            animationSpec = flingZoomSpec,
+        ) {
+            /* Since scale = 2.pow(z - maxLevel)  , where z is the zoom level
+             * taking the derivative: d_scale = ln(2) * scale * d_z */
+            onScaleRatio(1.0 + ln2 * (value - previous), pivot)
+            previous = value
         }
     }
 
-    override fun onTouchDown() {
+    suspend fun onTouchDown() {
         if (!areGesturesEnabled) return
 
-        scope?.launch {
-            stopAnimations()
-        }
-        stateChangeListener.onTouchDown()
+        stopAnimations()
     }
 
-    override fun onPress() {
-        stateChangeListener.onPress()
-    }
+    fun absoluteX(offset: Offset): Double =
+        (offset.x - layoutSize.width / 2.0F) / scale + cameraX
 
-    override fun onTap(focalPt: Offset) {
-        if (!stateChangeListener.detectsTap()) return
-        stateChangeListener.onTap(focalPt.absoluteX(), focalPt.absoluteY())
-    }
+    fun absoluteY(offset: Offset): Double =
+        (offset.y - layoutSize.height / 2.0F) / scale + cameraY
 
-    override fun onLongPress(focalPt: Offset) {
-        if (!stateChangeListener.detectsLongPress()) return
-        stateChangeListener.onLongPress(focalPt.absoluteX(), focalPt.absoluteY())
-    }
-
-    fun Offset.absoluteX(
-        scale: Double = this@ZoomPanState.scale
-    ): Double = (x - layoutSize.width / 2.0F) / scale + cameraX
-
-    fun Offset.absoluteY(
-        scale: Double = this@ZoomPanState.scale
-    ): Double = (y - layoutSize.height / 2.0F) / scale + cameraY
-
-    override fun onDoubleTap(focalPt: Offset) {
+    suspend fun onDoubleTap(focalPt: Offset) {
         if (!isZoomingEnabled) return
 
-        val destScale = 2.0.pow(floor(log2((scale * 2))))
+        val destScale = 2.0.pow(floor(log2(scale * 2)))
 
-        scope?.launch {
-            smoothScaleWithFocalPoint(
-                focalPt,
-                destScale,
-                doubleTapSpec
-            )
-        }
-    }
-
-    override fun onTwoFingersTap(focalPt: Offset) {
-        if (!isZoomingEnabled) return
-
-        val destScale = 2.0.pow(floor(log2((scale / 2))))
-
-        scope?.launch {
-            smoothScaleWithFocalPoint(
-                focalPt,
-                destScale,
-                doubleTapSpec
-            )
-        }
-    }
-
-    override fun isListeningForGestures(): Boolean = areGesturesEnabled
-
-    override fun shouldConsumeTapGesture(density: Density, focalPt: Offset): Boolean {
-        return stateChangeListener.interceptsTap(
-            density,
-            focalPt.x.toDouble(),
-            focalPt.y.toDouble(),
-            focalPt.absoluteX().toInt(),
-            focalPt.absoluteY().toInt()
+        smoothScaleWithFocalPoint(
+            focalPt,
+            destScale,
+            doubleTapSpec
         )
     }
 
-    override fun shouldConsumeLongPress(density: Density, focalPt: Offset): Boolean {
-        return stateChangeListener.interceptsLongPress(
-            density,
-            focalPt.x.toDouble(),
-            focalPt.y.toDouble(),
-            focalPt.absoluteX().toInt(),
-            focalPt.absoluteY().toInt()
+    suspend fun onTwoFingersTap(focalPt: Offset) {
+        if (!isZoomingEnabled) return
+
+        val destScale = 2.0.pow(floor(log2(scale / 2)))
+
+        smoothScaleWithFocalPoint(
+            focalPt,
+            destScale,
+            doubleTapSpec
         )
     }
 
-    override fun onSizeChanged(composableScope: CoroutineScope, size: IntSize) {
-        scope = composableScope
-        layoutSize = size
+    fun isListeningForGestures(): Boolean = areGesturesEnabled
 
-        /* Layout was done at least once, resume continuations */
-        for (ct in onLayoutContinuations) {
-            ct.resume(Unit)
-        }
-        onLayoutContinuations.clear()
-
-        notifyStateChanged()
+    /**
+     * Called from the MeasurePolicy. Writes two independent layout states; they are kept separate
+     * because size and visible-area offset change at different frequencies. Equal writes are
+     * swallowed by `mutableStateOf` equality, so a pure offset lambda cannot create a re-measure
+     * loop. Only a size change invalidates the tile viewport; offset changes are read directly by
+     * the scroll APIs.
+     */
+    internal fun onMeasure(layoutSize: IntSize, visibleAreaPadding: IntOffset) {
+        val sizeChanged = this.layoutSize != layoutSize
+        this.layoutSize = layoutSize
+        this.visibleAreaPadding = visibleAreaPadding
+        if (sizeChanged) notifyStateChanged()
     }
 
-    internal fun constrainScale(scale: Double): Double {
-        return scale.coerceIn(minScale, maxScale.coerceAtLeast(minScale))
-    }
+    internal fun constrainScale(scale: Double): Double =
+        scale.coerceIn(minScale, maxScale.coerceAtLeast(minScale))
 
     private fun notifyStateChanged() {
         if (layoutSize != IntSize.Zero) {
-            stateChangeListener.onStateChanged()
+            stateChangeListener()
         }
     }
-
-}
-
-/**
- * The padding to apply when some UI is obscuring the map on it's borders.
- */
-internal data class VisibleAreaPadding(val left: Int, val top: Int, val right: Int, val bottom: Int)
-
-interface ZoomPanStateListener {
-    fun onStateChanged()
-    fun onTouchDown()
-    fun onPress()
-    fun onLongPress(x: Double, y: Double)
-    fun onTap(x: Double, y: Double)
-    fun detectsTap(): Boolean
-    fun detectsLongPress(): Boolean
-    fun interceptsTap(density: Density, x: Double, y: Double, xPx: Int, yPx: Int): Boolean
-    fun interceptsLongPress(density: Density, x: Double, y: Double, xPx: Int, yPx: Int): Boolean
 }

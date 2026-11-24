@@ -2,16 +2,18 @@
 
 package ovh.plrapps.mapcompose.api
 
+import androidx.annotation.MainThread
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.core.ColorFilterProvider
-import ovh.plrapps.mapcompose.ui.state.MapState
+import ovh.plrapps.mapcompose.ui.state.MapModel
 
 /**
  * Reloads all tiles.
  */
-fun MapState.reloadTiles() {
-    scope.launch {
+fun MapModel.reloadTiles() {
+    viewModelScope.launch {
         tileCanvasState.forgetTiles()
         renderVisibleTilesThrottled()
     }
@@ -22,19 +24,17 @@ fun MapState.reloadTiles() {
  * Values below 0.04f aren't recommended (can cause blinks), the default is 0.07f.
  * A [speed] of 1f effectively disables the fade-in effect.
  */
-fun MapState.setFadeInSpeed(speed: Float) {
-    scope.launch {
-        tileCanvasState.alphaTick = speed
-    }
+@MainThread
+fun MapModel.setFadeInSpeed(speed: Float) {
+    tileCanvasState.alphaTick = speed
 }
 
 /**
  * Disables the fade-in effect of tiles.
  */
-fun MapState.disableFadeIn() {
-    scope.launch {
-        tileCanvasState.alphaTick = 1f
-    }
+@MainThread
+fun MapModel.disableFadeIn() {
+    tileCanvasState.alphaTick = 1f
 }
 
 /**
@@ -42,7 +42,7 @@ fun MapState.disableFadeIn() {
  * coordinate of tiles.
  * This change triggers a re-composition (effects are immediately visible).
  */
-fun MapState.setColorFilterProvider(provider: ColorFilterProvider) {
+fun MapModel.setColorFilterProvider(provider: ColorFilterProvider) {
     tileCanvasState.colorFilterProvider = provider
 }
 
@@ -52,22 +52,11 @@ fun MapState.setColorFilterProvider(provider: ColorFilterProvider) {
  *
  * @param padding in pixels
  */
-fun MapState.setPreloadingPadding(padding: Int) {
-    scope.launch {
-        preloadingPadding = padding.coerceAtLeast(0)
-        renderVisibleTilesThrottled()
-    }
+@MainThread
+fun MapModel.setPreloadingPadding(padding: Int) {
+    preloadingPadding = padding.coerceAtLeast(0)
+    renderVisibleTilesThrottled()
 }
 
-/**
- * The magnifying factor alters the level at which tiles are picked for a given scale. By default,
- * the level immediately higher (in index) is picked, to avoid sub-sampling. This corresponds to a
- * magnifying factor of 0. The value 1 will result in picking the current level at a given scale,
- * which will be at a relative scale between 1.0 and 2.0
- */
-fun MapState.setMagnifyingFactor(factor: Int) {
-    scope.launch {
-        visibleTilesResolver.magnifyingFactor = factor
-        renderVisibleTilesThrottled()
-    }
-}
+/* `setMagnifyingFactor` is gone: the factor is immutable resolver configuration, injected via
+ * the MapModel constructor. */

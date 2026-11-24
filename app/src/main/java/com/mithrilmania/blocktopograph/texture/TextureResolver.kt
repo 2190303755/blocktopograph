@@ -3,6 +3,7 @@ package com.mithrilmania.blocktopograph.texture
 import android.content.Context
 import coil3.ImageLoader
 import coil3.fetch.Fetcher
+import coil3.key.Keyer
 import coil3.request.Options
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +30,7 @@ private val TEXTURE_FILE_EXTENSIONS = listOf("png", "jpg", "jpeg")
 class TextureResolver internal constructor(
     packsFlow: Flow<List<ResourcePack>>,
     private val zipFile: (String) -> File,
-) : Fetcher.Factory<TextureRequest> {
+) : Fetcher.Factory<TextureRequest>, Keyer<TextureRequest> {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val openZips = ConcurrentHashMap<String, ZipFile>()
 
@@ -103,4 +104,9 @@ class TextureResolver internal constructor(
         options: Options,
         imageLoader: ImageLoader
     ): Fetcher = TextureFetcher(this, data, options.fileSystem)
+
+    override fun key(
+        data: TextureRequest,
+        options: Options
+    ): String = "${data.path}@v${data.version}"
 }

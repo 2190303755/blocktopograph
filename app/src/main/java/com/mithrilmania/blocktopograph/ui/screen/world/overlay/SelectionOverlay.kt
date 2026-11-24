@@ -38,7 +38,7 @@ import com.mithrilmania.blocktopograph.map.selection.Selection
 import ovh.plrapps.mapcompose.api.cameraX
 import ovh.plrapps.mapcompose.api.cameraY
 import ovh.plrapps.mapcompose.api.scale
-import ovh.plrapps.mapcompose.ui.state.MapState
+import ovh.plrapps.mapcompose.ui.state.MapModel
 
 
 /**
@@ -56,14 +56,14 @@ import ovh.plrapps.mapcompose.ui.state.MapState
  * `DrawScope.size` (same as [CoordinateGridOverlay]).
  */
 @Composable
-fun SelectionOverlay(mapState: MapState, selection: Selection) {
+fun SelectionOverlay(model: MapModel, selection: Selection) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val scale = mapState.scale.toFloat()
+        val scale = model.scale.toFloat()
         val centerX = this.size.width * 0.5F
         val centerY = this.size.height * 0.5F
 
-        val left = centerX + (selection.left - mapState.cameraX).toFloat() * scale
-        val top = centerY + (selection.top - mapState.cameraY).toFloat() * scale
+        val left = centerX + (selection.left - model.cameraX).toFloat() * scale
+        val top = centerY + (selection.top - model.cameraY).toFloat() * scale
 
         val offset = Offset(left, top)
         val bound = Size(
@@ -85,13 +85,13 @@ fun SelectionOverlay(mapState: MapState, selection: Selection) {
 }
 
 @Composable
-fun SelectionHandles(mapState: MapState, selection: Selection) {
+fun SelectionHandles(model: MapModel, selection: Selection) {
     Layout(
         modifier = Modifier.fillMaxSize(),
         content = {
             // Children order: LEFT, TOP, RIGHT, BOTTOM (after the Canvas).
             DragHandleButton(
-                mapState = mapState,
+                model = model,
                 icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 coordinate = selection.left,
                 orientation = Orientation.Horizontal
@@ -105,7 +105,7 @@ fun SelectionHandles(mapState: MapState, selection: Selection) {
             }
 
             DragHandleButton(
-                mapState = mapState,
+                model = model,
                 icon = Icons.Filled.KeyboardArrowUp,
                 coordinate = selection.top,
                 orientation = Orientation.Vertical
@@ -119,7 +119,7 @@ fun SelectionHandles(mapState: MapState, selection: Selection) {
             }
 
             DragHandleButton(
-                mapState = mapState,
+                model = model,
                 icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 coordinate = selection.right,
                 orientation = Orientation.Horizontal
@@ -133,7 +133,7 @@ fun SelectionHandles(mapState: MapState, selection: Selection) {
             }
 
             DragHandleButton(
-                mapState = mapState,
+                model = model,
                 icon = Icons.Filled.KeyboardArrowDown,
                 coordinate = selection.bottom,
                 orientation = Orientation.Vertical
@@ -150,9 +150,9 @@ fun SelectionHandles(mapState: MapState, selection: Selection) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
 
-        val scale = mapState.scale.toFloat()
-        val cameraX = mapState.cameraX.toFloat()
-        val cameraY = mapState.cameraY.toFloat()
+        val scale = model.scale.toFloat()
+        val cameraX = model.cameraX.toFloat()
+        val cameraY = model.cameraY.toFloat()
 
         val centerScreenX = width * 0.5F
         val centerScreenY = height * 0.5F
@@ -164,7 +164,7 @@ fun SelectionHandles(mapState: MapState, selection: Selection) {
         val bottomPx = centerScreenY + (selection.bottom - cameraY) * scale
 
         // Measure the handles first so their real screen size drives the spacing rules. The
-        // selection's screen size already incorporates mapState.scale, so basing the thresholds
+        // selection's screen size already incorporates model.scale, so basing the thresholds
         // on the measured handle size (instead of fixed dp) keeps them correct at any zoom level
         // and prevents the handles from overlapping when the selection renders small.
         val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
@@ -231,7 +231,7 @@ fun Placeable.PlacementScope.place(placeable: Placeable, centerX: Int, centerY: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DragHandleButton(
-    mapState: MapState,
+    model: MapModel,
     icon: ImageVector,
     orientation: Orientation,
     coordinate: Int,
@@ -258,7 +258,7 @@ private fun DragHandleButton(
             modifier = Modifier.draggable(
                 state = rememberDraggableState {
                     val pos = delta + it
-                    val scale = mapState.scale.toFloat()
+                    val scale = model.scale.toFloat()
                     val blocks = (pos / scale).toInt()
                     if (blocks == 0) {
                         delta = pos

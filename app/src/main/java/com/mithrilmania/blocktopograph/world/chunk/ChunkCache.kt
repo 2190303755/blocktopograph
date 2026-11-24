@@ -6,18 +6,16 @@ import com.google.common.cache.CacheBuilder
 import com.mithrilmania.blocktopograph.block.BlockTemplate
 import com.mithrilmania.blocktopograph.registry.Registry
 import com.mithrilmania.blocktopograph.util.APP_TAG
-import it.unimi.dsi.fastutil.longs.Long2IntMap
+import com.mithrilmania.blocktopograph.world.LoadedWorld
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import org.iq80.leveldb.DB
 
 class ChunkCache(
     parent: CoroutineScope,
-    @JvmField val storage: DB,
-    @JvmField val bounds: Long2IntMap,
+    @JvmField val world: LoadedWorld,
     @JvmField val blocks: Registry<BlockTemplate>
 ) {
     private val scope = CoroutineScope(
@@ -30,7 +28,7 @@ class ChunkCache(
     operator fun get(pos: ChunkPos): Chunk? {
         try {
             return cache.get(pos) {
-                pos.resolveChunk(storage, bounds, blocks)
+                pos.resolveChunk(world, blocks)
             }
         } catch (_: NoSuchChunkException) {
             // Only log the chunks that exist but cannot be loaded

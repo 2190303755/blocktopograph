@@ -3,50 +3,41 @@ package ovh.plrapps.mapcompose.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import ovh.plrapps.mapcompose.ui.layout.ZoomPan
-import ovh.plrapps.mapcompose.ui.markers.MarkerComposer
-import ovh.plrapps.mapcompose.ui.paths.PathComposer
-import ovh.plrapps.mapcompose.ui.state.MapState
+import ovh.plrapps.mapcompose.ui.state.MapModel
 import ovh.plrapps.mapcompose.ui.view.TileCanvas
 
 @Composable
 fun MapUI(
     modifier: Modifier = Modifier,
-    state: MapState,
-    content: @Composable () -> Unit = {}
+    model: MapModel,
+    visibleAreaPadding: (Density, IntSize) -> IntOffset = { _, _ -> IntOffset.Zero },
+    onTap: (x: Double, y: Double) -> Unit = { _, _ -> },
+    onLongPress: (x: Double, y: Double) -> Unit = { _, _ -> },
+    onTouchDown: () -> Unit = {},
+    content: @Composable () -> Unit = {},
 ) {
-    val zoomPanState = state.zoomPanState
-    val markerState = state.markerRenderState
-    val pathState = state.pathState
-
-    key(state) {
+    key(model) {
         ZoomPan(
-            modifier = modifier, // if someone wants to clip or change the background, just pass modifier
-            gestureListener = zoomPanState,
-            layoutSizeChangeListener = zoomPanState,
+            modifier = modifier, // clip/background are controlled by the caller
+            zoomPanState = model.zoomPanState,
+            visibleAreaPadding = visibleAreaPadding,
+            onTap = onTap,
+            onLongPress = onLongPress,
+            onTouchDown = onTouchDown
         ) {
+            val canvas = model.tileCanvasState
             TileCanvas(
                 modifier = Modifier,
-                zoomPanState = zoomPanState,
-                visibleTilesResolver = state.visibleTilesResolver,
-                tileSize = state.tileSize,
-                alphaTick = state.tileCanvasState.alphaTick,
-                colorFilterProvider = state.tileCanvasState.colorFilterProvider,
-                tilesToRender = state.tileCanvasState.tilesToRender
-            )
-
-            MarkerComposer(
-                modifier = Modifier.zIndex(1f),
-                zoomPanState = zoomPanState,
-                markerRenderState = markerState,
-                mapState = state
-            )
-
-            PathComposer(
-                modifier = Modifier,
-                zoomPanState = zoomPanState,
-                pathState = pathState
+                zoomPanState = model.zoomPanState,
+                visibleTilesResolver = model.visibleTilesResolver,
+                tileSize = model.tileSize,
+                alphaTick = canvas.alphaTick,
+                colorFilterProvider = canvas.colorFilterProvider,
+                tilesToRender = canvas.tilesToRender,
             )
 
             content()

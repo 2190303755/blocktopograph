@@ -9,10 +9,10 @@ import com.mithrilmania.blocktopograph.registry.getOrAssignId
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.startsWith
 import com.mithrilmania.blocktopograph.world.HeightRange
+import com.mithrilmania.blocktopograph.world.LoadedWorld
 import com.mithrilmania.blocktopograph.world.NO_CACHE_OPTION
 import com.mithrilmania.blocktopograph.world.chunk.Data3DTerrain.Companion.Data3DTerrain
 import com.mithrilmania.blocktopograph.world.chunk.SubChunkV1.Companion.readLayer
-import it.unimi.dsi.fastutil.longs.Long2IntMap
 import org.iq80.leveldb.DB
 
 class Chunk(
@@ -144,12 +144,12 @@ class Chunk(
 }
 
 fun ChunkPos.resolveChunk(
-    storage: DB,
-    bounds: Long2IntMap,
+    world: LoadedWorld,
     blocks: Registry<BlockTemplate>
 ): Chunk {
     val prefix = this.buildPrefix()
     // resolve format version
+    val storage = world.storage
     val format = storage[prefix, ChunkTag.VERSION] ?: storage[prefix, ChunkTag.LEGACY_VERSION]
     if (format === null || format.isEmpty()) {
         throw NoSuchChunkException("Failed to resolve format of chunk")
@@ -165,7 +165,7 @@ fun ChunkPos.resolveChunk(
     }
     var min: Int
     var max: Int
-    val bound = bounds.get(hash)
+    val bound = world.heightBounds.get(hash)
     if (bound == 0) {
         when (this.dimension) {
             0, 2 -> { // not sure if it works with Caves and Cliffs previews

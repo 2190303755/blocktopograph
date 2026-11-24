@@ -69,7 +69,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
@@ -357,11 +356,9 @@ fun WorkspaceManagerScreen() {
                 TextButton(onClick = {
                     pendingDelete = null
                     appContext.externalCacheDir?.let { cache ->
-                        scope.launch {
-                            withContext(Dispatchers.IO) {
-                                WorkspaceStore.remove(appContext, entry.first)?.let {
-                                    File(cache, it.uuid.toString()).deleteRecursively()
-                                }
+                        scope.launch(Dispatchers.IO) {
+                            WorkspaceStore.remove(appContext, entry.first)?.let {
+                                File(cache, it.uuid.toString()).deleteRecursively()
                             }
                         }
                     }

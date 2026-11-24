@@ -31,36 +31,23 @@ import com.mithrilmania.blocktopograph.ui.component.PanelValue
 import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.Signal
 import com.mithrilmania.blocktopograph.util.math.DimensionVec3f
-import com.mithrilmania.blocktopograph.util.math.DimensionVec3i
 import com.mithrilmania.blocktopograph.util.startsWith
 import com.mithrilmania.blocktopograph.world.CHUNK_DIMENSION
 import com.mithrilmania.blocktopograph.world.Dimension
 import com.mithrilmania.blocktopograph.world.KeyPrefix
 import com.mithrilmania.blocktopograph.world.LoadedWorld
 import com.mithrilmania.blocktopograph.world.NO_CACHE_OPTION
-import com.mithrilmania.blocktopograph.world.VanillaDimension
-import com.mithrilmania.blocktopograph.world.access.WorldAccess
 import com.mithrilmania.blocktopograph.world.access.boxed
 import com.mithrilmania.blocktopograph.world.access.extractPlayerPos
 import com.mithrilmania.blocktopograph.world.access.resolveLocalPlayerPos
 import com.mithrilmania.blocktopograph.world.chunk.ChunkCache
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap
-import it.unimi.dsi.fastutil.longs.Long2IntMap
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.iq80.leveldb.DB
-import ovh.plrapps.mapcompose.api.getLayoutSize
-import ovh.plrapps.mapcompose.api.reloadTiles
-import ovh.plrapps.mapcompose.api.scale
-import ovh.plrapps.mapcompose.api.scrollTo
-import ovh.plrapps.mapcompose.api.setCamera
-import ovh.plrapps.mapcompose.ui.state.MapState
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
 const val ZOOM_LEVELS = 4
 
@@ -70,36 +57,20 @@ enum class MapLayer(@JvmField @field:StringRes val display: Int) {
     HEIGHT_MAP(R.string.heightmap)
 }
 
-sealed interface InitState {
-    object Initializing : InitState
-    class Succeed(
-        scope: CoroutineScope,
-        @JvmField val world: LoadedWorld,
-        @JvmField val storage: DB,
-        @JvmField var spawnPos: DimensionVec3i, // TODO: marker
-        @JvmField val dimensions: Int2ObjectMap<out Dimension>,
-        @JvmField val heightBounds: Long2IntMap,
-        @JvmField var localPlayer: DimensionVec3f? // TODO: marker
-    ) : InitState {
-        @JvmField
-        val blocks: Registry<BlockTemplate> = BlockTemplates.REGISTRY_FACTORY.create()
-
-        @JvmField
-        val chunks = ChunkCache(scope, this.storage, this.heightBounds, this.blocks)
-    }
-}
-
 class SelectionV2 : Selection() {
     override var isSelecting: Boolean by mutableStateOf(false)
 }
 
 class WorldEditorModel(
-    @JvmField val loaded: LoadedWorld,
+    @JvmField val world: LoadedWorld,
+    dimension: Dimension,
     collapseOffset: (Density, Int, Boolean) -> Float
 ) : ViewModel() {
     @JvmField
-    val world: WorldAccess = loaded.access
-    var initialization: InitState by mutableStateOf(InitState.Initializing)
+    val blocks: Registry<BlockTemplate> = BlockTemplates.REGISTRY_FACTORY.create()
+
+    @JvmField
+    val chunks = ChunkCache(viewModelScope, world, blocks)
 
     @JvmField
     val intents = Channel<Intent>(Channel.CONFLATED)
@@ -117,7 +88,7 @@ class WorldEditorModel(
     @JvmField
     val selection = SelectionV2()
     var enabledLayer: MapLayer by mutableStateOf(MapLayer.SATELLITE)
-    var dimension: Dimension by mutableStateOf(VanillaDimension.OVERWORLD)
+    var dimension: Dimension by mutableStateOf(dimension)
 
     /**
      * Position of the latest map long-press while its options menu is visible.
@@ -135,8 +106,9 @@ class WorldEditorModel(
     var showGrid by mutableStateOf(true)
 
     /**
-     * Whether markers are shown on the map. Marker rendering itself is not ported yet,
-     * so this switch currently only holds the intended visibility state.
+     * Whether markers are shown on the map. Built-in markers are rendered by ChunkedMarkerLayer,
+     * but this switch is not wired to that layer yet, so it currently only holds the intended
+     * visibility state.
      */
     var showMarkers by mutableStateOf(true)
 
@@ -174,25 +146,6 @@ class WorldEditorModel(
         this.blockingJob.cancel()
     }
 
-    /**
-     * Runs a selection edit on the IO dispatcher, emits its result to [editResult] and
-     * reloads the rendered map after a successful modification.
-     */
-    fun launchEdit(block: suspend () -> EditResultCode) {
-        this.waitForJob(this.viewModelScope.launch(Dispatchers.IO) {
-            val code = try {
-                block()
-            } catch (e: Exception) {
-                Log.e(APP_TAG, "Selection operation failed", e)
-                EditResultCode.GENERAL_FAILURE
-            }
-            this@WorldEditorModel.editResult.emit(code)
-            if (code === EditResultCode.SUCCESS) {
-                this@WorldEditorModel.map.reloadTiles()
-            }
-        })
-    }
-
     @JvmField
     val coordinateX = TextFieldState()
 
@@ -206,15 +159,6 @@ class WorldEditorModel(
     val selectorPaneState = SelectorPaneState()
 
     /**
-     * Animates the map camera to the given world coordinate.
-     */
-    fun moveCamera(x: Double, z: Double) {
-        viewModelScope.launch {
-            map.scrollTo(x, z)
-        }
-    }
-
-    /**
      * Opens the long-press options menu for the given map coordinate and derives its chunk.
      * Negative coordinates are floored to match the legacy map behavior.
      */
@@ -225,26 +169,6 @@ class WorldEditorModel(
             floor(worldX / CHUNK_DIMENSION).toInt(),
             floor(worldZ / CHUNK_DIMENSION).toInt()
         )
-    }
-
-    /**
-     * Begins a square selection centered at [worldX]/[worldZ], with an edge of about half
-     * the viewport, matching the legacy selection-board behavior.
-     */
-    suspend fun beginSelectionAt(worldX: Double, worldZ: Double) {
-        val layoutSize = map.getLayoutSize()
-        val scale = map.scale
-        val radius = (minOf(layoutSize.width, layoutSize.height) / scale / 4.0)
-            .roundToInt().coerceAtLeast(1)
-        val centerX = worldX.toInt()
-        val centerZ = worldZ.toInt()
-        selection.set(
-            centerX - radius,
-            centerZ - radius,
-            centerX + radius,
-            centerZ + radius
-        )
-        selection.isSelecting = true
     }
 
     /**
@@ -261,7 +185,7 @@ class WorldEditorModel(
         dimension: Dimension
     ): Int? = try {
         val marker = MarkerManager.markerFromData(displayName, iconName, x, y, z, dimension)
-        world.markers.addMarker(marker, true)
+        world.access.markers.addMarker(marker, true)
         null
     } catch (e: Exception) {
         Log.e(APP_TAG, "Failed to create marker", e)
@@ -269,12 +193,12 @@ class WorldEditorModel(
     }
 
     /**
-     * Writes the marker store to disk when a custom marker was added or removed.
+     * Writes the marker store to disk when a custom marker was added.
      */
     fun persistMarkers() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                world.markers.saveToFile()
+                world.access.markers.saveToFile()
             } catch (e: Exception) {
                 Log.e(APP_TAG, "Failed to persist markers", e)
             }
@@ -295,7 +219,7 @@ class WorldEditorModel(
         loader = viewModelScope.launch(Dispatchers.IO) {
             val players = mutableListOf<Player>()
             try {
-                val localPlayerPos: DimensionVec3f? = world.resolveLocalPlayerPos(db)
+                val localPlayerPos: DimensionVec3f? = world.access.resolveLocalPlayerPos(db)
                 if (localPlayerPos !== null) {
                     players.add(Player.localPlayer().apply {
                         position = localPlayerPos.boxed()
@@ -334,7 +258,7 @@ class WorldEditorModel(
         if (loader.isActive) return loader
         loader = viewModelScope.launch(Dispatchers.IO) {
             val markers: List<AbstractMarker> = try {
-                world.markers.listMarkers()
+                world.access.markers.listMarkers()
             } catch (_: Exception) {
                 // TODO log
                 emptyList()
@@ -347,47 +271,7 @@ class WorldEditorModel(
         return loader
     }
 
-    @JvmField
-    val map: MapState = MapState(
-        levelCount = ZOOM_LEVELS,
-        tileSize = CHUNK_DIMENSION
-    ) {
-        magnifyingFactor(4)
-        minScale(0.625)
-        maxScale(64.0)
-        scale(16.0)
-    }
-
-
-    init {
-        val spawnPos = loaded.spawnPos
-        val localPlayer = loaded.localPlayer
-        val focusX = (localPlayer?.x ?: spawnPos.x.toFloat()).toDouble()
-        val focusZ = (localPlayer?.z ?: spawnPos.z.toFloat()).toDouble()
-        val dimension = if (localPlayer === null) {
-            loaded.dimensions[spawnPos.dimensionId]
-        } else {
-            loaded.dimensions[localPlayer.dimensionId]
-        }
-        if (dimension !== null) {
-            this.dimension = dimension
-            this.map.setCamera(
-                focusX,
-                focusZ
-            )
-        }
-        this.initialization = InitState.Succeed(
-            viewModelScope,
-            loaded,
-            loaded.storage,
-            spawnPos,
-            loaded.dimensions,
-            loaded.heightBounds,
-            localPlayer
-        )
-    }
-
     override fun onCleared() {
-        loaded.close()
+        this.world.close()
     }
 }

@@ -17,13 +17,13 @@ import com.mithrilmania.blocktopograph.world.CHUNK_DIMENSION
 import ovh.plrapps.mapcompose.api.cameraX
 import ovh.plrapps.mapcompose.api.cameraY
 import ovh.plrapps.mapcompose.api.scale
-import ovh.plrapps.mapcompose.ui.state.MapState
+import ovh.plrapps.mapcompose.ui.state.MapModel
 import kotlin.math.floor
 import kotlin.math.log2
 import android.graphics.Paint as AndroidPaint
 
 @Composable
-fun CoordinateGridOverlay(mapState: MapState) {
+fun CoordinateGridOverlay(model: MapModel) {
     val textPaint = remember {
         TextPaint(
             AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.LINEAR_TEXT_FLAG
@@ -34,7 +34,7 @@ fun CoordinateGridOverlay(mapState: MapState) {
     }
     val step by remember {
         derivedStateOf {
-            val scale = mapState.scale
+            val scale = model.scale
             val shift = floor(4.75 - log2(scale)).toInt()
             if (shift > 0) 1 shl shift else 1
         }
@@ -45,9 +45,9 @@ fun CoordinateGridOverlay(mapState: MapState) {
         val lineHeight = textStyle.lineHeight.toPx()
         val indent = lineHeight - textSize
         textPaint.textSize = textSize
-        val scale = mapState.scale.toFloat()
-        val cameraX = mapState.cameraX.toFloat()
-        val cameraY = mapState.cameraY.toFloat()
+        val scale = model.scale.toFloat()
+        val cameraX = model.cameraX.toFloat()
+        val cameraY = model.cameraY.toFloat()
         val layoutSize = size
         val gridStepInChunks = step
 

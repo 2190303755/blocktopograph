@@ -68,7 +68,7 @@ class TextureFetcherTest {
 
     @Test
     fun fetchReturnsNullOnMiss() = runBlocking {
-        val resolver = TextureResolver(MutableStateFlow(emptyList<ResourcePack>())) { File(it) }
+        val resolver = TextureResolver(MutableStateFlow(emptyList())) { File(it) }
         try {
             assertTrue(resolver.enabledZips.first { it.isEmpty() }.isEmpty())
             assertNull(
@@ -85,8 +85,7 @@ class TextureFetcherTest {
     @Test
     fun keyerReadsOnlyRequestFields() {
         val options = Options(mock())
-        val keyer = TextureKeyer()
-
+        val keyer = TextureResolver(MutableStateFlow(emptyList())) { File(it) }
         assertEquals(
             "textures/blocks/stone@v3",
             keyer.key(TextureRequest("textures/blocks/stone", 3L), options),

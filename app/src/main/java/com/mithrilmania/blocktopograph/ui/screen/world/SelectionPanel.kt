@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.collection.IntIntPair
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -98,6 +99,7 @@ import com.mithrilmania.blocktopograph.ui.component.InfoBox
 import com.mithrilmania.blocktopograph.ui.component.TextButton
 import com.mithrilmania.blocktopograph.ui.component.awaitSnackbar
 import com.mithrilmania.blocktopograph.ui.screen.world.layer.renderSatellite
+import com.mithrilmania.blocktopograph.util.APP_TAG
 import com.mithrilmania.blocktopograph.util.ConvertUtil
 import com.mithrilmania.blocktopograph.util.isDifferentState
 import com.mithrilmania.blocktopograph.util.toast
@@ -110,6 +112,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.IOException
+import ovh.plrapps.mapcompose.api.reloadTiles
+import ovh.plrapps.mapcompose.ui.state.MapModel
 import kotlin.math.round
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -204,7 +208,7 @@ private fun editLampshadeAt(
 }
 
 @Composable
-fun SelectionAction(editor: WorldEditorModel) {
+fun SelectionAction(mapModel: MapModel, editor: WorldEditorModel) {
     val scope = rememberCoroutineScope()
     val selection = editor.selection
 
@@ -225,17 +229,25 @@ fun SelectionAction(editor: WorldEditorModel) {
 
     /**
      * Builds a [SelectionEditTarget] over the current selection and runs the edit on the
-     * IO dispatcher through [WorldEditorModel.launchEdit].
+     * IO dispatcher
      */
     fun runEdit(block: suspend SelectionEditTarget.() -> EditResultCode) {
-        val info = editor.initialization as? InitState.Succeed ?: return
-        editor.launchEdit {
-            SelectionEditTarget(
-                info.chunks,
-                editor.dimension,
-                editor.selection.toIntRect()
-            ).block()
-        }
+        editor.waitForJob(editor.viewModelScope.launch(Dispatchers.IO) {
+            val code = try {
+                SelectionEditTarget(
+                    editor.chunks,
+                    editor.dimension,
+                    editor.selection.toIntRect()
+                ).block()
+            } catch (e: Exception) {
+                Log.e(APP_TAG, "Selection operation failed", e)
+                EditResultCode.GENERAL_FAILURE
+            }
+            editor.editResult.emit(code)
+            if (code === EditResultCode.SUCCESS) {
+                mapModel.reloadTiles() // FIXME lifecycle risk
+            }
+        })
     }
 
     fun startPicer() {
@@ -248,7 +260,6 @@ fun SelectionAction(editor: WorldEditorModel) {
             picerOutOfSize = true
             return
         }
-        val info = editor.initialization as? InitState.Succeed ?: return
         // Each chunk is rendered at 1 block per pixel first; the bitmap can be scaled later.
         val job = scope.launch(Dispatchers.IO) {
             val bitmap = createBitmap(width, height, Bitmap.Config.RGB_565)
@@ -260,10 +271,10 @@ fun SelectionAction(editor: WorldEditorModel) {
                 for (chunkZ in chunkMinZ..chunkMaxZ) {
                     val pos = ChunkPos(editor.dimension.runtimeId, chunkX, chunkZ)
                     try {
-                        val chunk = info.chunks.getAsync(pos).await() ?: continue
+                        val chunk = editor.chunks.getAsync(pos).await() ?: continue
                         renderSatellite(
                             bitmap,
-                            info.chunks,
+                            editor.chunks,
                             chunk,
                             chunkX * 16 - selection.left,
                             chunkZ * 16 - selection.top
@@ -452,8 +463,7 @@ fun SelectionAction(editor: WorldEditorModel) {
 
 /**
  * Panel content shown in the floating panel while a selection exists. It presents the live
- * selection coordinates and size (updated while dragging the map handles) and the list of
- * operations applicable to the selection.
+ * selection coordinates and size (updated while dragging the map handles).
  */
 @Composable
 fun SelectionPanel(editor: WorldEditorModel) {
@@ -869,11 +879,11 @@ private fun GeneratedImageDialog(
                     if (saving) return@TextButton
                     saving = true
                     editor.viewModelScope.launch {
-                        val appContext = editor.world.appContext
+                        val appContext = editor.world.access.appContext
                         val result = withContext(Dispatchers.IO) {
                             saveImageToGallery(
                                 appContext.contentResolver,
-                                editor.world.resolvePlainName(appContext),
+                                editor.world.access.resolvePlainName(appContext),
                                 scaledBitmap
                             )
                         }.getOrNull()

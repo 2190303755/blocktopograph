@@ -8,7 +8,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -16,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -38,7 +36,7 @@ import kotlinx.coroutines.launch
 import ovh.plrapps.mapcompose.api.cameraX
 import ovh.plrapps.mapcompose.api.cameraY
 import ovh.plrapps.mapcompose.api.scale
-import ovh.plrapps.mapcompose.ui.state.MapState
+import ovh.plrapps.mapcompose.ui.state.MapModel
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.floor
@@ -193,7 +191,7 @@ class ChunkedMarkerState(
  */
 @Composable
 fun ChunkedMarkerLayer(
-    mapState: MapState,
+    model: MapModel,
     dimensionId: Int,
     source: ChunkMarkerSource,
     modifier: Modifier = Modifier,
@@ -206,24 +204,20 @@ fun ChunkedMarkerLayer(
     // 切换维度：清空并令 in-flight 结果作废
     LaunchedEffect(dimensionId) { state.onDimensionChanged() }
 
-    var layoutSize by remember { mutableStateOf(IntSize.Zero) }
     val iconPx = LocalDensity.current.run { iconSize.toPx().toInt() }
 
-    // camera / scale / 布局尺寸变化 → 重算可见区块 → 驱动加载/卸载
-    LaunchedEffect(mapState, dimensionId) {
-        snapshotFlow { resolveVisibleChunks(mapState, layoutSize, padding = 1) }
+    // camera / scale / 布局尺寸变化 → 重算可见区块 → 驱动加载/卸载。
+    // layoutSize 由 ZoomPan 的 MeasurePolicy 写入模型，无需本层 onSizeChanged。
+    LaunchedEffect(dimensionId) {
+        snapshotFlow { resolveVisibleChunks(model, padding = 1) }
             .distinctUntilChanged()
             .collect { state.updateViewport(dimensionId, it) }
     }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .onSizeChanged { layoutSize = it }
-    ) {
-        val scale = mapState.scale.toFloat()
-        val camX = mapState.cameraX.toFloat()
-        val camY = mapState.cameraY.toFloat()
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val scale = model.scale.toFloat()
+        val camX = model.cameraX.toFloat()
+        val camY = model.cameraY.toFloat()
         val half = iconPx / 2f
         val cx = size.width * 0.5f
         val cy = size.height * 0.5f
@@ -239,7 +233,7 @@ fun ChunkedMarkerLayer(
                     image = m.icon,
                     dstOffset = IntOffset((sx - half).toInt(), (sy - half).toInt()),
                     dstSize = IntSize(iconPx, iconPx),
-                    //filterQuality = FilterQuality.None
+                    filterQuality = m.quality
                 )
             }
         }
@@ -248,14 +242,15 @@ fun ChunkedMarkerLayer(
 
 /** 由 camera / scale / 布局尺寸计算可见区块 AABB（含 padding 圈预加载）。 */
 private fun resolveVisibleChunks(
-    mapState: MapState,
-    layoutSize: IntSize,
+    model: MapModel,
     padding: Int,
 ): VisibleChunks {
-    val scale = mapState.scale.toFloat()
-    if (scale <= 0f || layoutSize.width == 0 || layoutSize.height == 0) return VisibleChunks.EMPTY
-    val camX = mapState.cameraX.toFloat()
-    val camY = mapState.cameraY.toFloat()
+    val scale = model.scale.toFloat()
+    if (scale <= 0f) return VisibleChunks.EMPTY
+    val layoutSize = model.layoutSize
+    if (layoutSize.width == 0 || layoutSize.height == 0) return VisibleChunks.EMPTY
+    val camX = model.cameraX.toFloat()
+    val camY = model.cameraY.toFloat()
     val cx = layoutSize.width * 0.5f
     val cy = layoutSize.height * 0.5f
     val startX = floor((camX - cx / scale) / CHUNK_DIMENSION).toInt() - padding

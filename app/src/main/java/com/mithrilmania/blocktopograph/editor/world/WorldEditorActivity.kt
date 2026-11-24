@@ -12,6 +12,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -169,17 +171,20 @@ class WorldEditorActivity : WorldActivity() {
                         backStack = backStack,
                         transitionSpec = {
                             slideIntoContainer(
-                                AnimatedContentTransitionScope.SlideDirection.Start
+                                towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             ) togetherWith ExitTransition.KeepUntilTransitionsFinished
                         },
                         popTransitionSpec = {
                             EnterTransition.None togetherWith slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End
+                                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             )
                         },
                         predictivePopTransitionSpec = {
                             EnterTransition.None togetherWith slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End
+                                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(easing = LinearOutSlowInEasing)
                             )
                         }
                     ) { key ->
@@ -455,7 +460,7 @@ class WorldEditorActivity : WorldActivity() {
                 this.model.showGrid.value = false == this.model.showGrid.value
 
             R.id.nav_map_opt_filter_markers -> {
-                //toggle the grid
+                //filter markers
                 TileEntity.loadIcons(this.assets)
                 this.mapFragment.openMarkerFilter()
             }
@@ -495,7 +500,7 @@ class WorldEditorActivity : WorldActivity() {
     }
 
     /**
-     * Loads local player data "~local-player" or level.dat>"Player" into an EditableNBT.
+     * Loads local player data "~local-player" or level.dat>"Player" into the NBT editor.
      */
     fun openLocalPlayer() {
         val model = this.worldModel ?: return
@@ -523,7 +528,7 @@ class WorldEditorActivity : WorldActivity() {
     }
 
     /**
-     * Open NBT editor fragment for special database entry
+     * Open NBT editor screen for special database entry
      */
     fun openSpecialDBEntry(entry: SpecialDBEntryType?) {
         if (entry === null) return

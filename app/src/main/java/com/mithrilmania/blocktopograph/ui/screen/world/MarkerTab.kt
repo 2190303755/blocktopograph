@@ -37,11 +37,13 @@ import androidx.compose.ui.unit.dp
 import com.mithrilmania.blocktopograph.R
 import com.mithrilmania.blocktopograph.ui.component.IconButton
 import kotlinx.coroutines.launch
+import ovh.plrapps.mapcompose.api.scrollTo
+import ovh.plrapps.mapcompose.ui.state.MapModel
 
 @Composable
 fun MarkerTab(
+    mapModel: MapModel,
     viewModel: WorldEditorModel,
-    info: InitState.Succeed,
     padding: PaddingValues
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
@@ -64,7 +66,7 @@ fun MarkerTab(
         }
     }
     Column(Modifier.fillMaxSize()) {
-        // TODO: wire the switch to on-map marker rendering once markers are rendered here.
+        // TODO: wire the switch to the ChunkedMarkerLayer on-map marker rendering.
         SegmentedListItem(
             selected = false,
             onClick = { viewModel.showMarkers = !viewModel.showMarkers },
@@ -96,7 +98,11 @@ fun MarkerTab(
                 LazyColumn(Modifier.fillMaxSize()) {
                     items(markers) {
                         ListItem(
-                            onClick = { viewModel.moveCamera(it.x.toDouble(), it.z.toDouble()) },
+                            onClick = {
+                                coroutineScope.launch {
+                                    mapModel.scrollTo(it.x.toDouble(), it.z.toDouble())
+                                }
+                            },
                             modifier = Modifier.animateItem(),
                             colors = ListItemDefaults.colors(
                                 containerColor = Color.Transparent

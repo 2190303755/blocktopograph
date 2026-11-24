@@ -26,7 +26,6 @@ sealed class MapMarker(
     @JvmField val dimension: Dimension,
     @JvmField val icon: SizedImage
 ) {
-
     /** 出生点标记。 */
     class Spawn(
         x: Int,

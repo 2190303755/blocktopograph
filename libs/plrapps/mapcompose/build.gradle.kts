@@ -34,6 +34,7 @@ kotlin {
 dependencies {
     api(platform(libs.compose.bom))
     api(libs.compose.foundation)
+    api(libs.lifecycle.viewmodel.ktx)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.ui.util)

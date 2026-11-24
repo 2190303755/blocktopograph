@@ -12,7 +12,6 @@ import com.mithrilmania.blocktopograph.storage.ShizukuFileService
 import com.mithrilmania.blocktopograph.storage.ShizukuFileSystem
 import com.mithrilmania.blocktopograph.storage.WorldDetailMapper
 import com.mithrilmania.blocktopograph.storage.isLegacyExternalStorageAvailable
-import com.mithrilmania.blocktopograph.texture.TextureKeyer
 import com.mithrilmania.blocktopograph.texture.TextureResolver
 import com.mithrilmania.blocktopograph.util.ShizukuConnector
 import okio.FileSystem
@@ -51,8 +50,8 @@ class Blocktopograph : Application(),
     override fun newImageLoader(context: Context): ImageLoader {
         return ImageLoader.Builder(context).components {
             add(WorldDetailMapper())
-            add(textures)
-            add(TextureKeyer())
+            add(factory = textures)
+            add(keyer = textures)
         }.fileSystem(
             if (isLegacyExternalStorageAvailable()) FileSystem.SYSTEM else ShizukuFileSystem()
         ).crossfade(true)

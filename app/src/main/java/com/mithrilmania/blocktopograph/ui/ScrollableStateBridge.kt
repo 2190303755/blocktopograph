@@ -49,7 +49,6 @@ class ScrollableStateBridge(context: Context) : ViewGroup(context), ScrollingVie
         this.coroutineScope = null
     }
 
-
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
 
     override fun computeHorizontalScrollRange(): Int = 0

@@ -1,17 +1,16 @@
 package ovh.plrapps.mapcompose.ui.state
 
-import androidx.compose.ui.unit.Density
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import ovh.plrapps.mapcompose.core.GestureConfiguration
-import ovh.plrapps.mapcompose.core.Viewport
 import ovh.plrapps.mapcompose.core.VisibleTilesResolver
 import ovh.plrapps.mapcompose.core.throttle
-import ovh.plrapps.mapcompose.ui.gestures.model.HitType
-import ovh.plrapps.mapcompose.ui.state.markers.MarkerRenderState
-import ovh.plrapps.mapcompose.ui.state.markers.MarkerState
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -23,194 +22,88 @@ import kotlin.time.Duration.Companion.milliseconds
  * @param workerCount The thread count used to fetch tiles. Defaults to the number of cores minus
  * one, which works well for tiles in the file system or in a local database. However, that number
  * should be increased to 16 or more for remote tiles (HTTP requests).
- * @param initialValuesBuilder A builder for [InitialValues] which are applied during [MapState]
- * initialization. Note that the provided lambda should not start any coroutines.
+ * @param scale The initial scale. Defaults to 1.0.
+ * @param minScale The minimum scale. Defaults to [Double.MIN_VALUE].
+ * @param maxScale The maximum scale. Defaults to 4.0.
+ * @param magnifyingFactor The magnifying factor used when resolving the level for a given scale.
+ * Defaults to 0, which picks the level immediately higher in index to avoid sub-sampling.
+ * @param preloadingPadding The extra pixels preloaded around the visible area. Defaults to 0.
+ * @param gestureConfiguration The configuration of gesture animations. Defaults to
+ * [GestureConfiguration].
  */
-class MapState(
+class MapModel(
     levelCount: Int,
     tileSize: Int = 256,
     workerCount: Int = Runtime.getRuntime().availableProcessors() - 1,
-    initialValuesBuilder: InitialValues.() -> Unit = {}
-) : ZoomPanStateListener {
-    private val initialValues = InitialValues().apply(initialValuesBuilder)
-    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    scale: Double = 1.0,
+    minScale: Double = Double.MIN_VALUE,
+    maxScale: Double = 4.0,
+    magnifyingFactor: Int = 0,
+    preloadingPadding: Int = 0,
+    gestureConfiguration: GestureConfiguration = GestureConfiguration(),
+) : ViewModel() {
     internal val zoomPanState = ZoomPanState(
-        stateChangeListener = this,
-        minScale = initialValues.minScale,
-        maxScale = initialValues.maxScale,
-        scale = initialValues.scale,
-        gestureConfiguration = initialValues.gestureConfiguration
+        stateChangeListener = { renderVisibleTilesThrottled() },
+        minScale = minScale,
+        maxScale = maxScale,
+        scale = scale,
+        gestureConfiguration = gestureConfiguration,
     )
-    internal val markerRenderState = MarkerRenderState()
-    internal val markerState = MarkerState(scope, markerRenderState)
-    internal val pathState = PathState()
     internal val visibleTilesResolver = VisibleTilesResolver(
         levelCount = levelCount,
         tileSize = tileSize,
-        magnifyingFactor = initialValues.magnifyingFactor
+        magnifyingFactor = magnifyingFactor
     )
     internal val tileCanvasState = TileCanvasState(
-        scope,
+        viewModelScope,
         visibleTilesResolver,
         workerCount
     )
 
-    private val throttledTask = scope.throttle(wait = 18.milliseconds) {
+    private val throttledTask = viewModelScope.throttle(wait = 18.milliseconds) {
         updateViewport()
     }
-    private val viewport = Viewport()
-    internal var preloadingPadding: Int = initialValues.preloadingPadding
+
+    internal var preloadingPadding: Int = preloadingPadding.coerceAtLeast(0)
     internal val tileSize get() = visibleTilesResolver.tileSize
-    internal var stateChangeListener: (MapState.() -> Unit)? = null
-    internal var touchDownCb: (() -> Unit)? = null
-    internal var tapCb: LayoutTapCb? = null
-    internal var longPressCb: LayoutTapCb? = null
+
+    val layoutSize: IntSize get() = zoomPanState.layoutSize
+    val visibleAreaPadding: IntOffset get() = zoomPanState.visibleAreaPadding
 
     /**
-     * Cancels all internal tasks.
-     * After this call, this [MapState] is unusable.
+     * Layout sizes, without continuations. Because the visible-area offset is a separate state,
+     * offset-only changes do not emit here; a zero size is filtered by [awaitLayout].
      */
-    @Suppress("unused")
-    fun shutdown() {
-        scope.cancel()
-        tileCanvasState.shutdown()
-        pathState.removeAllPaths()
-        markerState.removeAllMarkers()
-    }
+    val layoutFlow: Flow<IntSize> = snapshotFlow { layoutSize }
 
-    override fun onStateChanged() {
-        renderVisibleTilesThrottled()
-        stateChangeListener?.invoke(this)
-    }
-
-    override fun onTouchDown() {
-        touchDownCb?.invoke()
-    }
-
-    override fun onPress() {
-        markerRenderState.removeAllAutoDismissCallouts()
-    }
-
-    override fun onLongPress(x: Double, y: Double) {
-        longPressCb?.invoke(x, y)
-    }
-
-    override fun onTap(x: Double, y: Double) {
-        tapCb?.invoke(x, y)
-    }
-
-    override fun detectsTap(): Boolean = tapCb != null
-
-    override fun detectsLongPress(): Boolean = longPressCb != null
-
-    override fun interceptsTap(
-        density: Density,
-        x: Double,
-        y: Double,
-        xPx: Int,
-        yPx: Int
-    ): Boolean {
-        return markerState.onHit(xPx, yPx, hitType = HitType.Click)
-                || pathState.onHit(density, x, y, zoomPanState.scale, hitType = HitType.Click)
-    }
-
-    override fun interceptsLongPress(
-        density: Density, x: Double, y: Double, xPx: Int, yPx: Int
-    ): Boolean {
-        return markerState.onHit(xPx, yPx, hitType = HitType.LongPress)
-                || pathState.onHit(density, x, y, zoomPanState.scale, hitType = HitType.LongPress)
-    }
+    suspend fun awaitLayout(): IntSize = layoutFlow.first { it != IntSize.Zero }
 
     internal fun renderVisibleTilesThrottled() {
         throttledTask.trySend(Unit)
     }
 
-    private suspend fun updateViewport() {
+    private fun updateViewport() {
         val padding = preloadingPadding * 2
         val zoomPanState = this.zoomPanState
         val scale = zoomPanState.scale
         val layoutSize = zoomPanState.layoutSize
         val width = padding + layoutSize.width
         val height = padding + layoutSize.height
-        val viewport = this.viewport
-        viewport.left = (zoomPanState.cameraX * scale).toInt() - width / 2
-        viewport.top = (zoomPanState.cameraY * scale).toInt() - height / 2
-        viewport.right = viewport.left + width
-        viewport.bottom = viewport.top + height
-        tileCanvasState.setViewport(viewport, scale)
+        val left = (zoomPanState.cameraX * scale).toInt() - width / 2
+        val top = (zoomPanState.cameraY * scale).toInt() - height / 2
+        tileCanvasState.setViewport(
+            left = left,
+            top = top,
+            right = left + width,
+            bottom = top + height,
+            scale = scale
+        )
+    }
+
+    override fun onCleared() {
+        /* Order matters: cancelling first prevents a late reply from hanging on a RENDEZVOUS
+         * channel with no consumer, then reject new tasks, then interrupt the workers. */
+        viewModelScope.cancel()
+        tileCanvasState.close()
     }
 }
-
-/**
- * Builder for initial values.
- * Changes made after the `MapState` instance creation take precedence over initial values.
- * In the following example, the init scale will be 4.0 since the max scale is later set to 4.0.
- *
- * ```
- * MapState(4, 4096, 4096,
- *   initialValues = InitialValues().scale(8.0)
- * ).apply {
- *   addLayer(tileStreamProvider)
- *   maxScale = 4.0
- * }
- * ```
- */
-@Suppress("unused")
-class InitialValues internal constructor() {
-    internal var scale: Double = 1.0
-    internal var minScale: Double = Double.MIN_VALUE
-    internal var maxScale: Double = 4.0
-    internal var magnifyingFactor = 0
-    internal var preloadingPadding: Int = 0
-    internal var gestureConfiguration: GestureConfiguration = GestureConfiguration()
-
-    /**
-     * Set the initial scale. Defaults to 1.0.
-     */
-    fun scale(scale: Double) = apply {
-        this.scale = scale
-    }
-
-    /**
-     * Set the minimum allowed scale. Defaults to [Double.MIN_VALUE].
-     */
-    fun minScale(minScale: Double) = apply {
-        this.minScale = minScale
-    }
-
-    /**
-     * Set the maximum allowed scale. Defaults to 4.0.
-     */
-    fun maxScale(maxScale: Double) = apply {
-        this.maxScale = maxScale
-    }
-
-    /**
-     * Alters the level at which tiles are picked for a given scale. By default, the level
-     * immediately higher (in index) is picked, to avoid sub-sampling. This corresponds to a
-     * [magnifyingFactor] of 0. The value 1 will result in picking the current level at a given
-     * scale, which will be at a relative scale between 1.0 and 2.0
-     */
-    fun magnifyingFactor(magnifyingFactor: Int) = apply {
-        this.magnifyingFactor = magnifyingFactor.coerceAtLeast(0)
-    }
-
-    /**
-     * By default, only visible tiles are loaded. By adding a preloadingPadding additional tiles
-     * will be loaded, which can be used to produce a seamless tile loading effect.
-     *
-     * @param padding in pixels
-     */
-    fun preloadingPadding(padding: Int) = apply {
-        this.preloadingPadding = padding.coerceAtLeast(0)
-    }
-
-    /**
-     * Customize gestures.
-     */
-    fun configureGestures(gestureConfigurationBlock: GestureConfiguration.() -> Unit) {
-        this.gestureConfiguration.gestureConfigurationBlock()
-    }
-}
-
-internal typealias LayoutTapCb = (x: Double, y: Double) -> Unit

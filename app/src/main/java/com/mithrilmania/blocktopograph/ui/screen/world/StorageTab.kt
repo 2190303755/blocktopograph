@@ -41,11 +41,13 @@ import com.mithrilmania.blocktopograph.world.StandaloneKey
 import com.mithrilmania.blocktopograph.world.hexedKey
 import com.mithrilmania.blocktopograph.world.wrapAsFile
 import kotlinx.coroutines.launch
+import ovh.plrapps.mapcompose.api.scrollTo
+import ovh.plrapps.mapcompose.ui.state.MapModel
 
 @Composable
 fun StorageTab(
+    mapModel: MapModel,
     editor: WorldEditorModel,
-    info: InitState.Succeed,
     padding: PaddingValues,
     onNavigate: (AppNavKey) -> Unit
 ) {
@@ -57,7 +59,7 @@ fun StorageTab(
     LaunchedEffect(Unit) {
         if (editor.players === null) {
             isRefreshing = true
-            editor.loadPlayers(info.storage).join()
+            editor.loadPlayers(editor.world.storage).join()
             isRefreshing = false
         }
     }
@@ -65,7 +67,7 @@ fun StorageTab(
         if (!isRefreshing) {
             isRefreshing = true
             coroutineScope.launch {
-                editor.loadPlayers(info.storage).join()
+                editor.loadPlayers(editor.world.storage).join()
                 context.toast(R.string.general_done)
                 isRefreshing = false
             }
@@ -90,7 +92,7 @@ fun StorageTab(
         item {
             SegmentedListItem(
                 onClick = {
-                    onNavigate(AppNavKey.StorageExplorer(info.storage))
+                    onNavigate(AppNavKey.StorageExplorer(editor.world.storage))
                 },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
@@ -106,7 +108,7 @@ fun StorageTab(
                 onClick = {
                     onNavigate(
                         AppNavKey.NBTEditor(
-                            editor.world.config to NBTImportConfigImpl(
+                            editor.world.access.config to NBTImportConfigImpl(
                                 NBTFormat.LITTLE_ENDIAN,
                                 true
                             )
@@ -124,6 +126,9 @@ fun StorageTab(
             editor = editor,
             isRefreshing = isRefreshing,
             onRefresh = refresh,
+            onMoveCamera = { x, z ->
+                coroutineScope.launch { mapModel.scrollTo(x, z) }
+            },
             expanded = playersExpanded,
             onExpandedChange = { playersExpanded = !playersExpanded },
             colors = colors
@@ -135,7 +140,7 @@ fun StorageTab(
             colors = colors,
             onEntryClick = { entry ->
                 coroutineScope.launch {
-                    val file = info.storage.wrapAsFile(entry)
+                    val file = editor.world.storage.wrapAsFile(entry)
                     if (file.isPresent(null)) {
                         onNavigate(AppNavKey.NBTEditor(file to file))
                     } else {
@@ -151,6 +156,7 @@ private fun LazyListScope.playerSection(
     editor: WorldEditorModel,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onMoveCamera: (Double, Double) -> Unit,
     expanded: Boolean,
     onExpandedChange: () -> Unit,
     colors: ListItemColors
@@ -201,7 +207,7 @@ private fun LazyListScope.playerSection(
                 SegmentedListItem(
                     onClick = {
                         position?.let {
-                            editor.moveCamera(it.x.toDouble(), it.z.toDouble())
+                            onMoveCamera(it.x.toDouble(), it.z.toDouble())
                         }
                     },
                     enabled = position !== null,
